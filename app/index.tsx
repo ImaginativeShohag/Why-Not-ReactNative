@@ -1,18 +1,30 @@
 import "@expo/metro-runtime";
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import {Image} from 'expo-image';
+import {Button, Platform, StyleSheet} from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
+import {HelloWave} from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import {ThemedText} from '@/components/ThemedText';
+import {ThemedView} from '@/components/ThemedView';
 
 import ExpoLogo from '@/assets/images/expo.svg';
+import {useRouter} from "expo-router";
+import {useEffect} from "react";
 
 export default function HomeScreen() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.push("/store/home")
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    })
+
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+            headerBackgroundColor={{light: '#A1CEDC', dark: '#1D3D47'}}
             headerImage={
                 // <Image
                 //   source={require('@/assets/images/partial-react-logo.png')}
@@ -22,7 +34,7 @@ export default function HomeScreen() {
             }>
             <ThemedView style={styles.titleContainer}>
                 <ThemedText type="title">Welcome to Why Not ReactNative!</ThemedText>
-                <HelloWave />
+                <HelloWave/>
             </ThemedView>
             <ThemedView style={styles.stepContainer}>
                 <ThemedText type="subtitle">Step 1: Try it</ThemedText>
@@ -55,6 +67,11 @@ export default function HomeScreen() {
                     <ThemedText type="defaultSemiBold">app-example</ThemedText>.
                 </ThemedText>
             </ThemedView>
+            <Button title="Store Example"
+                    onPress={() => {
+                        router.push("/store/home")
+                    }}
+            />
         </ParallaxScrollView>
     );
 }

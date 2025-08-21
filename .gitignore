@@ -41,3 +41,7 @@ app-example
 # IDEs
 .idea/
 .vscode/
+
+# Prebuilds
+/ios
+/android
