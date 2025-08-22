@@ -45,3 +45,7 @@ app-example
 # Prebuilds
 /ios
 /android
+
+# Built Files
+*.apk
+*.aab
