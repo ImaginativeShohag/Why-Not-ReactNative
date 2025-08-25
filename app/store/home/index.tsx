@@ -146,17 +146,18 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.titleText}>Welcome, Lorem Ipsum build!</Text>
-
-        <View style={{ flex: 1 }} />
+        <ThemedText type={"title"} style={{ flex: 1, fontWeight: "normal" }}>
+          Welcome,
+          <ThemedText type={"title"} style={{ fontWeight: "bold" }}>
+            Lorem Ipsum build!
+          </ThemedText>
+        </ThemedText>
 
         <Ionicons name="person-circle-outline" size={32} />
       </View>
 
       {/* Carousel */}
-      <View
-      // style={{flex: 1}}
-      >
+      <View>
         <Carousel
           loop={true}
           width={screenWidth - 16 * 2}
@@ -251,7 +252,9 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    gap: 16,
   },
   itemContainer: {
     flex: 1, // Allows items to take equal width within their column
