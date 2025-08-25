@@ -10,13 +10,14 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList, MasonryFlashList } from "@shopify/flash-list";
+import { FlashList } from "@shopify/flash-list";
 
 import { Product, Category } from "@/models/Product";
 import Carousel from "react-native-reanimated-carousel";
 import { renderItem } from "@/utils/render-item";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useEffect } from "react";
+import ProductView from "@/components/ui/product-item";
 
 export const products = [
   new Product({
@@ -145,95 +146,84 @@ export const categories = [
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <ThemedText type={"title"} style={{ flex: 1, fontWeight: "normal" }}>
-          Welcome,
-          <ThemedText type={"title"} style={{ fontWeight: "bold" }}>
-            Lorem Ipsum build!
-          </ThemedText>
-        </ThemedText>
-
-        <Ionicons name="person-circle-outline" size={32} />
-      </View>
-
-      {/* Carousel */}
-      <View>
-        <Carousel
-          loop={true}
-          width={screenWidth - 16 * 2}
-          height={300}
-          snapEnabled={true}
-          pagingEnabled={true}
-          autoPlayInterval={2000}
-          data={defaultDataWith6Colors}
-          style={{ width: "100%" }}
-          onSnapToItem={(index) => console.log("current index:", index)}
-          mode="parallax"
-          modeConfig={{
-            parallaxScrollingScale: 0.9,
-            parallaxScrollingOffset: 50,
-          }}
-          renderItem={renderItem({
-            rounded: true,
-            style: { marginHorizontal: 0 },
-          })}
-        />
-      </View>
-
-      {/* Categories */}
-      <FlashList
-        data={categories}
-        keyExtractor={(item) => item}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => {
-              // todo
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons name="person-circle-outline" size={32} />
-              <ThemedText>{item}</ThemedText>
-            </View>
-          </Pressable>
-        )}
-      />
-
-      {/* Product list */}
       <FlashList
         data={products}
         keyExtractor={(item) => String(item.id)}
         masonry={true}
         numColumns={2}
-        contentContainerStyle={{ paddingHorizontal: 5 }}
-        renderItem={({ item }) => (
-          <View style={{ flex: 1 }}>
-            <Text>Lorem</Text>
-            <View
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                backgroundColor: "red",
-                padding: 12,
-                margin: 4,
-              }}
-            >
-              <Image
-                source={{ uri: item.image }}
-                style={{ width: 64, height: 64, marginRight: 12 }}
-              />
-              <View style={{ flex: 1 }}>
-                <ThemedText>{item.title}</ThemedText>
-                <ThemedText>
-                  ${item.price.toFixed(2)} • {item.category}
+        contentContainerStyle={{ paddingHorizontal: 0 }}
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        ListHeaderComponent={() => (
+          <View style={{ gap: 16 }}>
+            <View style={styles.headerContainer}>
+              <ThemedText
+                type={"subtitle"}
+                style={{ flex: 1, fontWeight: "normal" }}
+              >
+                Welcome,
+                <ThemedText type={"subtitle"} style={{ fontWeight: "bold" }}>
+                  Lorem Ipsum build!
                 </ThemedText>
-                <ThemedText>
-                  ⭐ {item.ratingRate} ({item.ratingCount})
-                </ThemedText>
-              </View>
+              </ThemedText>
+
+              <Ionicons name="person-circle-outline" size={32} />
             </View>
+
+            <Carousel
+              loop={true}
+              width={screenWidth - 16 * 2}
+              height={150}
+              snapEnabled={true}
+              pagingEnabled={true}
+              autoPlayInterval={2000}
+              data={defaultDataWith6Colors}
+              style={{ width: "100%" }}
+              onSnapToItem={(index) => console.log("current index:", index)}
+              mode="parallax"
+              modeConfig={{
+                parallaxScrollingScale: 0.9,
+                parallaxScrollingOffset: 50,
+              }}
+              renderItem={renderItem({
+                rounded: true,
+                style: { marginHorizontal: 0 },
+              })}
+            />
+            <FlashList
+              data={categories}
+              keyExtractor={(item) => item}
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+              ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    // todo
+                  }}
+                >
+                  <View style={styles.categoryItemContainer}>
+                    <Ionicons name="cube-outline" size={16} color="black" />
+                    <Text style={styles.categoryItemText}>
+                      {item.charAt(0).toUpperCase() + item.slice(1)}
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+            />
           </View>
+        )}
+        renderItem={({ item }) => (
+          <ProductView
+            title={item.title}
+            price={item.price}
+            image={item.image}
+            rating={item.ratingRate}
+            ratingCount={item.ratingCount}
+            quantity={item.quantity}
+            onPlusClick={() => {}}
+            onMinusClick={() => {}}
+          />
         )}
       />
     </View>
@@ -267,5 +257,17 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  categoryItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(128,128,128,0.25)",
+  },
+  categoryItemText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
