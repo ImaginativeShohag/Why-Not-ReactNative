@@ -1,127 +1,117 @@
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  Dimensions,
-  Button,
-  Pressable,
-  FlatList,
-} from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 
-import { Product, Category } from "@/models/Product";
+import { Product } from "@/models/Product";
 import Carousel from "react-native-reanimated-carousel";
 import { renderItem } from "@/utils/render-item";
 import { ThemedText } from "@/components/themed-text";
-import { useEffect } from "react";
 import ProductView from "@/components/ui/product-item";
+import { useProducts } from "@/hooks/useProduct";
 
-export const products = [
-  new Product({
-    id: 1,
-    title: "Wireless Headphones",
-    price: 79.99,
-    description:
-      "Bluetooth over-ear headphones with noise isolation and 30h battery.",
-    category: Category.ELECTRONICS,
-    image: "https://picsum.photos/300/300?headphones.jpg",
-    ratingRate: 4.4,
-    ratingCount: 2381,
-  }),
-  new Product({
-    id: 2,
-    title: "Stainless Steel Watch",
-    price: 129.0,
-    description: "Water-resistant analog watch with sapphire crystal.",
-    category: Category.JEWELERY,
-    image: "https://picsum.photos/300/300?watch.jpg",
-    ratingRate: 4.6,
-    ratingCount: 842,
-  }),
-  new Product({
-    id: 3,
-    title: "Men's Slim-Fit Jeans",
-    price: 45.5,
-    description: "Comfort stretch denim with a modern slim cut.",
-    category: Category.MENS_CLOTHING,
-    image: "https://picsum.photos/300/300?mens-jeans.jpg",
-    ratingRate: 4.3,
-    ratingCount: 1560,
-  }),
-  new Product({
-    id: 4,
-    title: "Women's Cotton T-Shirt",
-    price: 19.99,
-    description: "Soft, breathable cotton tee with a relaxed fit.",
-    category: Category.WOMENS_CLOTHING,
-    image: "https://picsum.photos/300/300?womens-tee.jpg",
-    ratingRate: 4.2,
-    ratingCount: 980,
-  }),
-  new Product({
-    id: 5,
-    title: "4K Action Camera",
-    price: 199.99,
-    description: "Waterproof action cam with EIS and dual-screen design.",
-    category: Category.ELECTRONICS,
-    image: "https://picsum.photos/300/300?action-cam.jpg",
-    ratingRate: 4.1,
-    ratingCount: 412,
-  }),
-  new Product({
-    id: 6,
-    title: "Silver Hoop Earrings",
-    price: 34.99,
-    description: "Hypoallergenic sterling silver hoops, 20mm diameter.",
-    category: Category.JEWELERY,
-    image: "https://picsum.photos/300/300?earrings.jpg",
-    ratingRate: 4.7,
-    ratingCount: 267,
-  }),
-  new Product({
-    id: 7,
-    title: "Men's Athletic Hoodie",
-    price: 59.0,
-    description: "Moisture-wicking fleece hoodie with zip pockets.",
-    category: Category.MENS_CLOTHING,
-    image: "https://picsum.photos/300/300?mens-hoodie.jpg",
-    ratingRate: 4.5,
-    ratingCount: 1304,
-  }),
-  new Product({
-    id: 8,
-    title: "Women's Yoga Leggings",
-    price: 39.99,
-    description: "High-waisted leggings with 4-way stretch and pockets.",
-    category: Category.WOMENS_CLOTHING,
-    image: "https://picsum.photos/300/300?womens-leggings.jpg",
-    ratingRate: 4.6,
-    ratingCount: 2150,
-  }),
-  new Product({
-    id: 9,
-    title: "USB-C GaN Charger 65W",
-    price: 49.95,
-    description: "Compact fast charger with dual USB-C ports and PPS.",
-    category: Category.ELECTRONICS,
-    image: "https://picsum.photos/300/300?gan-charger.jpg",
-    ratingRate: 4.8,
-    ratingCount: 674,
-  }),
-  new Product({
-    id: 10,
-    title: "Leather Bracelet",
-    price: 24.5,
-    description: "Braided genuine leather bracelet with stainless clasp.",
-    category: Category.JEWELERY,
-    image: "https://picsum.photos/300/300?leather-bracelet.jpg",
-    ratingRate: 4.0,
-    ratingCount: 193,
-  }),
-];
+// export const products = [
+//   new Product({
+//     id: 1,
+//     title: "Wireless Headphones",
+//     price: 79.99,
+//     description:
+//       "Bluetooth over-ear headphones with noise isolation and 30h battery.",
+//     category: Category.ELECTRONICS,
+//     image: "https://picsum.photos/300/300?headphones.jpg",
+//     ratingRate: 4.4,
+//     ratingCount: 2381,
+//   }),
+//   new Product({
+//     id: 2,
+//     title: "Stainless Steel Watch",
+//     price: 129.0,
+//     description: "Water-resistant analog watch with sapphire crystal.",
+//     category: Category.JEWELERY,
+//     image: "https://picsum.photos/300/300?watch.jpg",
+//     ratingRate: 4.6,
+//     ratingCount: 842,
+//   }),
+//   new Product({
+//     id: 3,
+//     title: "Men's Slim-Fit Jeans",
+//     price: 45.5,
+//     description: "Comfort stretch denim with a modern slim cut.",
+//     category: Category.MENS_CLOTHING,
+//     image: "https://picsum.photos/300/300?mens-jeans.jpg",
+//     ratingRate: 4.3,
+//     ratingCount: 1560,
+//   }),
+//   new Product({
+//     id: 4,
+//     title: "Women's Cotton T-Shirt",
+//     price: 19.99,
+//     description: "Soft, breathable cotton tee with a relaxed fit.",
+//     category: Category.WOMENS_CLOTHING,
+//     image: "https://picsum.photos/300/300?womens-tee.jpg",
+//     ratingRate: 4.2,
+//     ratingCount: 980,
+//   }),
+//   new Product({
+//     id: 5,
+//     title: "4K Action Camera",
+//     price: 199.99,
+//     description: "Waterproof action cam with EIS and dual-screen design.",
+//     category: Category.ELECTRONICS,
+//     image: "https://picsum.photos/300/300?action-cam.jpg",
+//     ratingRate: 4.1,
+//     ratingCount: 412,
+//   }),
+//   new Product({
+//     id: 6,
+//     title: "Silver Hoop Earrings",
+//     price: 34.99,
+//     description: "Hypoallergenic sterling silver hoops, 20mm diameter.",
+//     category: Category.JEWELERY,
+//     image: "https://picsum.photos/300/300?earrings.jpg",
+//     ratingRate: 4.7,
+//     ratingCount: 267,
+//   }),
+//   new Product({
+//     id: 7,
+//     title: "Men's Athletic Hoodie",
+//     price: 59.0,
+//     description: "Moisture-wicking fleece hoodie with zip pockets.",
+//     category: Category.MENS_CLOTHING,
+//     image: "https://picsum.photos/300/300?mens-hoodie.jpg",
+//     ratingRate: 4.5,
+//     ratingCount: 1304,
+//   }),
+//   new Product({
+//     id: 8,
+//     title: "Women's Yoga Leggings",
+//     price: 39.99,
+//     description: "High-waisted leggings with 4-way stretch and pockets.",
+//     category: Category.WOMENS_CLOTHING,
+//     image: "https://picsum.photos/300/300?womens-leggings.jpg",
+//     ratingRate: 4.6,
+//     ratingCount: 2150,
+//   }),
+//   new Product({
+//     id: 9,
+//     title: "USB-C GaN Charger 65W",
+//     price: 49.95,
+//     description: "Compact fast charger with dual USB-C ports and PPS.",
+//     category: Category.ELECTRONICS,
+//     image: "https://picsum.photos/300/300?gan-charger.jpg",
+//     ratingRate: 4.8,
+//     ratingCount: 674,
+//   }),
+//   new Product({
+//     id: 10,
+//     title: "Leather Bracelet",
+//     price: 24.5,
+//     description: "Braided genuine leather bracelet with stainless clasp.",
+//     category: Category.JEWELERY,
+//     image: "https://picsum.photos/300/300?leather-bracelet.jpg",
+//     ratingRate: 4.0,
+//     ratingCount: 193,
+//   }),
+// ];
 
 const defaultDataWith6Colors = [
   "#B0604D",
@@ -133,7 +123,6 @@ const defaultDataWith6Colors = [
 ];
 
 const screenWidth = Dimensions.get("window").width;
-const itemWidth = screenWidth / 2 - 10;
 
 export const categories = [
   "Electronics",
@@ -144,6 +133,8 @@ export const categories = [
 ];
 
 export default function HomeScreen() {
+  const { data: products, isLoading, error } = useProducts();
+
   return (
     <View style={styles.container}>
       <FlashList
@@ -218,8 +209,8 @@ export default function HomeScreen() {
             title={item.title}
             price={item.price}
             image={item.image}
-            rating={item.ratingRate}
-            ratingCount={item.ratingCount}
+            rating={item.rating.rate}
+            ratingCount={item.rating.count}
             quantity={item.quantity}
             onPlusClick={() => {}}
             onMinusClick={() => {}}

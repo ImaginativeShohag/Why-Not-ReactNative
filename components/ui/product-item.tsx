@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import ProductImage from "@/components/ui/product-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,7 +9,7 @@ type ProductViewProps = {
   image: string;
   rating: number;
   ratingCount: number;
-  quantity: number;
+  quantity: number | undefined;
   onPlusClick: () => void;
   onMinusClick: () => void;
 };
@@ -66,7 +66,7 @@ export default function ProductView({
           <Ionicons name="add-circle" size={24} color="black" />
         </Pressable>
 
-        <Text style={styles.quantity}>{quantity}</Text>
+        <Text style={styles.quantity}>{quantity ?? 0}</Text>
 
         <Pressable onPress={onMinusClick}>
           <Ionicons name="remove-circle" size={24} color="black" />
