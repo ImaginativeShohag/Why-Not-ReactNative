@@ -1,13 +1,18 @@
 import axios from "../axios";
-import { Product } from "@/models/Product";
+import { Category, Product } from "@/models/Product";
 
 export const fetchProducts = async (): Promise<[Product]> => {
   const { data } = await axios.get(`/products`);
   return data;
 };
 
-export const fetchProductDetails = async (id: string): Promise<Product> => {
+export const fetchProductDetails = async (id: number): Promise<Product> => {
   const { data } = await axios.get(`/products/${id}`);
+  return data;
+};
+
+export const fetchCategories = async (): Promise<[Category]> => {
+  const { data } = await axios.get(`/products/categories`);
   return data;
 };
 

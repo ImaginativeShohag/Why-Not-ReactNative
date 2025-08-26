@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  fetchCategories,
   fetchProductDetails,
   fetchProducts,
   fetchUser,
@@ -14,10 +15,17 @@ export const useProducts = () => {
   });
 };
 
-export const useProductDetails = (id: string) => {
+export const useProductDetails = (id: number) => {
   return useQuery({
     queryKey: queryKeys.product(id),
     queryFn: () => fetchProductDetails(id),
+  });
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: () => fetchCategories(),
   });
 };
 
