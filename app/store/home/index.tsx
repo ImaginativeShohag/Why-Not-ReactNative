@@ -7,6 +7,7 @@ import { renderItem } from "@/utils/render-item";
 import { ThemedText } from "@/components/themed-text";
 import ProductView from "@/components/ui/product-item";
 import { useCategories, useProducts } from "@/hooks/useProduct";
+import { useRouter } from "expo-router";
 
 const defaultDataWith6Colors = [
   "#B0604D",
@@ -19,6 +20,8 @@ const defaultDataWith6Colors = [
 const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
+  const router = useRouter();
+
   const {
     data: products,
     isLoading: productsIsLoading,
@@ -100,16 +103,22 @@ export default function HomeScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <ProductView
-            title={item.title}
-            price={item.price}
-            image={item.image}
-            rating={item.rating.rate}
-            ratingCount={item.rating.count}
-            quantity={item.quantity}
-            onPlusClick={() => {}}
-            onMinusClick={() => {}}
-          />
+          <Pressable
+            onPress={() => {
+              router.push(`/store/product-details/${item.id}`);
+            }}
+          >
+            <ProductView
+              title={item.title}
+              price={item.price}
+              image={item.image}
+              rating={item.rating.rate}
+              ratingCount={item.rating.count}
+              quantity={item.quantity}
+              onPlusClick={() => {}}
+              onMinusClick={() => {}}
+            />
+          </Pressable>
         )}
       />
     </View>
