@@ -62,13 +62,27 @@ export default function ProductView({
 
       {/* Quantity Section */}
       <View style={styles.actions}>
-        <Pressable onPress={onPlusClick}>
+        <Pressable
+          style={({ pressed }) => [
+            {
+              opacity: pressed ? 0.2 : 1.0,
+            },
+          ]}
+          onPress={onPlusClick}
+        >
           <Ionicons name="add-circle" size={24} color="black" />
         </Pressable>
 
         <Text style={styles.quantity}>{quantity ?? 0}</Text>
 
-        <Pressable onPress={onMinusClick}>
+        <Pressable
+          style={({ pressed }) => [
+            {
+              opacity: pressed ? 0.2 : 1.0,
+            },
+          ]}
+          onPress={onMinusClick}
+        >
           <Ionicons name="remove-circle" size={24} color="black" />
         </Pressable>
       </View>

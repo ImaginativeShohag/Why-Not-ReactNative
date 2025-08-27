@@ -7,7 +7,8 @@ import { renderItem } from "@/src/utils/render-item";
 import { ThemedText } from "@/src/components/themed-text";
 import ProductView from "@/src/components/ui/product-item";
 import { useCategories, useProducts } from "@/src/hooks/useProduct";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { useCartStore } from "@/src/stores/cartStore";
 
 const defaultDataWith6Colors = [
   "#B0604D",
@@ -21,6 +22,7 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { items, addToCart, updateQuantity } = useCartStore();
 
   const {
     data: products,
@@ -102,24 +104,58 @@ export default function HomeScreen() {
             />
           </View>
         )}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => {
-              router.push(`/store/product-details/${item.id}`);
-            }}
-          >
-            <ProductView
-              title={item.title}
-              price={item.price}
-              image={item.image}
-              rating={item.rating.rate}
-              ratingCount={item.rating.count}
-              quantity={item.quantity}
-              onPlusClick={() => {}}
-              onMinusClick={() => {}}
-            />
-          </Pressable>
-        )}
+        renderItem={({ item: product }) => {
+          const cartItem = items.find((i) => i.id === product.id);
+
+          const increaseQuantity = () => {
+            if (!product) return;
+            if (!cartItem) {
+              addToCart(product);
+            } else {
+              updateQuantity(product.id, 1);
+            }
+          };
+
+          const decreaseQuantity = () => {
+            if (!cartItem) return;
+            if (cartItem.quantity > 1) {
+              updateQuantity(product.id, -1);
+            }
+          };
+
+          return (
+            <Link
+              href={{
+                pathname: "/store/product-details/[productId]",
+                params: { productId: product.id },
+              }}
+              asChild
+            >
+              <Pressable
+                style={({ pressed }) => [
+                  {
+                    opacity: pressed ? 0.2 : 1.0,
+                  },
+                ]}
+              >
+                <ProductView
+                  title={product.title}
+                  price={product.price}
+                  image={product.image}
+                  rating={product.rating.rate}
+                  ratingCount={product.rating.count}
+                  quantity={cartItem?.quantity ?? 0}
+                  onPlusClick={() => {
+                    increaseQuantity();
+                  }}
+                  onMinusClick={() => {
+                    decreaseQuantity();
+                  }}
+                />
+              </Pressable>
+            </Link>
+          );
+        }}
       />
     </View>
   );

@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { useProductDetails } from "@/src/hooks/useProduct";
+import { useCartStore } from "@/src/stores/cartStore";
 
 type Product = {
   id: number;
@@ -26,54 +27,13 @@ type Product = {
 
 export default function ProductDetailsScreen() {
   const { productId } = useLocalSearchParams();
+  const { items, addToCart, updateQuantity } = useCartStore();
 
   const {
     data: product,
     isLoading: productIsLoading,
     error: productLoadingError,
   } = useProductDetails(Number(productId) ?? 0);
-
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
-
-  // useEffect(() => {
-  //   loadProduct();
-  // }, []);
-  //
-  // const loadProduct = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     // Mock fetch
-  //     const data: Product = {
-  //       id: productId,
-  //       title: "Sample Product",
-  //       description: "This is a sample product description.",
-  //       price: 19.99,
-  //       image: "https://via.placeholder.com/300",
-  //       ratingRate: 4.5,
-  //       ratingCount: 120,
-  //       quantity: 1,
-  //     };
-  //     setProduct(data);
-  //   } catch (e) {
-  //     setError("Failed to load product");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  const increaseQuantity = () => {
-    if (!product) return;
-    // setProduct({ ...product, quantity: product.quantity + 1 });
-  };
-
-  const decreaseQuantity = () => {
-    if (!product) return;
-    if (product.quantity > 1) {
-      // setProduct({ ...product, quantity: product.quantity - 1 });
-    }
-  };
 
   if (productIsLoading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" />;
@@ -88,6 +48,24 @@ export default function ProductDetailsScreen() {
   }
 
   if (!product) return null;
+
+  const cartItem = items.find((i) => i.id === product.id);
+
+  const increaseQuantity = () => {
+    if (!product) return;
+    if (!cartItem) {
+      addToCart(product);
+    } else {
+      updateQuantity(product.id, 1);
+    }
+  };
+
+  const decreaseQuantity = () => {
+    if (!cartItem) return;
+    if (cartItem.quantity > 1) {
+      updateQuantity(product.id, -1);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -124,7 +102,7 @@ export default function ProductDetailsScreen() {
             <Text style={styles.quantityButton}>＋</Text>
           </Pressable>
 
-          <Text style={styles.quantityText}>{product.quantity}</Text>
+          <Text style={styles.quantityText}>{cartItem?.quantity ?? 0}</Text>
 
           <Pressable onPress={decreaseQuantity}>
             <Text style={styles.quantityButton}>－</Text>
