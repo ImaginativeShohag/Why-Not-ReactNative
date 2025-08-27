@@ -5,8 +5,8 @@ import {
   fetchProducts,
   fetchUser,
   updateUser,
-} from "@/api/endpoints/product.api";
-import { queryKeys } from "@/utils/queryKeys";
+} from "@/src/api/endpoints/product.api";
+import { queryKeys } from "@/src/utils/queryKeys";
 
 export const useProducts = () => {
   return useQuery({

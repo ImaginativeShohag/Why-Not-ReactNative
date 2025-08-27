@@ -1,4 +1,4 @@
-import { PURPLE_IMAGES } from "@/constants/purple-images";
+import { PURPLE_IMAGES } from "@/src/constants/purple-images";
 import React, { useMemo } from "react";
 import {
   ImageSourcePropType,

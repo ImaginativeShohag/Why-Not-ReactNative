@@ -52,3 +52,83 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+# Recommended Folder Structure
+
+```
+project-root/
+├── src/
+│   ├── app/                  # expo-router pages/screens
+│   │   ├── (auth)/           # route group for authentication
+│   │   │   ├── login.tsx
+│   │   │   ├── register.tsx
+│   │   ├── (tabs)/           # route group for tab navigation
+│   │   │   ├── index.tsx
+│   │   │   ├── profile.tsx
+│   │   │   └── settings.tsx
+│   │   ├── +not-found.tsx    # expo-router 404 screen
+│   │   └── _layout.tsx       # global layout (navigation setup)
+│   │
+│   ├── components/           # reusable UI components
+│   │   ├── common/           # small building blocks (Button, Text, etc.)
+│   │   ├── layout/           # wrappers (Container, ScreenWrapper)
+│   │   └── features/         # feature-specific components
+│   │
+│   ├── features/             # feature-based folders (scalable)
+│   │   ├── auth/
+│   │   │   ├── components/   # auth-specific UI
+│   │   │   ├── hooks/        # useLogin, useRegister
+│   │   │   ├── services/     # API calls (login, register)
+│   │   │   └── store.ts      # Zustand/Redux slice for auth
+│   │   ├── products/
+│   │   ├── profile/
+│   │   └── ...
+│   │
+│   ├── hooks/                # global reusable hooks
+│   │   ├── useTheme.ts
+│   │   ├── useAuth.ts
+│   │   └── useNetwork.ts
+│   │
+│   ├── store/                # global Zustand/Redux stores
+│   │   ├── cartStore.ts
+│   │   └── userStore.ts
+│   │
+│   ├── services/             # API clients / networking
+│   │   ├── apiClient.ts      # axios/fetch wrapper
+│   │   ├── productService.ts
+│   │   └── authService.ts
+│   │
+│   ├── utils/                # helpers / constants
+│   │   ├── date.ts
+│   │   ├── validation.ts
+│   │   └── constants.ts
+│   │
+│   ├── assets/               # static assets (images, fonts, icons)
+│   │   ├── fonts/
+│   │   ├── images/
+│   │   └── icons/
+│   │
+│   ├── theme/                # styling/theme
+│   │   ├── colors.ts
+│   │   ├── spacing.ts
+│   │   └── typography.ts
+│   │
+│   └── types/                # TypeScript types/interfaces
+│       ├── product.ts
+│       ├── user.ts
+│       └── index.ts
+│
+├── babel.config.js
+├── app.json
+├── package.json
+└── tsconfig.json
+```
+
+### Why this structure?
+
+-	`app/` → kept minimal, only route entry points (expo-router requirement).
+-	`features/` → groups logic by feature (auth, products, profile), easier scaling.
+-	`components/` → global reusable UI.
+-	`store/` + `services/` → clear separation of state management and API calls.
+-	`utils/` + `theme/` → centralized helpers and design tokens.
+-	`types/` → strongly typed project.

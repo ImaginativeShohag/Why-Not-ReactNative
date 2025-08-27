@@ -1,5 +1,5 @@
 import axios from "../axios";
-import { Category, Product } from "@/models/Product";
+import { Category, Product } from "@/src/models/Product";
 
 export const fetchProducts = async (): Promise<[Product]> => {
   const { data } = await axios.get(`/products`);

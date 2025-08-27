@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
-import ProductImage from "@/components/ui/product-image";
+import ProductImage from "@/src/components/ui/product-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 type ProductViewProps = {

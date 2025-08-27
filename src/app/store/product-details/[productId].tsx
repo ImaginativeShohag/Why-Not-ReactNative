@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
-import { useProductDetails } from "@/hooks/useProduct";
+import { useProductDetails } from "@/src/hooks/useProduct";
 
 type Product = {
   id: number;

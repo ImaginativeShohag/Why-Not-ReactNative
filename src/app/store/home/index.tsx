@@ -3,10 +3,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 
 import Carousel from "react-native-reanimated-carousel";
-import { renderItem } from "@/utils/render-item";
-import { ThemedText } from "@/components/themed-text";
-import ProductView from "@/components/ui/product-item";
-import { useCategories, useProducts } from "@/hooks/useProduct";
+import { renderItem } from "@/src/utils/render-item";
+import { ThemedText } from "@/src/components/themed-text";
+import ProductView from "@/src/components/ui/product-item";
+import { useCategories, useProducts } from "@/src/hooks/useProduct";
 import { useRouter } from "expo-router";
 
 const defaultDataWith6Colors = [
