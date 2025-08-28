@@ -7,14 +7,16 @@ interface Options {
   style?: StyleProp<ImageStyle>;
 }
 
-export const renderItem =
-    ({ rounded = false, style }: Options = {}): CarouselRenderItem<any> => {
-        const Item: CarouselRenderItem<any> = ({ index }) => (
-            <SlideItem key={index} index={index} rounded={rounded} style={style} />
-        );
+export const renderItem = ({
+  rounded = false,
+  style,
+}: Options = {}): CarouselRenderItem<any> => {
+  const Item: CarouselRenderItem<any> = ({ index }) => (
+    <SlideItem key={index} index={index} rounded={rounded} style={style} />
+  );
 
-        // Manually assign display name for ESLint / DevTools
-        (Item as any).displayName = "CarouselItem";
+  // Manually assign display name for ESLint / DevTools
+  (Item as any).displayName = "CarouselItem";
 
-        return Item;
-    };
+  return Item;
+};
