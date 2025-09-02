@@ -7,10 +7,10 @@ import { renderItem } from "@/src/utils/render-item";
 import { ThemedText } from "@/src/components/themed-text";
 import ProductView from "@/src/components/ui/product-item";
 import { useCategories, useProducts } from "@/src/hooks/useProduct";
-import { Link, useNavigation, useRouter } from "expo-router";
 import { useCartStore } from "@/src/stores/cartStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect } from "react";
+import { Link, useNavigation } from "expo-router";
 
 const defaultDataWith6Colors = [
   "#B0604D",
@@ -24,7 +24,6 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-  const router = useRouter();
   const { items, addToCart, updateQuantity } = useCartStore();
 
   const {
@@ -53,7 +52,7 @@ export default function HomeScreen() {
           masonry={true}
           numColumns={2}
           contentContainerStyle={{ paddingHorizontal: 0 }}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
           ListHeaderComponent={() => (
             <View style={{ gap: 16 }}>
               <View style={styles.headerContainer}>
@@ -97,19 +96,29 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
                 ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
-                renderItem={({ item }) => (
-                  <Pressable
-                    onPress={() => {
-                      // todo
+                renderItem={({ item: category }) => (
+                  <Link
+                    href={{
+                      pathname: "/store/products/[categoryId]",
+                      params: { categoryId: category },
                     }}
+                    asChild
                   >
-                    <View style={styles.categoryItemContainer}>
-                      <Ionicons name="cube-outline" size={16} color="black" />
-                      <Text style={styles.categoryItemText}>
-                        {item.charAt(0).toUpperCase() + item.slice(1)}
-                      </Text>
-                    </View>
-                  </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        {
+                          opacity: pressed ? 0.2 : 1.0,
+                        },
+                      ]}
+                    >
+                      <View style={styles.categoryItemContainer}>
+                        <Ionicons name="cube-outline" size={16} color="black" />
+                        <Text style={styles.categoryItemText}>
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </Link>
                 )}
               />
             </View>

@@ -49,3 +49,5 @@ app-example
 # Built Files
 *.apk
 *.aab
+*.ipa
+*.tar.gz

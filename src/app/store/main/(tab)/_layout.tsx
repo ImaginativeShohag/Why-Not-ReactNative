@@ -5,6 +5,7 @@ import { Pressable, useColorScheme } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Colors } from "@/src/constants/theme";
+import { QueryProvider } from "@/src/providers/QueryProvider";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -18,35 +19,37 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: true,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+    <QueryProvider>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          headerShown: true,
         }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: "Categories",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="logo-dropbox" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bag"
-        options={{
-          title: "Bag",
-          tabBarIcon: ({ color }) => <TabBarIcon name="bag" color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="categories"
+          options={{
+            title: "Categories",
+            tabBarIcon: ({ color }) => (
+              <TabBarIcon name="logo-dropbox" color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="bag"
+          options={{
+            title: "Bag",
+            tabBarIcon: ({ color }) => <TabBarIcon name="bag" color={color} />,
+          }}
+        />
+      </Tabs>
+    </QueryProvider>
   );
 }

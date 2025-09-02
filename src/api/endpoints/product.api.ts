@@ -16,6 +16,18 @@ export const fetchCategories = async (): Promise<[Category]> => {
   return data;
 };
 
+export const fetchProductsByCategory = async (
+  category: Category,
+): Promise<[Product]> => {
+  const { data } = await axios.get(`/products/category/${category}`);
+  return data;
+};
+
+export const fetchCarts = async (userId: number): Promise<[Product]> => {
+  const { data } = await axios.get(`/carts`);
+  return data;
+};
+
 export const fetchUser = async (id: string) => {
   const { data } = await axios.get(`/users/${id}`);
   return data;
