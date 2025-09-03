@@ -9,8 +9,15 @@ import ProductView from "@/src/components/ui/product-item";
 import { useCategories, useProducts } from "@/src/hooks/useProduct";
 import { useCartStore } from "@/src/stores/cartStore";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Link, useNavigation } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import BottomSheet, {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
+import ProfileScreen from "@/src/app/store/profile/profile";
 
 const defaultDataWith6Colors = [
   "#B0604D",
@@ -25,6 +32,7 @@ const screenWidth = Dimensions.get("window").width;
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { items, addToCart, updateQuantity } = useCartStore();
+  const sheetRef = useRef<BottomSheetModal>(null);
 
   const {
     data: products,
@@ -42,6 +50,11 @@ export default function HomeScreen() {
       headerShown: false,
     });
   }, [navigation]);
+
+  // callbacks
+  const handleSheetChange = useCallback((index: number) => {
+    console.log("handleSheetChange", index);
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -66,7 +79,13 @@ export default function HomeScreen() {
                   </ThemedText>
                 </ThemedText>
 
-                <Ionicons name="person-circle-outline" size={32} />
+                <Pressable
+                  onPress={() => {
+                    sheetRef.current?.present();
+                  }}
+                >
+                  <Ionicons name="person-circle-outline" size={32} />
+                </Pressable>
               </View>
 
               <Carousel
@@ -177,6 +196,18 @@ export default function HomeScreen() {
           }}
         />
       </View>
+
+      <BottomSheetModal
+        ref={sheetRef}
+        index={0}
+        snapPoints={["90%"]}
+        enableDynamicSizing={false}
+        onChange={handleSheetChange}
+      >
+        <BottomSheetScrollView>
+          <ProfileScreen />
+        </BottomSheetScrollView>
+      </BottomSheetModal>
     </SafeAreaView>
   );
 }

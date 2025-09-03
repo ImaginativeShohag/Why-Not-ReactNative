@@ -6,6 +6,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Colors } from "@/src/constants/theme";
 import { QueryProvider } from "@/src/providers/QueryProvider";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -19,37 +21,45 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <QueryProvider>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-          headerShown: true,
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="categories"
-          options={{
-            title: "Categories",
-            tabBarIcon: ({ color }) => (
-              <TabBarIcon name="logo-dropbox" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="bag"
-          options={{
-            title: "Bag",
-            tabBarIcon: ({ color }) => <TabBarIcon name="bag" color={color} />,
-          }}
-        />
-      </Tabs>
-    </QueryProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <QueryProvider>
+          <Tabs
+            screenOptions={{
+              tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+              headerShown: true,
+            }}
+          >
+            <Tabs.Screen
+              name="index"
+              options={{
+                title: "Home",
+                tabBarIcon: ({ color }) => (
+                  <TabBarIcon name="home" color={color} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="categories"
+              options={{
+                title: "Categories",
+                tabBarIcon: ({ color }) => (
+                  <TabBarIcon name="logo-dropbox" color={color} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="bag"
+              options={{
+                title: "Bag",
+                tabBarIcon: ({ color }) => (
+                  <TabBarIcon name="bag" color={color} />
+                ),
+              }}
+            />
+          </Tabs>
+        </QueryProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
