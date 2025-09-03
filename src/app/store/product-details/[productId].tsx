@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   Image,
   ScrollView,
   ActivityIndicator,
-  Button,
   Pressable,
   StyleSheet,
 } from "react-native";
@@ -13,17 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { useProductDetails } from "@/src/hooks/useProduct";
 import { useCartStore } from "@/src/stores/cartStore";
-
-type Product = {
-  id: number;
-  title: string;
-  description: string;
-  price: number;
-  image: string;
-  ratingRate: number;
-  ratingCount: number;
-  quantity: number;
-};
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProductDetailsScreen() {
   const { productId } = useLocalSearchParams();
@@ -68,57 +57,79 @@ export default function ProductDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.image} />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.15)"]}
-            style={styles.gradient}
-          />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>{product.title}</Text>
-
-          <View style={styles.ratingRow}>
-            <Text>
-              ⭐ {product.rating.rate} ({product.rating.count})
-            </Text>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
+      <View style={styles.container}>
+        <ScrollView>
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: product.image }} style={styles.image} />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.15)"]}
+              style={styles.gradient}
+            />
           </View>
 
-          <Text style={styles.description}>{product.description}</Text>
-        </View>
-      </ScrollView>
+          <View style={styles.content}>
+            <Text style={styles.title}>{product.title}</Text>
 
-      {/* Bottom Toolbar */}
-      <View style={styles.toolbar}>
-        <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+            <View style={styles.ratingRow}>
+              <Text>
+                ⭐ {product.rating.rate} ({product.rating.count})
+              </Text>
+            </View>
 
-        <View style={styles.spacer} />
+            <Text style={styles.description}>{product.description}</Text>
+          </View>
+        </ScrollView>
 
-        <View style={styles.quantityRow}>
-          <Pressable onPress={increaseQuantity}>
-            <Text style={styles.quantityButton}>＋</Text>
-          </Pressable>
+        {/* Bottom Toolbar */}
+        <View style={styles.toolbar}>
+          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
 
-          <Text style={styles.quantityText}>{cartItem?.quantity ?? 0}</Text>
+          <View style={styles.spacer} />
 
-          <Pressable onPress={decreaseQuantity}>
-            <Text style={styles.quantityButton}>－</Text>
-          </Pressable>
+          <View style={styles.quantityRow}>
+            <Pressable
+              onPress={increaseQuantity}
+              style={({ pressed }) => [
+                styles.button,
+                {
+                  opacity: pressed ? 0.2 : 1.0,
+                },
+              ]}
+            >
+              <Text style={styles.buttonText}>＋</Text>
+            </Pressable>
+
+            <Text style={styles.quantityText}>{cartItem?.quantity ?? 0}</Text>
+
+            <Pressable
+              onPress={decreaseQuantity}
+              style={({ pressed }) => [
+                styles.button,
+                {
+                  opacity: pressed ? 0.2 : 1.0,
+                },
+              ]}
+            >
+              <Text style={styles.buttonText}>－</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  imageContainer: { position: "relative" },
-  image: { width: "100%", height: 300, resizeMode: "contain" },
+  imageContainer: {
+    position: "relative",
+    borderRadius: 32,
+    overflow: "hidden",
+  },
+  image: { flex: 1, height: 300, resizeMode: "contain", margin: 16 },
   gradient: { position: "absolute", bottom: 0, height: 32, width: "100%" },
-  content: { padding: 16 },
+  content: { padding: 16, gap: 8 },
   title: { fontSize: 18, fontWeight: "600" },
   ratingRow: { flexDirection: "row", alignItems: "center", marginVertical: 4 },
   description: { fontSize: 14 },
@@ -132,6 +143,15 @@ const styles = StyleSheet.create({
   price: { fontWeight: "bold", fontSize: 16, color: "red" },
   spacer: { flex: 1 },
   quantityRow: { flexDirection: "row", alignItems: "center" },
-  quantityButton: { fontSize: 22, marginHorizontal: 8 },
-  quantityText: { fontSize: 16 },
+  quantityText: { fontSize: 16, marginHorizontal: 16 },
+  button: {
+    padding: 6,
+    backgroundColor: "#007AFF",
+    borderRadius: 6,
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 22,
+  },
 });

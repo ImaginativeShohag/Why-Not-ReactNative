@@ -1,13 +1,21 @@
 import React, { useState } from "react";
 import { View, Image, ActivityIndicator, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { StyleProp } from "react-native/Libraries/StyleSheet/StyleSheet";
+import { ViewStyle } from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 
-export default function ProductImage({ image }: { image: string }) {
+export default function ProductImage({
+  image,
+  style = undefined,
+}: {
+  image: string;
+  style?: StyleProp<ViewStyle> | undefined;
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   return (
-    <View style={styles.imageWrapper}>
+    <View style={[styles.imageWrapper, style]}>
       {error ? (
         <Ionicons name="image-outline" size={48} color="gray" />
       ) : (

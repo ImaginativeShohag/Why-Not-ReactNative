@@ -60,9 +60,9 @@ export default function HomeScreen() {
                   type={"subtitle"}
                   style={{ flex: 1, fontWeight: "normal" }}
                 >
-                  Welcome,
+                  Welcome,{" "}
                   <ThemedText type={"subtitle"} style={{ fontWeight: "bold" }}>
-                    Lorem Ipsum build!
+                    Lorem Ipsum!
                   </ThemedText>
                 </ThemedText>
 

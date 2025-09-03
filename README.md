@@ -2,6 +2,17 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Todo
+
+- [ ] Map example
+- [ ] Push notifications example
+- [ ] Alert example
+- [ ] Database example
+- [ ] CMS example (gorest api)
+- [ ] Drawer/navigation drawer example
+- [ ] File picker/camera example
+- [ ] Tailwind example
+
 ## Get started
 
 1. Install dependencies

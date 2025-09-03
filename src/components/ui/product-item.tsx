@@ -29,7 +29,6 @@ export default function ProductView({
       {/* Image Section */}
       <View style={styles.imageWrapper}>
         <ProductImage image={image} />
-        {/*<View style={styles.gradientOverlay} />*/}
         <LinearGradient
           colors={["rgba(0,0,0,0.15)", "transparent"]} // gray → transparent
           start={{ x: 0.5, y: 1 }} // bottom center
