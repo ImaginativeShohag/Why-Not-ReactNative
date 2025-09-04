@@ -1,4 +1,11 @@
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 
@@ -203,6 +210,14 @@ export default function HomeScreen() {
         snapPoints={["90%"]}
         enableDynamicSizing={false}
         onChange={handleSheetChange}
+        handleComponent={() => (
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>My Title</Text>
+            <TouchableOpacity onPress={() => sheetRef.current?.close()}>
+              <Text style={styles.sheetDoneButton}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       >
         <BottomSheetScrollView>
           <ProfileScreen />
@@ -250,5 +265,25 @@ const styles = StyleSheet.create({
   categoryItemText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  sheetHeader: {
+    height: 50,
+    backgroundColor: "#fff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ccc",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    borderTopStartRadius: 16,
+    borderTopEndRadius: 16,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  sheetDoneButton: {
+    fontSize: 16,
+    color: "blue",
   },
 });
