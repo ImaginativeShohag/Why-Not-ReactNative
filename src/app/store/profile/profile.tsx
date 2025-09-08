@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import { useBottomSheetModal } from "@gorhom/bottom-sheet";
 
 type User = {
   id: number;
@@ -25,6 +26,7 @@ type User = {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { dismiss } = useBottomSheetModal();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -136,7 +138,10 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.push("/store/orders/orders")}
+            onPress={() => {
+              dismiss();
+              router.push("/store/orders/orders");
+            }}
           >
             <Text style={styles.buttonText}>Orders</Text>
           </TouchableOpacity>

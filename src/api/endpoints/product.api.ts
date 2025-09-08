@@ -1,6 +1,7 @@
 import axios from "../axios";
 import { Category, Product } from "@/src/models/Product";
 import { LoginPayload } from "@/src/models/Auth";
+import { CartItem } from "@/src/models/CartItem";
 
 /*
 ✅ Rule of thumb:
@@ -32,7 +33,7 @@ export const fetchProductsByCategory = async (
   return data;
 };
 
-export const fetchCarts = async (userId: number): Promise<[Product]> => {
+export const fetchCarts = async (userId: number): Promise<[CartItem]> => {
   const { data } = await axios.get("/carts", {
     params: { userId },
   });
