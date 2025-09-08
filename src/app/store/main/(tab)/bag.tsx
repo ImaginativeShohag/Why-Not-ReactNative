@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { Link, useNavigation } from "expo-router";
 import React, { useEffect } from "react";
-import { useCarts, useCategories } from "@/src/hooks/useProduct";
 import { useCartStore } from "@/src/stores/cartStore";
 import { FlashList } from "@shopify/flash-list";
 import { BlurView } from "expo-blur";
@@ -52,7 +51,7 @@ export default function BagScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={[styles.list, { paddingBottom: footer.height }]}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item: cartItem, index }) => {
+        renderItem={({ item: cartItem }) => {
           const increaseQuantity = () => {
             updateQuantity(cartItem.id, 1);
           };

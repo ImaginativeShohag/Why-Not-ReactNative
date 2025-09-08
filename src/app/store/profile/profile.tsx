@@ -12,6 +12,7 @@ import {
   Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
 type User = {
   id: number;
@@ -23,7 +24,7 @@ type User = {
 };
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -72,10 +73,10 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: () => {
           // Clear auth and redirect
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" as never }],
-          });
+          // router.reset({
+          //   index: 0,
+          //   routes: [{ name: "Login" as never }],
+          // });
         },
       },
     ]);
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.navigate("Orders" as never)}
+            onPress={() => router.push("/store/orders/orders")}
           >
             <Text style={styles.buttonText}>Orders</Text>
           </TouchableOpacity>

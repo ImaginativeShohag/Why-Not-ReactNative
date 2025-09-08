@@ -7,6 +7,7 @@ export const queryKeys = {
   productsByCategory: (category: Category) =>
     ["product-by-category", category] as const,
   carts: (userId: number) => ["carts", userId] as const,
+  loginUser: (credentials: any) => ["loginUser", credentials] as const,
   user: (id: string) => ["user", id] as const,
   users: ["users"] as const,
 };

@@ -5,11 +5,11 @@ import {
   fetchProductDetails,
   fetchProducts,
   fetchProductsByCategory,
-  fetchUser,
-  updateUser,
+  loginUser,
 } from "@/src/api/endpoints/product.api";
 import { queryKeys } from "@/src/utils/queryKeys";
 import { Category } from "@/src/models/Product";
+import { LoginPayload } from "@/src/models/Auth";
 
 export const useProducts = () => {
   return useQuery({
@@ -46,21 +46,21 @@ export const useCarts = (userId: number) => {
   });
 };
 
-export const useUser = (id: string) => {
+export const useLoginUser = (credentials: LoginPayload) => {
   return useQuery({
-    queryKey: queryKeys.user(id),
-    queryFn: () => fetchUser(id),
+    queryKey: queryKeys.loginUser(credentials),
+    queryFn: () => loginUser(credentials),
   });
 };
 
-export const useUpdateUser = (id: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: any) => updateUser(id, payload),
-    onSuccess: () => {
-      // Invalidate cache to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.user(id) });
-    },
-  });
-};
+// export const useUpdateUser = (id: string) => {
+//   const queryClient = useQueryClient();
+//
+//   return useMutation({
+//     mutationFn: (payload: any) => updateUser(id, payload),
+//     onSuccess: () => {
+//       // Invalidate cache to refetch
+//       queryClient.invalidateQueries({ queryKey: queryKeys.user(id) });
+//     },
+//   });
+// };

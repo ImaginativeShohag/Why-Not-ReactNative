@@ -1,5 +1,14 @@
 import axios from "../axios";
 import { Category, Product } from "@/src/models/Product";
+import { LoginPayload } from "@/src/models/Auth";
+
+/*
+✅ Rule of thumb:
+	•	GET → fetchX
+	•	POST (create) → createX or action verb (loginUser, uploadFile)
+	•	PUT/PATCH → updateX
+	•	DELETE → deleteX
+ */
 
 export const fetchProducts = async (): Promise<[Product]> => {
   const { data } = await axios.get(`/products`);
@@ -24,16 +33,13 @@ export const fetchProductsByCategory = async (
 };
 
 export const fetchCarts = async (userId: number): Promise<[Product]> => {
-  const { data } = await axios.get(`/carts`);
+  const { data } = await axios.get("/carts", {
+    params: { userId },
+  });
   return data;
 };
 
-export const fetchUser = async (id: string) => {
-  const { data } = await axios.get(`/users/${id}`);
-  return data;
-};
-
-export const updateUser = async (id: string, payload: any) => {
-  const { data } = await axios.put(`/users/${id}`, payload);
+export const loginUser = async (credentials: LoginPayload) => {
+  const { data } = await axios.post(`/auth/login`, credentials);
   return data;
 };

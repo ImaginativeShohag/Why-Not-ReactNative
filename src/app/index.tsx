@@ -23,7 +23,8 @@ export default function SplashScreen() {
     if (nextAction === "auth") {
       //router.replace("/login");
     } else if (nextAction === "home") {
-      router.replace("/store/main");
+      // router.replace("/store/main");
+      router.replace("/store/orders/orders");
     }
   }, [nextAction, router]);
 
