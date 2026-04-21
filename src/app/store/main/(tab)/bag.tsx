@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F2F2F7", // iOS systemGroupedBackground equivalent
+    backgroundColor: "#F2F2F7",
   },
   error: {
     fontSize: 16,

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Product } from "../models/Product";
 
-type CartItem = Product & { quantity: number };
+export type CartItem = Product & { quantity: number };
 
 interface CartState {
   items: CartItem[];
