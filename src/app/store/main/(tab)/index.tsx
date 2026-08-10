@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
 import {
   Dimensions,
   Pressable,
@@ -6,34 +8,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
 
-import Carousel from "react-native-reanimated-carousel";
-import { renderItem } from "@/src/utils/render-item";
+import ProfileScreen from "@/src/app/store/profile/profile";
 import { ThemedText } from "@/src/components/themed-text";
 import ProductView from "@/src/components/ui/product-item";
 import { useCategories, useProducts } from "@/src/hooks/useProduct";
 import { useCartStore } from "@/src/stores/cartStore";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useCallback, useEffect, useRef } from "react";
+import { renderCarouselItem } from "@/src/utils/render-item";
+import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Link, useNavigation } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import BottomSheet, {
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
-import ProfileScreen from "@/src/app/store/profile/profile";
+import { useCallback, useEffect, useRef } from "react";
+import Carousel from "react-native-reanimated-carousel";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const defaultDataWith6Colors = [
-  "#B0604D",
-  "#899F9C",
-  "#B3C680",
-  "#5C6265",
-  "#F5D399",
-  "#F1F1F1",
-];
 const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
@@ -42,7 +29,7 @@ export default function HomeScreen() {
   const sheetRef = useRef<BottomSheetModal>(null);
 
   const {
-    data: products,
+    data: products = [],
     isLoading: productsIsLoading,
     error: productsLoadingError,
   } = useProducts();
@@ -90,6 +77,7 @@ export default function HomeScreen() {
                   onPress={() => {
                     sheetRef.current?.present();
                   }}
+                  style={({ pressed }) => [pressed && styles.buttonPressed]}
                 >
                   <Ionicons name="person-circle-outline" size={32} />
                 </Pressable>
@@ -102,7 +90,8 @@ export default function HomeScreen() {
                 snapEnabled={true}
                 pagingEnabled={true}
                 autoPlayInterval={2000}
-                data={defaultDataWith6Colors}
+                autoPlay
+                data={products}
                 style={{ width: "100%" }}
                 onSnapToItem={(index) => console.log("current index:", index)}
                 mode="parallax"
@@ -110,11 +99,12 @@ export default function HomeScreen() {
                   parallaxScrollingScale: 0.9,
                   parallaxScrollingOffset: 50,
                 }}
-                renderItem={renderItem({
+                renderItem={renderCarouselItem({
                   rounded: true,
                   style: { marginHorizontal: 0 },
                 })}
               />
+
               <FlashList
                 data={categories}
                 keyExtractor={(item) => item}
@@ -285,5 +275,8 @@ const styles = StyleSheet.create({
   sheetDoneButton: {
     fontSize: 16,
     color: "blue",
+  },
+  buttonPressed: {
+    opacity: 0.5,
   },
 });

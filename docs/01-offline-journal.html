@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 · Offline-First Journal — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Learning path</a> / Project 01</div>
+
+<h1>01 · Offline-First Journal</h1>
+<p class="subtitle">A private, encrypted-at-rest journaling app that is fully functional with the network permanently off — and reconciles correctly when it comes back.</p>
+
+<div class="meta-row">
+  <span class="chip green">Foundation tier</span>
+  <span class="chip">Runs in Expo Go</span>
+  <span class="chip">~2 weeks</span>
+  <span class="chip accent">Core skill: local-first data</span>
+</div>
+
+<div class="note">
+  <strong>Why this one first</strong>
+  <p>Almost every RN tutorial starts by fetching from an API, which teaches you to treat the network as the source of truth. That habit produces apps that spin forever in a tunnel. Starting local-first inverts the model: the device is the source of truth, and the server is a replica you reconcile with. Everything else in this path is easier once you think that way.</p>
+</div>
+
+<ul class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#ui">UI design &amp; screens</a></li>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#data">Data model &amp; flow</a></li>
+  <li><a href="#milestones">Build order (milestones)</a></li>
+  <li><a href="#libraries">Library hints</a></li>
+  <li><a href="#pitfalls">Failure modes to experience</a></li>
+  <li><a href="#stretch">Stretch goals</a></li>
+</ul>
+
+<h2 id="objectives">Learning objectives</h2>
+
+<table>
+<thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
+<tbody>
+<tr><td>SQLite in Expo</td><td>Open a DB via provider, write versioned migrations with <code>PRAGMA user_version</code>, enable WAL mode, run typed queries.</td></tr>
+<tr><td>Schema migrations</td><td>Ship v1, then add a column in v2 without losing user data. Do this twice — the second one is where you learn.</td></tr>
+<tr><td>Full-text search</td><td>Build an FTS5 virtual table and keep it in sync with triggers. Learn why <code>LIKE '%x%'</code> doesn't scale.</td></tr>
+<tr><td>Offline mutation queue</td><td>Design an outbox table, a sync worker, idempotency keys, and last-write-wins conflict resolution.</td></tr>
+<tr><td>Background execution</td><td>Register a background task that drains the outbox; discover how little the OS actually guarantees.</td></tr>
+<tr><td>Local notifications</td><td>Daily reminders with a calendar trigger, Android channels, permission flow, deep-linking from a tapped notification.</td></tr>
+<tr><td>Filesystem</td><td>Store attachments outside the DB using the new <code>File</code>/<code>Directory</code> API; handle orphan cleanup.</td></tr>
+<tr><td>Local auth</td><td>Face ID / biometric app lock with a passcode fallback and a re-lock-on-background rule.</td></tr>
+<tr><td>List performance</td><td>FlashList with hundreds of variable-height rows, sticky date headers, and no jank on scroll.</td></tr>
+</tbody>
+</table>
+
+<h2 id="ui">UI design &amp; screens</h2>
+
+<h3>Design language</h3>
+<ul>
+  <li><strong>Tone:</strong> calm, paper-like, content-forward. Generous whitespace, one accent colour, serif for entry body text and sans for chrome.</li>
+  <li><strong>Density:</strong> the timeline is the app. Everything else is a modal or a sheet over it.</li>
+  <li><strong>Themes:</strong> full light/dark support driven by <code>useColorScheme</code>, plus a user override stored locally (system / light / dark) — this repo's <code>themed-text</code> / <code>themed-view</code> pattern already gives you the base.</li>
+  <li><strong>Motion:</strong> subtle only. Entry insert/delete uses layout animation; nothing bounces.</li>
+</ul>
+
+<h3>Screen inventory</h3>
+
+<table>
+<thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>/(tabs)/timeline</code></td><td>Timeline</td><td>Reverse-chronological entries, grouped by day with sticky headers.</td></tr>
+<tr><td><code>/(tabs)/calendar</code></td><td>Calendar</td><td>Month grid with a dot per day that has entries; tap a day to filter the timeline.</td></tr>
+<tr><td><code>/(tabs)/search</code></td><td>Search</td><td>FTS query with highlighted snippets, plus tag and mood filters.</td></tr>
+<tr><td><code>/(tabs)/settings</code></td><td>Settings</td><td>Theme, reminder time, biometric lock, sync status, export, danger zone.</td></tr>
+<tr><td><code>/entry/[id]</code></td><td>Entry detail</td><td>Read view with attachments, tags, mood; edit and delete actions.</td></tr>
+<tr><td><code>/entry/compose</code></td><td>Compose (modal)</td><td>Full-screen editor. Autosaves as draft. Mood picker, tag chips, photo attach.</td></tr>
+<tr><td><code>/lock</code></td><td>Lock screen</td><td>Shown over everything when the app is locked. Not part of the tab tree.</td></tr>
+<tr><td><code>/onboarding</code></td><td>Onboarding</td><td>Three slides: privacy promise, reminder setup, first entry prompt.</td></tr>
+</tbody>
+</table>
+
+<h3>Wireframes</h3>
+
+<div class="wireframes">
+<div class="ascii">┌─────────────────────────────┐
+│  Journal            ⚙  🔍  │
+├─────────────────────────────┤
+│  ▸ TODAY · Thu 6 Aug        │  ← sticky
+│  ┌───────────────────────┐  │
+│  │ 🙂  Morning walk      │  │
+│  │ Cool air, quiet road… │  │
+│  │ #health #calm   07:12 │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │ 😐  Standup notes  📎2│  │
+│  │ Blocked on the API …  │  │
+│  │ #work           09:40 │  │
+│  └───────────────────────┘  │
+│  ▸ YESTERDAY · Wed 5 Aug    │
+│  ┌───────────────────────┐  │
+│  │ 😴  Late night        │  │
+│  └───────────────────────┘  │
+│                             │
+│                      ╭────╮ │
+│                      │ ✎  │ │  ← FAB
+│                      ╰────╯ │
+├─────────────────────────────┤
+│  ▤ Timeline  ▦  🔍  ⚙       │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ✕                    Save  │
+├─────────────────────────────┤
+│  Thu, 6 Aug 2026 · 07:12    │
+│                             │
+│  Morning walk               │  ← title, large
+│  ─────────────────────────  │
+│  Cool air, quiet road.      │
+│  Thought about the sync     │
+│  design while walking…      │
+│                             │
+│  |                          │  ← caret
+│                             │
+│                             │
+├─────────────────────────────┤
+│  😄 🙂 😐 🙁 😢             │  ← mood row
+│  #health ×  #calm ×   + tag │
+│  📎 Attach   📷 Photo       │
+│                Saved 07:13 ✓│  ← autosave hint
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  🔍 sync design         ✕   │
+├─────────────────────────────┤
+│  Mood  ▼   Tags ▼   Date ▼  │
+├─────────────────────────────┤
+│  4 results                  │
+│                             │
+│  Morning walk       6 Aug   │
+│  …thought about the **sync**│
+│  **design** while walking…  │
+│  ─────────────────────────  │
+│  Outbox notes       2 Aug   │
+│  …the **sync** loop needs…  │
+│  ─────────────────────────  │
+│  Weekend plan      28 Jul   │
+│                             │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  Settings                   │
+├─────────────────────────────┤
+│  APPEARANCE                 │
+│  Theme          System  ›   │
+│  Font size      Medium  ›   │
+│                             │
+│  PRIVACY                    │
+│  Biometric lock       [ ●]  │
+│  Lock after      Instant ›  │
+│                             │
+│  REMINDERS                  │
+│  Daily reminder       [ ●]  │
+│  Time             21:00 ›   │
+│                             │
+│  SYNC                       │
+│  Status   ⟳ 3 pending       │
+│  Last synced   2 min ago    │
+│  Sync now                   │
+│                             │
+│  DATA                       │
+│  Export as JSON / Markdown  │
+│  Delete all entries    (!)  │
+└─────────────────────────────┘</div>
+</div>
+<p class="figcap">Sketch these in your notebook before coding. The FAB, the sticky day header, and the sync-status row are the three pieces most people forget to design.</p>
+
+<h3>Interaction details worth building properly</h3>
+<ul>
+  <li><strong>Autosave:</strong> debounce ~800 ms, write to the drafts row, show a quiet "Saved HH:MM ✓". Never a spinner.</li>
+  <li><strong>Swipe to delete</strong> on a timeline row, using Gesture Handler's swipeable — with an undo snackbar rather than a confirm dialog.</li>
+  <li><strong>Sticky day headers</strong> in FlashList, driven by section data rather than a separate SectionList.</li>
+  <li><strong>Optimistic delete:</strong> the row animates out immediately; the DB delete happens after the undo window expires.</li>
+  <li><strong>Keyboard handling:</strong> the compose toolbar must sit on the keyboard, not behind it. Use <code>KeyboardAvoidingView</code> plus <code>react-native-keyboard-controller</code> if you want it smooth.</li>
+  <li><strong>Empty states:</strong> first launch, no search results, and a filtered day with nothing in it are three different empty states with three different messages.</li>
+</ul>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>Folder layout</h3>
+<pre><code>src/
+├── app/
+│   ├── _layout.tsx                 providers + lock gate + notification listener
+│   ├── (tabs)/
+│   │   ├── _layout.tsx
+│   │   ├── timeline.tsx
+│   │   ├── calendar.tsx
+│   │   ├── search.tsx
+│   │   └── settings.tsx
+│   ├── entry/
+│   │   ├── [id].tsx
+│   │   └── compose.tsx             presented as a modal
+│   ├── lock.tsx
+│   └── onboarding.tsx
+├── db/
+│   ├── schema.ts                   Drizzle table definitions
+│   ├── migrations/                 generated by drizzle-kit
+│   ├── client.ts                   openDatabaseSync + drizzle wrapper
+│   └── queries/
+│       ├── entries.ts              pure functions: db in, rows out
+│       ├── tags.ts
+│       └── outbox.ts
+├── features/
+│   ├── entries/
+│   │   ├── hooks/                  useEntries, useEntry, useSaveEntry
+│   │   └── components/             EntryCard, MoodPicker, TagChipRow
+│   ├── search/
+│   ├── sync/
+│   │   ├── syncEngine.ts           drain outbox, apply remote changes
+│   │   ├── task.ts                 background task definition (module scope!)
+│   │   └── useSyncStatus.ts
+│   ├── reminders/
+│   │   ├── scheduleReminder.ts
+│   │   └── handlers.ts
+│   └── lock/
+│       ├── useAppLock.ts
+│       └── LockGate.tsx
+├── components/ui/                  dumb, reusable, no store imports
+├── stores/
+│   ├── settingsStore.ts            Zustand + persisted to MMKV/AsyncStorage
+│   └── lockStore.ts
+└── utils/
+    ├── date.ts
+    └── id.ts                       uuid/ULID generation</code></pre>
+
+<h3>Layer rules</h3>
+<ul>
+  <li><code>db/queries/*</code> are <strong>pure functions of the db handle</strong>. No React, no stores. This makes them unit-testable without a renderer.</li>
+  <li><code>features/*/hooks</code> are the only place that binds queries to React (via a live-query hook or TanStack Query with a local query function).</li>
+  <li><code>components/ui</code> never imports a store or a db module. Props and callbacks only — same discipline you apply to SwiftUI subviews.</li>
+  <li>The sync task is defined at <strong>module scope</strong>, imported from the root layout. If you define it inside a component it will never run in the background.</li>
+</ul>
+
+<h3>Provider stack</h3>
+<pre><code>&lt;GestureHandlerRootView&gt;
+  &lt;SafeAreaProvider&gt;
+    &lt;SQLiteProvider databaseName="journal.db" onInit={migrate}&gt;
+      &lt;QueryClientProvider&gt;              // for the sync layer only
+        &lt;ThemeProvider&gt;
+          &lt;LockGate&gt;                     // renders /lock over the tree when locked
+            &lt;Stack /&gt;
+          &lt;/LockGate&gt;
+        &lt;/ThemeProvider&gt;
+      &lt;/QueryClientProvider&gt;
+    &lt;/SQLiteProvider&gt;
+  &lt;/SafeAreaProvider&gt;
+&lt;/GestureHandlerRootView&gt;</code></pre>
+<p>Wrap <code>SQLiteProvider</code> in a <code>Suspense</code> + error boundary if you use the async variant — the DB open is not instant on a cold start with a large file.</p>
+
+<h2 id="data">Data model &amp; flow</h2>
+
+<h3>Tables</h3>
+<table>
+<thead><tr><th>Table</th><th>Key columns</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>entries</code></td><td>id (ULID), title, body, mood, created_at, updated_at, deleted_at, remote_id, dirty</td><td>Soft delete via <code>deleted_at</code> — hard deletes break sync.</td></tr>
+<tr><td><code>tags</code></td><td>id, name UNIQUE</td><td></td></tr>
+<tr><td><code>entry_tags</code></td><td>entry_id, tag_id</td><td>Composite PK, cascade delete.</td></tr>
+<tr><td><code>attachments</code></td><td>id, entry_id, file_uri, mime, width, height, bytes</td><td>Blobs live on disk, not in SQLite.</td></tr>
+<tr><td><code>entries_fts</code></td><td>FTS5 virtual: title, body, content=entries</td><td>Kept in sync by AFTER INSERT/UPDATE/DELETE triggers.</td></tr>
+<tr><td><code>outbox</code></td><td>id, op (create/update/delete), entity, entity_id, payload JSON, attempts, created_at</td><td>The heart of offline-first.</td></tr>
+<tr><td><code>sync_meta</code></td><td>key, value</td><td>Stores <code>last_pulled_at</code> cursor.</td></tr>
+</tbody>
+</table>
+
+<h3>Write path</h3>
+<pre><code>User taps Save
+   │
+   ├─► BEGIN TRANSACTION
+   │     UPDATE entries  SET …, dirty = 1, updated_at = now
+   │     INSERT INTO outbox (op='update', entity_id=…, payload=…)
+   │   COMMIT
+   │
+   ├─► UI re-renders from the local read (instant, no network)
+   │
+   └─► syncEngine.kick()  ── if online ──► POST /entries
+                                             │
+                                    2xx ─────┤─► mark row clean,
+                                             │   delete outbox item
+                                    4xx ─────┤─► move to dead-letter,
+                                             │   surface in Settings
+                                    5xx/net ─┴─► leave in outbox,
+                                                 backoff, retry later</code></pre>
+<p class="figcap">The transaction is non-negotiable: the row change and the outbox entry must land together or not at all.</p>
+
+<h3>Read path</h3>
+<p>Two viable designs — build the first, then try the second and compare:</p>
+<ol>
+  <li><strong>Live query.</strong> A hook that subscribes to DB change events and re-runs its query. Simplest mental model; you can build it yourself on top of <code>addDatabaseChangeListener</code>, or use Drizzle's live-query helper.</li>
+  <li><strong>TanStack Query over local reads.</strong> Query function reads SQLite, mutations invalidate keys. More boilerplate but a uniform API for local and remote — and it's the same pattern you'll use in Project 03.</li>
+</ol>
+
+<h3>Sync semantics to decide (and write down)</h3>
+<ul>
+  <li>Conflict rule: last-write-wins by <code>updated_at</code>? Or field-level merge? LWW is fine here — but state it explicitly.</li>
+  <li>Idempotency: the client-generated ULID <em>is</em> the idempotency key. The server must upsert on it.</li>
+  <li>Backoff: exponential with jitter, capped. Cap the attempt count and dead-letter after N.</li>
+  <li>Clock skew: never trust the device clock for ordering across devices. Use a server-assigned version/lamport counter if you go multi-device.</li>
+</ul>
+
+<div class="tip">
+  <strong>No backend? Good.</strong>
+  <p>Fake it. Point the sync engine at a tiny mock server (a local JSON server, a Cloudflare Worker, or Supabase's REST endpoint). The point is exercising the queue, retries, and reconciliation — not the server code. Add an artificial-latency and artificial-failure toggle in Settings so you can test 5xx paths on demand.</p>
+</div>
+
+<h2 id="milestones">Build order</h2>
+
+<div class="milestone">
+  <h3><span class="tag">M1</span> Skeleton &amp; database</h3>
+  <div class="goal">Goal: a tab shell with a real SQLite database behind it.</div>
+  <ul>
+    <li>Create the route tree: tabs, entry detail, compose modal.</li>
+    <li>Install <code>expo-sqlite</code>; wire <code>SQLiteProvider</code> with an <code>onInit</code> migration function.</li>
+    <li>Write migration v1: <code>entries</code> table + <code>PRAGMA journal_mode = 'wal'</code>.</li>
+    <li>Seed 30 fake entries on first launch so the list has substance.</li>
+    <li>Hook up the Drizzle Studio dev plugin and confirm you can see rows.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Delete the app, reinstall, and confirm the migration runs exactly once and <code>user_version</code> reads 1.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M2</span> CRUD + timeline</h3>
+  <div class="goal">Goal: create, read, update, delete entries with a list that never stutters.</div>
+  <ul>
+    <li>Timeline with FlashList, grouped by day, sticky headers.</li>
+    <li>Compose modal with debounced autosave.</li>
+    <li>Swipe-to-delete with soft delete + undo snackbar.</li>
+    <li>Live-query hook so the list updates without a manual refetch.</li>
+    <li>Mood picker and tag chips (many-to-many join).</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — 500 seeded entries, scroll to the bottom fast. Frame rate holds. If it doesn't, fix the row component before moving on.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M3</span> Search &amp; migration #2</h3>
+  <div class="goal">Goal: FTS5 search, added via a real schema migration on top of existing data.</div>
+  <ul>
+    <li>Write migration v2 that creates <code>entries_fts</code> and backfills it from existing rows.</li>
+    <li>Add triggers to keep FTS in sync on insert/update/delete.</li>
+    <li>Search screen with debounced input, snippet highlighting, and filter chips.</li>
+    <li>Compare timings against a naive <code>LIKE</code> query over the same data — note the numbers.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Install v1, add entries, then upgrade to v2. All pre-existing entries are searchable. This is the migration lesson.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M4</span> Attachments &amp; filesystem</h3>
+  <div class="goal">Goal: photos attached to entries, stored on disk, cleaned up on delete.</div>
+  <ul>
+    <li><code>expo-image-picker</code> to select; copy the asset into your app's document directory with the new <code>File</code>/<code>Directory</code> API.</li>
+    <li>Generate and cache thumbnails with <code>expo-image-manipulator</code>.</li>
+    <li>Render with <code>expo-image</code> (this repo already has it) and its blurhash placeholder.</li>
+    <li>On hard delete, remove orphaned files. Write a "sweep orphans" maintenance function.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Attach 10 photos, delete the entries, confirm the document directory is empty and the DB has no dangling rows.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M5</span> Reminders</h3>
+  <div class="goal">Goal: a daily notification that opens the compose screen.</div>
+  <ul>
+    <li>Set a notification handler at module scope; request permissions with a proper pre-prompt rationale screen.</li>
+    <li>Android: create a notification channel <em>before</em> requesting permission.</li>
+    <li>Schedule with a daily calendar trigger; reschedule when the user changes the time; cancel on toggle-off.</li>
+    <li>Handle the response listener → route to <code>/entry/compose</code>. Also handle the <strong>cold start</strong> case via the last-response API.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Force-quit the app, tap a delivered notification, land directly on the compose screen. Cold-start routing is the part everyone gets wrong.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M6</span> Sync engine</h3>
+  <div class="goal">Goal: the outbox drains reliably and exactly once.</div>
+  <ul>
+    <li>Outbox table + transactional writes.</li>
+    <li>Sync engine: pull (since cursor) → merge → push (drain outbox) → update cursor.</li>
+    <li>Trigger on: app foreground, network regained (<code>expo-network</code> state listener), manual button, and a periodic background task.</li>
+    <li>Register a background task with <code>expo-background-task</code>; log every invocation so you can see how rarely iOS actually runs it.</li>
+    <li>Sync status UI: idle / syncing / N pending / error, in Settings and as a subtle timeline header state.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Airplane mode, create/edit/delete 20 entries, force-quit, reopen, disable airplane mode. Server ends up with exactly the right 20 operations. No duplicates.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M7</span> Lock, export, polish</h3>
+  <div class="goal">Goal: shippable feel.</div>
+  <ul>
+    <li>Biometric lock with <code>expo-local-authentication</code>; re-lock when the app goes to background past a threshold (<code>AppState</code> listener).</li>
+    <li>Export to JSON and Markdown; save via <code>expo-sharing</code>.</li>
+    <li>Onboarding flow, gated by a persisted flag.</li>
+    <li>Haptics on save/delete (this repo already has <code>expo-haptics</code>).</li>
+    <li>App icon, splash, and a real name.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Hand the phone to someone else with the app locked. They can't read a single entry, including from the app switcher preview (hide content on background).</div>
+</div>
+
+<h2 id="libraries">Library hints</h2>
+
+<table>
+<thead><tr><th>Need</th><th>Package</th><th>Key API surface (look these up)</th></tr></thead>
+<tbody>
+<tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>SQLiteProvider</code>, <code>useSQLiteContext</code>, <code>openDatabaseSync</code>, <code>execAsync</code>, <code>runAsync</code>, <code>getAllAsync</code>, <code>getFirstAsync</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code>, <code>PRAGMA user_version</code></td></tr>
+<tr><td>Typed ORM (optional)</td><td><code>drizzle-orm</code> + <code>drizzle-kit</code></td><td><code>drizzle(db)</code>, <code>sqliteTable</code>, <code>useLiveQuery</code>, <code>useMigrations</code>, generated SQL migrations</td></tr>
+<tr><td>DB inspector</td><td><code>expo-drizzle-studio-plugin</code></td><td>Works with plain expo-sqlite too — you don't need Drizzle to use it.</td></tr>
+<tr><td>Lists</td><td><code>@shopify/flash-list</code> <span class="chip green">installed</span></td><td>v2 API — no more <code>estimatedItemSize</code> requirement; <code>getItemType</code> for mixed rows, <code>stickyHeaderIndices</code></td></tr>
+<tr><td>Notifications</td><td><code>expo-notifications</code></td><td><code>setNotificationHandler</code>, <code>setNotificationChannelAsync</code>, <code>scheduleNotificationAsync</code> with <code>SchedulableTriggerInputTypes.DAILY</code>, <code>addNotificationResponseReceivedListener</code>, <code>getLastNotificationResponseAsync</code></td></tr>
+<tr><td>Background work</td><td><code>expo-background-task</code> + <code>expo-task-manager</code></td><td><code>TaskManager.defineTask</code> (module scope!), <code>BackgroundTask.registerTaskAsync</code>, <code>getStatusAsync</code>, <code>BackgroundTaskResult</code></td></tr>
+<tr><td>Files</td><td><code>expo-file-system</code></td><td>New API: <code>File</code>, <code>Directory</code>, <code>Paths.document</code>, <code>Paths.cache</code>, <code>File.downloadFileAsync</code>, <code>.create()</code>, <code>.delete()</code>, <code>.exists</code></td></tr>
+<tr><td>Images</td><td><code>expo-image-picker</code>, <code>expo-image-manipulator</code>, <code>expo-image</code> <span class="chip green">installed</span></td><td><code>launchImageLibraryAsync</code>, <code>ImageManipulator.manipulate().resize().renderAsync()</code>, <code>&lt;Image placeholder={blurhash}&gt;</code></td></tr>
+<tr><td>Biometrics</td><td><code>expo-local-authentication</code></td><td><code>hasHardwareAsync</code>, <code>isEnrolledAsync</code>, <code>authenticateAsync</code>, <code>supportedAuthenticationTypesAsync</code></td></tr>
+<tr><td>Network state</td><td><code>expo-network</code></td><td><code>useNetworkState()</code>, <code>addNetworkStateListener</code></td></tr>
+<tr><td>Key-value store</td><td><code>react-native-mmkv</code> or <code>@react-native-async-storage/async-storage</code></td><td>MMKV is synchronous and much faster; needs a dev build. AsyncStorage works in Expo Go.</td></tr>
+<tr><td>Client state</td><td><code>zustand</code> <span class="chip green">installed</span></td><td><code>persist</code> middleware with a custom storage adapter</td></tr>
+<tr><td>Sharing/export</td><td><code>expo-sharing</code></td><td><code>shareAsync(uri)</code>, <code>isAvailableAsync</code></td></tr>
+<tr><td>IDs</td><td><code>uuid</code> + <code>expo-crypto</code>, or a ULID lib</td><td>ULIDs sort lexicographically by time — very handy for a journal.</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+  <strong>SDK 57 note</strong>
+  <p><code>expo-file-system</code> now exposes the object-oriented <code>File</code>/<code>Directory</code> API by default; the old function-based API moved to a legacy import path. Similarly <code>expo-background-fetch</code> is superseded by <code>expo-background-task</code>. Read the current SDK 57 page for each module rather than an older blog post.</p>
+</div>
+
+<h2 id="pitfalls">Failure modes to experience deliberately</h2>
+
+<ol>
+  <li><strong>Migration that drops data.</strong> Write a bad v2 migration (a table recreate without a backfill), run it against real data, watch entries vanish. Then write the correct one. This teaches you why <code>user_version</code> gating and backfills matter more than any ORM feature.</li>
+  <li><strong>FTS drift.</strong> Update a row without the trigger in place; search returns the stale text. Learn to rebuild the FTS index.</li>
+  <li><strong>Duplicate sync.</strong> Kick the sync engine twice concurrently with no mutex. Watch the server get two copies. Add a run-lock.</li>
+  <li><strong>Background task that never fires.</strong> Register on iOS, wait a day, note it fired zero or once. Understand that background execution is a <em>hint</em>, not a schedule — your app must still work if it never runs.</li>
+  <li><strong>Notification permission denied.</strong> Deny it, then try to schedule. Handle it gracefully with a "open Settings" path via <code>Linking</code>.</li>
+  <li><strong>Blocked JS thread.</strong> Run a large synchronous query on the JS thread during a scroll; watch FPS collapse. Move it to an async call or paginate.</li>
+  <li><strong>App switcher leak.</strong> Lock the app but forget to blur the snapshot — the journal is readable in the task switcher. Fix it.</li>
+</ol>
+
+<h2 id="stretch">Stretch goals</h2>
+<ul>
+  <li><strong>SQLCipher-style encryption</strong> — store the DB key in <code>expo-secure-store</code>, gate it behind biometrics.</li>
+  <li><strong>Multi-device sync with real conflicts</strong> — two simulators, same account, edit the same entry offline on both. Now LWW hurts; try a CRDT or field-level merge.</li>
+  <li><strong>Widgets</strong> — a "today's entry" home-screen widget (this is really Project 04 territory; a good preview).</li>
+  <li><strong>Web target</strong> — the app already builds for web via <code>react-native-web</code>. Swap SQLite for IndexedDB behind the same query interface and see how well your layering held up.</li>
+  <li><strong>Statistics screen</strong> — mood over time, writing streaks, word counts. A good excuse to learn <code>victory-native</code> or Skia charts.</li>
+</ul>
+
+<div class="nav-links">
+  <a href="index.html">← Learning path</a>
+  <a href="02-camera-social.html">Project 02 · Camera &amp; Social →</a>
+</div>
+
+<footer>Project 01 · targets Expo SDK 57 / RN 0.86</footer>
+
+</div>
+</body>
+</html>

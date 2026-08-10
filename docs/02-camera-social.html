@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 · Camera &amp; Social Capture — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Learning path</a> / Project 02</div>
+
+<h1>02 · Camera &amp; Social Capture</h1>
+<p class="subtitle">A capture-edit-share app. Camera preview with modes, a gesture-driven photo editor, a media grid, and full inbound/outbound sharing with the OS.</p>
+
+<div class="meta-row">
+  <span class="chip green">Device I/O tier</span>
+  <span class="chip amber">Needs a dev build</span>
+  <span class="chip">~2–3 weeks</span>
+  <span class="chip accent">Core skill: hardware, permissions, gestures</span>
+</div>
+
+<div class="note">
+  <strong>Why this one second</strong>
+  <p>Project 01 never left the sandbox. This one talks to hardware, the OS media store, and other apps — which means permissions, lifecycle, orientation, memory pressure, and platform divergence all show up at once. It's also where Reanimated stops being decoration and becomes the only way to build a 60fps editor.</p>
+</div>
+
+<ul class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#ui">UI design &amp; screens</a></li>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#pipeline">The media pipeline</a></li>
+  <li><a href="#milestones">Build order (milestones)</a></li>
+  <li><a href="#libraries">Library hints</a></li>
+  <li><a href="#pitfalls">Failure modes to experience</a></li>
+  <li><a href="#stretch">Stretch goals</a></li>
+</ul>
+
+<h2 id="objectives">Learning objectives</h2>
+
+<table>
+<thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
+<tbody>
+<tr><td>Camera control</td><td>Preview, front/back, flash, torch, zoom, tap-to-focus, photo + video modes, barcode scanning.</td></tr>
+<tr><td>Permission UX</td><td>Pre-prompt rationale → system prompt → denied recovery → Settings deep-link. For camera, mic, and media library separately.</td></tr>
+<tr><td>Reanimated 4</td><td>Worklets, shared values, <code>useAnimatedStyle</code>, entering/exiting animations, and the new CSS-style animation APIs.</td></tr>
+<tr><td>Gesture Handler</td><td>Composed pinch + pan + rotation on a crop overlay with clamping and momentum decay.</td></tr>
+<tr><td>Image processing</td><td>Resize, crop, rotate, flip, compress, format conversion, EXIF handling — and a Skia-based filter pass.</td></tr>
+<tr><td>Media library</td><td>Read albums and assets with pagination; write new assets back; handle iOS limited-access mode.</td></tr>
+<tr><td>Deep linking</td><td>Custom scheme + universal links; route to a specific post; handle cold start vs warm.</td></tr>
+<tr><td>Share integration</td><td>Share out via the system sheet; receive inbound shares via a share extension (config plugin territory).</td></tr>
+<tr><td>Video</td><td>Record, trim, thumbnail, and play back with the modern video component.</td></tr>
+<tr><td>Memory discipline</td><td>Learn what a 48MP photo does to a JS bridge and how to avoid touching pixel data in JS.</td></tr>
+</tbody>
+</table>
+
+<h2 id="ui">UI design &amp; screens</h2>
+
+<h3>Design language</h3>
+<ul>
+  <li><strong>Tone:</strong> media-first and dark by default. Chrome is translucent (blur) and floats over content; the photo is never letterboxed by UI.</li>
+  <li><strong>Camera screen owns the full display</strong> including under the status bar. Controls sit in safe-area-aware overlays.</li>
+  <li><strong>Immediate feedback:</strong> shutter → haptic + flash animation + thumbnail fly-to-corner. Latency perception matters more than actual latency here.</li>
+  <li><strong>Gestures over buttons</strong> where natural: pinch to zoom, double-tap to flip, swipe up for the gallery, swipe between modes.</li>
+</ul>
+
+<h3>Screen inventory</h3>
+
+<table>
+<thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>/(tabs)/feed</code></td><td>Feed</td><td>Your captures as a masonry/grid; tap for the viewer.</td></tr>
+<tr><td><code>/camera</code></td><td>Camera</td><td>Full-bleed capture. Modes: Photo / Video / Scan.</td></tr>
+<tr><td><code>/(tabs)/library</code></td><td>Library</td><td>Device albums and assets, paginated grid, multi-select.</td></tr>
+<tr><td><code>/editor/[assetId]</code></td><td>Editor</td><td>Crop / rotate / filter / adjust, with an undo stack.</td></tr>
+<tr><td><code>/post/[id]</code></td><td>Post detail</td><td>Full-screen viewer with pinch-zoom, metadata, share actions. Deep-link target.</td></tr>
+<tr><td><code>/share-inbound</code></td><td>Inbound share</td><td>Where content shared <em>into</em> your app lands.</td></tr>
+<tr><td><code>/(tabs)/profile</code></td><td>Profile</td><td>Stats, storage usage, settings.</td></tr>
+</tbody>
+</table>
+
+<h3>Wireframes</h3>
+
+<div class="wireframes">
+<div class="ascii">┌─────────────────────────────┐
+│ ⚡auto            ⚙   ✕     │  ← translucent top bar
+│                             │
+│                             │
+│        [ LIVE PREVIEW ]     │
+│                             │
+│              ◎              │  ← tap-to-focus ring
+│                             │
+│                             │
+│         .5×  1×  2×  3×     │  ← zoom pills
+│                             │
+│    PHOTO  ‹ VIDEO ›  SCAN   │  ← swipeable mode strip
+│                             │
+│  ┌──┐        ╭───╮      ⟲   │
+│  │▣ │        │ ◉ │          │  ← last shot | shutter | flip
+│  └──┘        ╰───╯          │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ✕            Editor   Save │
+├─────────────────────────────┤
+│  ┌───────────────────────┐  │
+│  │ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ┐   │  │
+│  │ │                 │   │  │
+│  │ │   IMAGE + CROP  │   │  │  pinch / pan
+│  │ │     OVERLAY     │   │  │  rotate
+│  │ │                 │   │  │
+│  │ └ ─ ─ ─ ─ ─ ─ ─ ─ ┘   │  │
+│  └───────────────────────┘  │
+│    1:1  4:5  16:9  Free     │
+│                             │
+│  ▭ ▭ ▭ ▭ ▭ ▭ ▭  ← filters   │
+│  None Mono Warm Cool Fade   │
+│                             │
+│  ✂ Crop  ⟳ Rotate  ☀ Adjust │
+│  ↶ Undo            ↷ Redo   │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  Library        Recents  ▼  │
+│  ⓘ Limited access · Manage  │  ← iOS limited mode banner
+├─────────────────────────────┤
+│ ┌───┐┌───┐┌───┐┌───┐        │
+│ │ ▣ ││ ▣ ││ ▣ ││ ▣ │        │
+│ └───┘└───┘└───┘└───┘        │
+│ ┌───┐┌───┐┌───┐┌───┐        │
+│ │ ▣ ││ ✓ ││ ▣ ││▶ 0:12      │
+│ └───┘└───┘└───┘└───┘        │
+│ ┌───┐┌───┐┌───┐┌───┐        │
+│ │ ▣ ││ ▣ ││ ▣ ││ ▣ │        │
+│ └───┘└───┘└───┘└───┘        │
+│         … loading more …    │
+├─────────────────────────────┤
+│  2 selected      Edit  Share│
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ‹                    ⋯     │
+│                             │
+│                             │
+│      [ FULL IMAGE ]         │  pinch to zoom
+│       double-tap zoom       │  swipe down to dismiss
+│                             │
+│                             │
+├─────────────────────────────┤
+│  Sunset, Dhaka              │
+│  6 Aug 2026 · 18:42         │
+│  4032×3024 · 3.2 MB · HEIC  │
+│  f/1.8 · 1/120 · ISO 64     │  ← EXIF
+├─────────────────────────────┤
+│   ♡      💬      ⤴ Share    │
+└─────────────────────────────┘</div>
+</div>
+<p class="figcap">The mode strip, the limited-access banner, and the EXIF panel are the three details that separate a demo from something that feels native.</p>
+
+<h3>Interaction details worth building properly</h3>
+<ul>
+  <li><strong>Shutter feedback chain:</strong> haptic impact → white flash overlay (150 ms) → captured thumbnail scales down and flies to the corner button. All on the UI thread via Reanimated.</li>
+  <li><strong>Pinch-to-zoom on the camera</strong> mapped to the camera's zoom range with a non-linear curve — linear mapping feels wrong.</li>
+  <li><strong>Tap-to-focus</strong> with a shrinking ring at the tap point that fades after ~1s.</li>
+  <li><strong>Mode strip</strong> that snaps between Photo/Video/Scan, with the shutter morphing shape per mode (circle → red rounded square → hidden).</li>
+  <li><strong>Shared-element transition</strong> from the grid thumbnail into the full viewer. Expo Router supports shared transitions on native stacks — try it, and have a cross-fade fallback.</li>
+  <li><strong>Swipe-down-to-dismiss</strong> the viewer with the background opacity tracking the drag distance.</li>
+  <li><strong>Crop overlay:</strong> simultaneous pinch + pan + rotate composed with Gesture Handler's <code>Gesture.Simultaneous</code>, with clamping so the image can never leave the crop frame.</li>
+</ul>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>Folder layout</h3>
+<pre><code>src/
+├── app/
+│   ├── _layout.tsx
+│   ├── (tabs)/{feed,library,profile}.tsx
+│   ├── camera.tsx                  full-screen, no tab bar
+│   ├── editor/[assetId].tsx
+│   ├── post/[id].tsx               deep-link target
+│   └── share-inbound.tsx
+├── features/
+│   ├── camera/
+│   │   ├── useCameraController.ts  facing, flash, zoom, mode
+│   │   ├── useCapture.ts           takePicture / record orchestration
+│   │   └── components/             ShutterButton, ModeStrip, ZoomPills, FocusRing
+│   ├── editor/
+│   │   ├── useEditorHistory.ts     undo/redo stack of operations
+│   │   ├── operations.ts           pure op descriptors: crop/rotate/filter
+│   │   ├── applyOperations.ts      runs the op list through the manipulator
+│   │   └── components/             CropOverlay, FilterStrip, AdjustSlider
+│   ├── library/
+│   │   ├── useAssets.ts            paginated media-library reads
+│   │   └── components/             AssetGrid, AssetCell, SelectionBar
+│   ├── viewer/
+│   │   └── components/             ZoomableImage, DismissibleContainer
+│   └── sharing/
+│       ├── shareOut.ts
+│       └── useInboundShare.ts
+├── media/
+│   ├── storage.ts                  app-owned media directory management
+│   ├── thumbnails.ts
+│   └── exif.ts
+├── components/ui/
+└── stores/
+    └── captureStore.ts             transient capture session state</code></pre>
+
+<h3>Key architectural decision: the editor as an operation list</h3>
+<p>Do <strong>not</strong> mutate the image on every gesture. Instead:</p>
+<pre><code>EditorState = {
+  sourceUri: string
+  operations: Op[]        // [{crop}, {rotate:90}, {filter:'mono', intensity:0.7}]
+  cursor: number          // for undo/redo
+}
+
+Preview  → render sourceUri with a live GPU transform (Skia / animated style)
+Commit   → run operations sequentially through the image manipulator,
+           write a new file, return its uri</code></pre>
+<p>This gives you free undo/redo, a cheap preview, non-destructive editing, and one obvious place to unit-test. It's also how every real editor works.</p>
+
+<h3>Permission state machine</h3>
+<pre><code>            ┌──────────────┐
+            │  undetermined│
+            └──────┬───────┘
+       show rationale screen
+                   │ user taps "Allow"
+            ┌──────▼───────┐
+            │ system prompt│
+            └───┬──────┬───┘
+        granted │      │ denied
+            ┌───▼──┐ ┌─▼─────────────────┐
+            │ USE  │ │ blocked screen    │
+            └──────┘ │ "Open Settings" → │
+                     │ Linking.openSettings()
+                     └───────────────────┘
+   iOS extra branch: media library → "limited"
+        → show banner + presentPermissionsPicker()</code></pre>
+<p>Build this once as a reusable <code>&lt;PermissionGate permission="camera"&gt;</code> component. You'll reuse it in projects 04 and 05.</p>
+
+<h2 id="pipeline">The media pipeline</h2>
+
+<pre><code>CAPTURE
+  CameraView.takePictureAsync({ quality, exif, skipProcessing? })
+     └─► temp file uri in cache directory
+
+INGEST
+  copy/move into app document dir  (expo-file-system File API)
+  extract EXIF + dimensions
+  generate thumbnail (manipulator resize → ~400px, jpeg q0.7)
+  insert row in local db (reuse Project 01's SQLite skills)
+
+EDIT
+  operations[] applied → new derived file
+  original preserved (non-destructive)
+
+EXPORT
+  compress to target size/format
+  optionally save to device gallery (MediaLibrary.Asset.create / saveToLibraryAsync)
+  or hand a uri to expo-sharing</code></pre>
+
+<div class="warn">
+  <strong>Never move pixels through JS</strong>
+  <p>Reading image bytes into a JS array to "apply a filter" will kill you on a 12MP photo. Filters belong on the GPU (Skia shaders / color matrices) or in a native manipulator call. If you find yourself writing a per-pixel loop in JS, stop.</p>
+</div>
+
+<h2 id="milestones">Build order</h2>
+
+<div class="milestone">
+  <h3><span class="tag">M0</span> Dev build first</h3>
+  <div class="goal">Goal: get off Expo Go before you need to.</div>
+  <ul>
+    <li><code>eas build --profile development --platform ios --local</code> (and Android).</li>
+    <li>Install on a <strong>physical device</strong> — the simulator camera is useless for this project.</li>
+    <li>Confirm hot reload works against the dev client.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — You can add a native dependency, rebuild, and be running again in under 15 minutes.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M1</span> Camera preview &amp; permissions</h3>
+  <div class="goal">Goal: a working preview with a real permission flow.</div>
+  <ul>
+    <li><code>CameraView</code> full-bleed with <code>useCameraPermissions</code>.</li>
+    <li>The <code>&lt;PermissionGate&gt;</code> component: rationale → prompt → blocked-with-Settings-link.</li>
+    <li>Flip camera, flash mode cycling, torch toggle.</li>
+    <li>Configure the permission usage strings via the <code>expo-camera</code> config plugin in <code>app.json</code>, not by hand-editing Info.plist.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Deny permission in Settings, relaunch, and the app explains itself instead of showing a black rectangle.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M2</span> Capture &amp; the feedback chain</h3>
+  <div class="goal">Goal: taking a photo feels instant.</div>
+  <ul>
+    <li><code>takePictureAsync</code> → ingest into the app directory → thumbnail → local DB row.</li>
+    <li>Shutter animation, haptic, flash overlay, fly-to-corner thumbnail — all Reanimated on the UI thread.</li>
+    <li>Pinch-to-zoom and tap-to-focus.</li>
+    <li>Feed grid showing captures, newest first.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Fire the shutter 10 times rapidly. No dropped captures, no frozen UI, no memory warning.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M3</span> Media library</h3>
+  <div class="goal">Goal: browse the device's photos properly.</div>
+  <ul>
+    <li>Paginated asset reads (<code>getAssetsAsync</code> with <code>after</code> cursor) into a FlashList grid.</li>
+    <li>Album picker.</li>
+    <li>Multi-select with a selection bar.</li>
+    <li>iOS limited-access: detect it, show the banner, offer <code>presentPermissionsPickerAsync</code>.</li>
+    <li>Video assets show a duration badge and a play affordance.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Test on a device with 5,000+ photos. Scrolling stays smooth and memory doesn't climb without bound.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M4</span> The editor</h3>
+  <div class="goal">Goal: a crop/rotate/filter editor with undo.</div>
+  <ul>
+    <li>Operation-list state + undo/redo.</li>
+    <li>Crop overlay: composed pinch/pan/rotate gestures with clamping; aspect-ratio presets.</li>
+    <li>Live preview via animated transforms — no re-encoding per frame.</li>
+    <li>Filter strip: color-matrix filters rendered with Skia (or a simple overlay approach as a fallback).</li>
+    <li>Commit: apply operations through <code>expo-image-manipulator</code>, write the derived file.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Apply crop → rotate → filter, undo all three, redo all three, save. The output matches the preview exactly. Preview/output mismatch is the classic editor bug.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M5</span> Viewer &amp; transitions</h3>
+  <div class="goal">Goal: the polish layer.</div>
+  <ul>
+    <li>Full-screen viewer with pinch-zoom, double-tap zoom, and pan-when-zoomed.</li>
+    <li>Swipe-down-to-dismiss with progressive background fade.</li>
+    <li>Shared-element transition from the grid (with a graceful fallback).</li>
+    <li>Horizontal paging between posts.</li>
+    <li>EXIF metadata panel.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Zoom in hard on a 12MP image and pan. It stays smooth and sharp.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M6</span> Sharing, both directions</h3>
+  <div class="goal">Goal: your app is a citizen of the OS.</div>
+  <ul>
+    <li>Share out: <code>expo-sharing</code> to the system sheet; copy to clipboard with <code>expo-clipboard</code>.</li>
+    <li>Save to the device gallery with a dedicated album.</li>
+    <li>Deep links: <code>whynotreactnative://post/123</code> and an https universal link. Test cold start, warm start, and background.</li>
+    <li>Inbound share: add a share extension via a config plugin (e.g. <code>expo-share-intent</code>) so photos can be shared <em>into</em> your app.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — From Apple Photos, share a photo into your app; it opens on the inbound screen with the asset ready to edit. This is the milestone that teaches you what config plugins are for.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M7</span> Video</h3>
+  <div class="goal">Goal: the second media type, which breaks half your assumptions.</div>
+  <ul>
+    <li>Record with <code>recordAsync</code>, with a max duration and a progress ring.</li>
+    <li>Microphone permission (separate from camera).</li>
+    <li>Playback with <code>expo-video</code>'s <code>VideoView</code> + <code>useVideoPlayer</code>.</li>
+    <li>Thumbnail generation for the grid.</li>
+    <li>A simple trim UI with a scrubbable filmstrip.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Record 60 s, background the app mid-recording, return. You handle it (either stop cleanly or continue) rather than crashing.</div>
+</div>
+
+<h2 id="libraries">Library hints</h2>
+
+<table>
+<thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
+<tbody>
+<tr><td>Camera</td><td><code>expo-camera</code></td><td><code>CameraView</code>, <code>useCameraPermissions</code>, <code>useMicrophonePermissions</code>, props: <code>facing</code> <code>flash</code> <code>enableTorch</code> <code>zoom</code> <code>mode</code> <code>autofocus</code> <code>active</code> <code>barcodeScannerSettings</code>; callbacks: <code>onCameraReady</code> <code>onBarcodeScanned</code> <code>onMountError</code>; ref: <code>takePictureAsync</code> <code>recordAsync</code> <code>stopRecording</code></td></tr>
+<tr><td>Alternative camera</td><td><code>react-native-vision-camera</code></td><td>Worth trying after M2 — frame processors let you run ML on frames. Requires a dev build and a config plugin.</td></tr>
+<tr><td>Image manipulation</td><td><code>expo-image-manipulator</code></td><td>New context API: <code>ImageManipulator.manipulate(uri).resize().crop().rotate().flip()</code> then <code>.renderAsync()</code> → <code>.saveAsync({format, compress})</code></td></tr>
+<tr><td>Image rendering</td><td><code>expo-image</code> <span class="chip green">installed</span></td><td><code>contentFit</code>, <code>placeholder</code> (blurhash/thumbhash), <code>transition</code>, <code>cachePolicy</code>, <code>recyclingKey</code> for lists</td></tr>
+<tr><td>Picker</td><td><code>expo-image-picker</code></td><td><code>launchImageLibraryAsync</code>, <code>launchCameraAsync</code>, <code>mediaTypes: ['images','videos']</code>, <code>allowsMultipleSelection</code>, <code>exif: true</code></td></tr>
+<tr><td>Media library</td><td><code>expo-media-library</code></td><td><code>usePermissions</code>, <code>getAssetsAsync({first, after, sortBy, mediaType})</code>, <code>getAlbumsAsync</code>, <code>Asset.create</code>, <code>saveToLibraryAsync</code>, <code>presentPermissionsPickerAsync</code>, <code>getAssetInfoAsync</code> (for EXIF + localUri)</td></tr>
+<tr><td>Video</td><td><code>expo-video</code></td><td><code>useVideoPlayer</code>, <code>&lt;VideoView&gt;</code>, <code>player.play()/pause()</code>, <code>useEvent</code> for status. (<code>expo-av</code> is deprecated — don't start there.)</td></tr>
+<tr><td>Video thumbnails</td><td><code>expo-video-thumbnails</code></td><td><code>getThumbnailAsync(uri, {time})</code></td></tr>
+<tr><td>Gestures</td><td><code>react-native-gesture-handler</code> <span class="chip green">installed</span></td><td><code>Gesture.Pinch()</code>, <code>Gesture.Pan()</code>, <code>Gesture.Rotation()</code>, <code>Gesture.Tap().numberOfTaps(2)</code>, <code>Gesture.Simultaneous()</code>, <code>Gesture.Race()</code>, <code>GestureDetector</code></td></tr>
+<tr><td>Animation</td><td><code>react-native-reanimated</code> v4 <span class="chip green">installed</span></td><td><code>useSharedValue</code>, <code>useAnimatedStyle</code>, <code>withSpring/withTiming/withDecay</code>, <code>runOnJS</code>, <code>interpolate</code>, <code>FadeIn/Layout</code>, <code>useAnimatedReaction</code>. Note v4 requires <code>react-native-worklets</code> (already installed here).</td></tr>
+<tr><td>GPU filters</td><td><code>@shopify/react-native-skia</code></td><td><code>&lt;Canvas&gt;</code>, <code>&lt;Image&gt;</code>, <code>ColorMatrix</code>, <code>Blur</code>, <code>useImage</code>, <code>makeImageSnapshot</code> to export</td></tr>
+<tr><td>Sharing out</td><td><code>expo-sharing</code>, <code>expo-clipboard</code></td><td><code>shareAsync(uri, {mimeType, dialogTitle})</code>, <code>setStringAsync</code>, <code>setImageAsync</code></td></tr>
+<tr><td>Sharing in</td><td><code>expo-share-intent</code> (community)</td><td>Config plugin that adds the iOS share extension + Android intent filters. Read its plugin source — it's an excellent config-plugin teaching example.</td></tr>
+<tr><td>Linking</td><td><code>expo-linking</code> <span class="chip green">installed</span></td><td><code>createURL</code>, <code>useURL</code>, <code>getInitialURL</code>, <code>openSettings</code></td></tr>
+<tr><td>Blur chrome</td><td><code>expo-blur</code> <span class="chip green">installed</span></td><td><code>&lt;BlurView intensity tint experimentalBlurMethod&gt;</code> (Android needs the experimental method)</td></tr>
+<tr><td>Screen orientation</td><td><code>expo-screen-orientation</code></td><td><code>lockAsync</code>, <code>addOrientationChangeListener</code> — camera screens usually lock portrait but still need to rotate the overlay icons.</td></tr>
+</tbody>
+</table>
+
+<h2 id="pitfalls">Failure modes to experience deliberately</h2>
+
+<ol>
+  <li><strong>The permission dead-end.</strong> Deny camera access, then try to open the camera screen. If your app shows a black view with no explanation, you've shipped the most common RN bug in the App Store.</li>
+  <li><strong>Camera not released.</strong> Navigate away from the camera without deactivating it; battery drains and the preview freezes on return. Use the <code>active</code> prop tied to screen focus (<code>useIsFocused</code>).</li>
+  <li><strong>Cache directory eviction.</strong> Save a capture's uri from the cache directory into your DB, come back a week later — the file is gone. Always copy into the document directory on ingest.</li>
+  <li><strong>Orientation/EXIF rotation.</strong> A photo shot in landscape displays sideways after manipulation because you stripped EXIF orientation. Learn to normalize rotation at ingest.</li>
+  <li><strong>OOM on large images.</strong> Load ten 48MP originals into a grid at full resolution. Watch it die. Then fix it with thumbnails and <code>recyclingKey</code>.</li>
+  <li><strong>Gesture conflicts.</strong> A pinch inside a scrollable that also pans — without <code>simultaneousWithExternalGesture</code> one of them wins and the UX feels broken.</li>
+  <li><strong>Preview ≠ output.</strong> Your crop preview uses screen coordinates; the manipulator uses source-pixel coordinates. Get the transform math wrong and the saved crop is offset. This <em>will</em> happen; the fix is deriving both from one normalized rect.</li>
+  <li><strong>Android scoped storage.</strong> Writing to the gallery behaves differently across Android versions. Test on both an older and a newer device/emulator.</li>
+</ol>
+
+<h2 id="stretch">Stretch goals</h2>
+<ul>
+  <li><strong>Frame processors</strong> with Vision Camera + a face/object detector running at 30 fps on the frame stream, no JS involvement.</li>
+  <li><strong>Custom Skia shaders</strong> for filters — write actual SkSL.</li>
+  <li><strong>Live QR scanner</strong> with an overlay that highlights detected code bounds in real time.</li>
+  <li><strong>Background upload</strong> of captures with resumable uploads and progress notifications.</li>
+  <li><strong>Photo picker without permission</strong> — on modern Android/iOS the system picker requires no permission at all. Implement both paths and compare the UX.</li>
+</ul>
+
+<div class="nav-links">
+  <a href="01-offline-journal.html">← Project 01 · Journal</a>
+  <a href="03-commerce-platform.html">Project 03 · Commerce →</a>
+</div>
+
+<footer>Project 02 · targets Expo SDK 57 / RN 0.86</footer>
+
+</div>
+</body>
+</html>

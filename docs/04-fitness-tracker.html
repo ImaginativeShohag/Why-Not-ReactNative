@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Background Fitness Tracker — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Learning path</a> / Project 04</div>
+
+<h1>04 · Background Fitness Tracker</h1>
+<p class="subtitle">The project that pushes you past the JavaScript boundary: background geolocation, sensors, Android foreground services, a hand-written config plugin, a local Expo Module in Swift and Kotlin, an iOS Live Activity, and home-screen widgets.</p>
+
+<div class="meta-row">
+  <span class="chip red">Native tier</span>
+  <span class="chip red">Physical devices required</span>
+  <span class="chip">~4–6 weeks</span>
+  <span class="chip accent">Core skill: CNG, config plugins, native modules</span>
+</div>
+
+<div class="note">
+  <strong>Why this one fourth — and why it's the most valuable</strong>
+  <p>Everything so far stayed inside the JS sandbox. This project cannot. Reliable background tracking needs platform capabilities, entitlements, foreground-service declarations, and eventually your own native code. This is where you learn what <code>npx expo prebuild</code> actually does, how a config plugin mutates the native project, and how to write an Expo Module — the skills that separate "I use Expo" from "I understand Expo".</p>
+</div>
+
+<ul class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#ui">UI design &amp; screens</a></li>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#native">The native layer: CNG, plugins, modules</a></li>
+  <li><a href="#tracking">Tracking pipeline &amp; battery</a></li>
+  <li><a href="#milestones">Build order (milestones)</a></li>
+  <li><a href="#libraries">Library hints</a></li>
+  <li><a href="#pitfalls">Failure modes to experience</a></li>
+  <li><a href="#stretch">Stretch goals</a></li>
+</ul>
+
+<h2 id="objectives">Learning objectives</h2>
+
+<table>
+<thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
+<tbody>
+<tr><td>Continuous Native Generation</td><td>Delete <code>ios/</code> and <code>android/</code>, regenerate them from config, and never hand-edit them again.</td></tr>
+<tr><td>Config plugins</td><td>Write your own plugin using the mod system: add entitlements, Info.plist keys, Android manifest entries, Gradle changes, and copy native files in.</td></tr>
+<tr><td>Expo Modules API</td><td>Create a local module with a Swift and a Kotlin implementation, a typed TS interface, and events back to JS.</td></tr>
+<tr><td>Background location</td><td><code>TaskManager</code> tasks at module scope, deferred updates, significant-change monitoring, and Android foreground services with a persistent notification.</td></tr>
+<tr><td>Sensors</td><td>Pedometer, accelerometer, gyroscope, barometer (elevation), device motion, and sane sampling intervals.</td></tr>
+<tr><td>Time-series data</td><td>Store thousands of GPS points efficiently; downsample for rendering; compute pace, distance, elevation gain.</td></tr>
+<tr><td>Geospatial math</td><td>Haversine distance, Kalman-ish smoothing, accuracy filtering, Douglas–Peucker simplification for the map polyline.</td></tr>
+<tr><td>Maps</td><td>Render a route polyline, animate the camera, cluster markers, draw kilometre splits.</td></tr>
+<tr><td>Live Activities</td><td>SwiftUI widget extension driven from JS through your own module — the flagship native exercise.</td></tr>
+<tr><td>Home-screen widgets</td><td>WidgetKit on iOS and Glance on Android, sharing data with the app via App Groups / SharedPreferences.</td></tr>
+<tr><td>Health integration</td><td>Read/write workouts to Apple HealthKit and Health Connect.</td></tr>
+<tr><td>Battery discipline</td><td>Measure real consumption and tune accuracy/interval trade-offs against it.</td></tr>
+</tbody>
+</table>
+
+<h2 id="ui">UI design &amp; screens</h2>
+
+<h3>Design language</h3>
+<ul>
+  <li><strong>Tone:</strong> high-contrast and glanceable. The active-workout screen must be readable at arm's length, in sunlight, while moving.</li>
+  <li><strong>Numbers dominate.</strong> One hero metric (duration or distance) at 56–72pt, secondary metrics in a row beneath.</li>
+  <li><strong>Big touch targets.</strong> Minimum 64pt for pause/stop — the user has sweaty hands and is out of breath.</li>
+  <li><strong>Anti-mistap:</strong> "Stop" requires a long-press with a filling progress ring, never a plain tap.</li>
+  <li><strong>Always-visible tracking state.</strong> If GPS is degraded, say so immediately — silent bad data is worse than no data.</li>
+</ul>
+
+<h3>Screen inventory</h3>
+
+<table>
+<thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>/(tabs)/today</code></td><td>Today</td><td>Rings/goals, step count, recent activity, weekly streak.</td></tr>
+<tr><td><code>/(tabs)/history</code></td><td>History</td><td>Workout list with mini route thumbnails; filter by type.</td></tr>
+<tr><td><code>/(tabs)/stats</code></td><td>Stats</td><td>Charts: weekly distance, pace trend, elevation, personal bests.</td></tr>
+<tr><td><code>/workout/start</code></td><td>Pre-start</td><td>Type picker, GPS-fix indicator, goal setting, countdown.</td></tr>
+<tr><td><code>/workout/active</code></td><td>Active workout</td><td>The critical screen. Keeps the display awake; map + metrics.</td></tr>
+<tr><td><code>/workout/[id]</code></td><td>Workout detail</td><td>Full map, splits table, charts, share card, export GPX.</td></tr>
+<tr><td><code>/settings/permissions</code></td><td>Permissions</td><td>A dedicated screen — this app needs four separate grants.</td></tr>
+</tbody>
+</table>
+
+<h3>Wireframes</h3>
+
+<div class="wireframes">
+<div class="ascii">┌─────────────────────────────┐
+│  ● REC   GPS ▮▮▮▯  🔋 82%   │
+├─────────────────────────────┤
+│                             │
+│         00:24:17            │  ← hero, 64pt
+│          DURATION           │
+│                             │
+│   3.42 km      5'42"/km     │
+│   DISTANCE     AVG PACE     │
+│                             │
+│   142 bpm      86 m         │
+│   HEART        ELEVATION    │
+│                             │
+├─────────────────────────────┤
+│  ┌───────────────────────┐  │
+│  │      [ MAP ]          │  │
+│  │    ╭──╮               │  │
+│  │   ╭╯  ╰─╮   route     │  │
+│  │  ─╯     ╰──●  you     │  │
+│  └───────────────────────┘  │
+├─────────────────────────────┤
+│   ╭─────────╮ ╭──────────╮  │
+│   │  ⏸ PAUSE │ │ ⏹ HOLD  │  │  ← long-press
+│   ╰─────────╯ ╰──────────╯  │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  Start workout          ✕   │
+├─────────────────────────────┤
+│   🏃      🚶      🚴    🥾  │
+│  [Run]   Walk   Cycle  Hike │
+│                             │
+│  GPS  ▮▮▮▯  Good            │
+│  Acquiring satellites…      │
+│                             │
+│  GOAL                       │
+│  ○ Open   ● Distance        │
+│  ○ Time   ○ Calories        │
+│      ┌───────────────┐      │
+│      │    5.0 km     │      │
+│      └───────────────┘      │
+│                             │
+│  ☑ Auto-pause when stopped  │
+│  ☑ Voice cues every 1 km    │
+│                             │
+│      ╭───────────────╮      │
+│      │     START     │      │
+│      ╰───────────────╯      │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ‹  Morning Run        ⤴ ⋯  │
+├─────────────────────────────┤
+│  ┌───────────────────────┐  │
+│  │   [ FULL ROUTE MAP ]  │  │
+│  │   start ● ─── ● end   │  │
+│  │   colour = pace       │  │
+│  └───────────────────────┘  │
+│  6 Aug 2026 · 06:12         │
+│                             │
+│  8.02 km   44:51   5'35"/km │
+│  312 kcal  128 m ↑  144 bpm │
+│                             │
+│  PACE                       │
+│  ▁▂▃▅▄▃▂▄▆▅▃▂▁▂▃            │
+│                             │
+│  SPLITS                     │
+│  1 km   5'21"  ▮▮▮▮▮▮▮▯    │
+│  2 km   5'38"  ▮▮▮▮▮▮▯▯    │
+│  3 km   5'29"  ▮▮▮▮▮▮▮▯    │
+│  …                          │
+└─────────────────────────────┘</div>
+
+<div class="ascii">  LIVE ACTIVITY (lock screen)
+┌─────────────────────────────┐
+│ 🏃 Morning Run              │
+│                             │
+│  00:24:17    3.42 km        │
+│  5'42"/km    142 bpm        │
+│                             │
+│  [ ⏸ Pause ]   [ ⏹ End ]    │
+└─────────────────────────────┘
+
+  DYNAMIC ISLAND (compact)
+     ╭──────────────────╮
+     │ 🏃  24:17  3.4km │
+     ╰──────────────────╯
+
+  ANDROID FOREGROUND NOTIF
+┌─────────────────────────────┐
+│ ● Tracking your run         │
+│ 24:17 · 3.42 km · 5'42"/km  │
+│ [Pause]        [End]        │
+└─────────────────────────────┘</div>
+</div>
+<p class="figcap">The lock-screen surfaces are not decoration here — they're the proof that your background pipeline is alive when the app isn't.</p>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>The core problem</h3>
+<p>Your JS runtime may be suspended or killed at any moment while a workout is running. So:</p>
+<div class="warn">
+  <strong>Rule: the background task must persist every point immediately.</strong>
+  <p>Never accumulate points in a JS variable and "save at the end." A task invocation may be the last code that ever runs. Write to SQLite inside the task callback, and let the UI read from the database rather than from memory.</p>
+</div>
+
+<pre><code>       ┌──────────────────────────────────────────┐
+       │  OS location subsystem                    │
+       │  (CoreLocation / FusedLocationProvider)   │
+       └───────────────────┬──────────────────────┘
+                           │ batched updates
+                  ┌────────▼─────────┐
+                  │ TaskManager task │  ← module scope, survives UI unmount
+                  │  defineTask(...) │
+                  └────────┬─────────┘
+              filter accuracy, dedupe, smooth
+                           │
+                  ┌────────▼─────────┐
+                  │  SQLite (WAL)    │  ← single source of truth
+                  │  points, workouts│
+                  └────────┬─────────┘
+             ┌─────────────┼──────────────┐
+             ▼             ▼              ▼
+    ┌────────────┐ ┌────────────┐ ┌──────────────┐
+    │  UI (poll/ │ │ Live       │ │ Widget       │
+    │  subscribe)│ │ Activity   │ │ (App Group)  │
+    └────────────┘ └────────────┘ └──────────────┘</code></pre>
+
+<h3>Folder layout</h3>
+<pre><code>src/
+├── app/
+│   ├── (tabs)/{today,history,stats}.tsx
+│   ├── workout/{start,active,[id]}.tsx
+│   └── settings/permissions.tsx
+├── tracking/
+│   ├── task.ts                   defineTask — imported by root layout
+│   ├── controller.ts             start/pause/resume/stop, idempotent
+│   ├── filters.ts                accuracy gate, smoothing, outlier rejection
+│   ├── metrics.ts                distance, pace, elevation, splits (PURE)
+│   └── state.ts                  persisted session state, not in-memory only
+├── db/
+│   ├── schema.ts                 workouts, points, splits
+│   └── queries/
+├── sensors/
+│   ├── pedometer.ts
+│   └── motion.ts
+├── features/
+│   ├── map/                      polyline, camera, pace colouring
+│   ├── charts/
+│   └── liveactivity/             TS wrapper around the local native module
+├── health/
+│   └── sync.ts                   HealthKit / Health Connect
+└── permissions/
+    └── PermissionFlow.tsx
+
+modules/                          ← local Expo Modules live here
+└── live-activity/
+    ├── expo-module.config.json
+    ├── index.ts                  typed JS API
+    ├── src/LiveActivityModule.ts
+    ├── ios/
+    │   ├── LiveActivityModule.swift
+    │   └── WorkoutAttributes.swift
+    └── android/
+        └── LiveActivityModule.kt  (maps to an ongoing notification)
+
+plugins/                          ← your hand-written config plugins
+└── withWorkoutCapabilities.js</code></pre>
+
+<h3>Pure metrics, testable</h3>
+<p>Keep <code>metrics.ts</code> free of React, SQLite, and the location API: <code>(points: Point[]) =&gt; Summary</code>. Then you can feed it a recorded GPX from a real run and unit-test distance and pace against known values. This is the only realistic way to verify tracking correctness without going outside for every change.</p>
+
+<h2 id="native">The native layer</h2>
+
+<h3>Step 1 — Understand CNG</h3>
+<p>This repo currently commits an <code>android/</code> directory. Decide now:</p>
+<table>
+<thead><tr><th>Approach</th><th>Meaning</th><th>Trade-off</th></tr></thead>
+<tbody>
+<tr><td><strong>CNG (recommended)</strong></td><td><code>ios/</code> and <code>android/</code> are gitignored and regenerated by <code>npx expo prebuild --clean</code>.</td><td>All native changes must be expressible as config plugins. Upgrades are trivial.</td></tr>
+<tr><td>Committed native</td><td>You edit Xcode/Gradle directly.</td><td>Full freedom, but SDK upgrades become manual merges and you lose the main reason to use Expo.</td></tr>
+</tbody>
+</table>
+<p>Take the CNG path. Anything you can't do with a plugin becomes the motivation to write one.</p>
+
+<h3>Step 2 — Write a config plugin by hand</h3>
+<p>Don't just install someone's plugin — author one. A plugin is a function <code>(config) =&gt; config</code> composed of <em>mods</em>:</p>
+
+<table>
+<thead><tr><th>Mod</th><th>What it edits</th><th>Use it here for</th></tr></thead>
+<tbody>
+<tr><td><code>withInfoPlist</code></td><td>ios/…/Info.plist</td><td><code>NSLocationAlwaysAndWhenInUseUsageDescription</code>, <code>UIBackgroundModes: [location]</code>, <code>NSSupportsLiveActivities</code>, <code>NSMotionUsageDescription</code></td></tr>
+<tr><td><code>withEntitlementsPlist</code></td><td>ios entitlements</td><td>App Group for widget/app data sharing, HealthKit entitlement</td></tr>
+<tr><td><code>withAndroidManifest</code></td><td>AndroidManifest.xml</td><td><code>ACCESS_BACKGROUND_LOCATION</code>, <code>FOREGROUND_SERVICE_LOCATION</code>, <code>ACTIVITY_RECOGNITION</code>, service declaration with <code>foregroundServiceType</code></td></tr>
+<tr><td><code>withAppBuildGradle</code> / <code>withProjectBuildGradle</code></td><td>Gradle files</td><td>Add a dependency, bump minSdk, add the Glance widget module</td></tr>
+<tr><td><code>withXcodeProject</code></td><td>project.pbxproj</td><td>Add a widget-extension target and its build phases</td></tr>
+<tr><td><code>withDangerousMod</code></td><td>arbitrary filesystem</td><td>Copy Swift widget sources into the generated project. Use sparingly — it's the escape hatch.</td></tr>
+</tbody>
+</table>
+
+<pre><code>// shape of your plugin — not the implementation
+withWorkoutCapabilities(config, { appGroup })
+  → withInfoPlist        add background modes + usage strings + LiveActivities
+  → withEntitlementsPlist add App Group
+  → withAndroidManifest   add permissions + foreground service
+  → withDangerousMod      copy ios/WorkoutWidget/*.swift into the project
+  → withXcodeProject      register the widget extension target
+
+Test loop:
+  npx expo prebuild --clean --platform ios
+  → diff the generated ios/ to confirm your mods landed
+  → open in Xcode only to VERIFY, never to edit</code></pre>
+
+<h3>Step 3 — Write a local Expo Module</h3>
+<pre><code>npx create-expo-module --local live-activity</code></pre>
+<p>Then implement:</p>
+<table>
+<thead><tr><th>Concept</th><th>Swift side</th><th>Kotlin side</th></tr></thead>
+<tbody>
+<tr><td>Module definition</td><td><code>ModuleDefinition { Name(...) }</code></td><td>same DSL in Kotlin</td></tr>
+<tr><td>Sync/async functions</td><td><code>Function("start") { ... }</code>, <code>AsyncFunction</code></td><td>identical</td></tr>
+<tr><td>Typed args</td><td><code>Record</code> structs</td><td><code>Record</code> data classes</td></tr>
+<tr><td>Events to JS</td><td><code>Events("onUpdate")</code> + <code>sendEvent</code></td><td>same</td></tr>
+<tr><td>Platform behaviour</td><td>ActivityKit: start / update / end a Live Activity</td><td>Ongoing notification with actions (the closest analogue)</td></tr>
+</tbody>
+</table>
+<p>The JS side exposes one clean interface — <code>startLiveActivity(attrs)</code>, <code>updateLiveActivity(state)</code>, <code>endLiveActivity()</code> — and each platform implements it its own way. That asymmetry is the lesson.</p>
+
+<h2 id="tracking">Tracking pipeline &amp; battery</h2>
+
+<h3>Point processing</h3>
+<pre><code>raw fix
+  → reject if accuracy > 25 m
+  → reject if implied speed > plausible max for the activity type
+  → reject if timestamp is older than the last accepted point
+  → smooth (moving average or a simple Kalman filter on lat/lng)
+  → if distance from last accepted point < 5 m and not paused → skip
+  → persist to SQLite
+  → recompute rolling metrics (distance, pace, elevation)
+  → push an update to the Live Activity / notification (throttled to ~1 Hz)</code></pre>
+
+<h3>Configuration trade-offs to measure yourself</h3>
+<table>
+<thead><tr><th>Setting</th><th>Accurate mode</th><th>Battery-saver mode</th></tr></thead>
+<tbody>
+<tr><td>Accuracy</td><td><code>BestForNavigation</code></td><td><code>Balanced</code></td></tr>
+<tr><td>Distance interval</td><td>5 m</td><td>25 m</td></tr>
+<tr><td>Time interval</td><td>1 s</td><td>10 s</td></tr>
+<tr><td>Deferred updates</td><td>off</td><td>on (batch every 100 m / 60 s)</td></tr>
+<tr><td>Typical drain</td><td>measure it</td><td>measure it</td></tr>
+</tbody>
+</table>
+<p>Run the same 30-minute route in both modes, record battery delta and route quality, and put the numbers in your lessons file. That measurement <em>is</em> the deliverable for this section.</p>
+
+<h3>Platform reality check</h3>
+<ul>
+  <li><strong>iOS:</strong> background location works with the <code>location</code> background mode and Always permission. The blue status bar / indicator will show. iOS may still throttle you; significant-change monitoring is the low-power fallback.</li>
+  <li><strong>Android:</strong> you <em>must</em> run a foreground service with a persistent notification, declare <code>foregroundServiceType="location"</code>, and request background location as a separate, second prompt. On top of that, OEM battery managers (Xiaomi, Huawei, Samsung, OnePlus) kill background work aggressively — test on a real device from at least one of those vendors, and add a "disable battery optimization" prompt.</li>
+</ul>
+
+<h2 id="milestones">Build order</h2>
+
+<div class="milestone">
+  <h3><span class="tag">M1</span> Go CNG</h3>
+  <div class="goal">Goal: native projects become disposable.</div>
+  <ul>
+    <li>Gitignore <code>ios/</code> and <code>android/</code>; run <code>npx expo prebuild --clean</code>.</li>
+    <li>Confirm the app still builds and runs from a fully regenerated project.</li>
+    <li>Read the generated Info.plist and AndroidManifest and map each entry back to something in <code>app.config.ts</code>.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — <code>rm -rf ios android &amp;&amp; npx expo prebuild &amp;&amp; npx expo run:ios</code> works from clean. No manual Xcode steps.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M2</span> Foreground tracking</h3>
+  <div class="goal">Goal: record a route with the app open.</div>
+  <ul>
+    <li>Permission flow screen handling foreground → background → motion → notifications, in the right order.</li>
+    <li><code>watchPositionAsync</code> with an accuracy filter.</li>
+    <li>SQLite schema for workouts and points; write every point.</li>
+    <li>Active screen with live metrics; keep the screen awake (<code>expo-keep-awake</code>).</li>
+    <li>Pure metrics module + unit tests against a recorded GPX.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Walk 1 km with a measured route. Your distance is within ~3% of reality.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M3</span> Background tracking</h3>
+  <div class="goal">Goal: it keeps working with the screen off and the app backgrounded.</div>
+  <ul>
+    <li><code>TaskManager.defineTask</code> at module scope; <code>startLocationUpdatesAsync</code> with the task name.</li>
+    <li>Android foreground service config with a persistent notification.</li>
+    <li>iOS background modes + Always permission, added via <em>your own</em> config plugin.</li>
+    <li>Crash/kill recovery: on launch, detect an unfinished workout and offer to resume.</li>
+    <li>Deferred updates for the battery-saver mode.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Start a workout, lock the phone, put it in a pocket, walk 30 minutes. The route has no gaps. Then force-kill the app mid-workout and confirm the recorded data up to that moment is intact.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M4</span> Maps &amp; visualization</h3>
+  <div class="goal">Goal: the route looks good and renders fast.</div>
+  <ul>
+    <li>Map with a route polyline; camera follows the user during the workout.</li>
+    <li>Pace-coloured polyline segments.</li>
+    <li>Douglas–Peucker simplification before rendering — 10,000 points must not be drawn raw.</li>
+    <li>Kilometre split markers and a splits table.</li>
+    <li>Charts for pace, elevation, and heart rate.</li>
+    <li>Static route thumbnails for the history list.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Open a 3-hour hike with ~12k points. The detail screen renders in under a second and pans smoothly.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M5</span> Sensors</h3>
+  <div class="goal">Goal: data beyond GPS.</div>
+  <ul>
+    <li>Pedometer step count, live and historical.</li>
+    <li>Barometer-derived elevation, cross-checked against GPS altitude.</li>
+    <li>Device motion for auto-pause detection (stopped for N seconds → pause).</li>
+    <li>Activity-type inference as a stretch (walk vs run vs cycle from cadence).</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Auto-pause triggers within 10 s of stopping and resumes within 5 s of moving, with no false positives at a traffic light… then tune it, because it will have false positives.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M6</span> Your first local native module</h3>
+  <div class="goal">Goal: Swift and Kotlin you wrote, called from JS.</div>
+  <ul>
+    <li><code>npx create-expo-module --local live-activity</code>.</li>
+    <li>Swift: ActivityKit attributes + start/update/end; a SwiftUI Live Activity view and Dynamic Island layouts.</li>
+    <li>Kotlin: an ongoing notification with pause/end actions as the Android counterpart.</li>
+    <li>Typed TS interface; events from native back to JS for the action buttons.</li>
+    <li>Wire it into the tracking pipeline, throttled to about one update per second.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Lock the phone during a run. The Live Activity ticks on the lock screen and in the Dynamic Island, and its Pause button actually pauses the workout.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M7</span> Widgets</h3>
+  <div class="goal">Goal: presence on the home screen.</div>
+  <ul>
+    <li>iOS: a WidgetKit extension target added by your config plugin; share data through an App Group.</li>
+    <li>Android: a Glance widget; share via SharedPreferences/DataStore.</li>
+    <li>Small and medium sizes: today's steps, distance, and streak.</li>
+    <li>Widget timeline refresh policy — understand why you can't update it every second.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — <code>expo prebuild --clean</code> regenerates everything including the widget target. If it doesn't, your plugin is incomplete.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M8</span> Health sync &amp; export</h3>
+  <div class="goal">Goal: interoperate with the platform's health store.</div>
+  <ul>
+    <li>Write workouts to HealthKit (iOS) and Health Connect (Android).</li>
+    <li>Read heart-rate samples back for the detail charts.</li>
+    <li>GPX export and share.</li>
+    <li>A shareable summary card rendered offscreen and exported as an image.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — A workout recorded in your app appears correctly in Apple Health / Health Connect with the right type, duration, distance, and route.</div>
+</div>
+
+<h2 id="libraries">Library hints</h2>
+
+<table>
+<thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
+<tbody>
+<tr><td>Location</td><td><code>expo-location</code></td><td><code>requestForegroundPermissionsAsync</code>, <code>requestBackgroundPermissionsAsync</code>, <code>watchPositionAsync</code>, <code>startLocationUpdatesAsync(taskName, {accuracy, distanceInterval, deferredUpdatesDistance, foregroundService, pausesUpdatesAutomatically, showsBackgroundLocationIndicator})</code>, <code>hasStartedLocationUpdatesAsync</code>, <code>stopLocationUpdatesAsync</code></td></tr>
+<tr><td>Background tasks</td><td><code>expo-task-manager</code>, <code>expo-background-task</code></td><td><code>defineTask</code> (module scope), <code>isTaskRegisteredAsync</code>, <code>getRegisteredTasksAsync</code>, <code>unregisterAllTasksAsync</code></td></tr>
+<tr><td>Sensors</td><td><code>expo-sensors</code></td><td><code>Pedometer.watchStepCount</code>, <code>getStepCountAsync</code>, <code>Accelerometer</code>, <code>Gyroscope</code>, <code>Barometer</code>, <code>DeviceMotion</code>, <code>setUpdateInterval</code></td></tr>
+<tr><td>Maps</td><td><code>react-native-maps</code> or <code>@rnmapbox/maps</code></td><td><code>&lt;MapView&gt;</code>, <code>&lt;Polyline&gt;</code>, <code>animateCamera</code>, <code>fitToCoordinates</code>. Mapbox gives better styling and offline tiles; both need a config plugin.</td></tr>
+<tr><td>Charts</td><td><code>victory-native</code> (Skia-based) or custom Skia</td><td><code>CartesianChart</code>, <code>Line</code>, <code>Area</code>, <code>useChartPressState</code></td></tr>
+<tr><td>Keep awake</td><td><code>expo-keep-awake</code></td><td><code>useKeepAwake()</code></td></tr>
+<tr><td>Native module scaffold</td><td><code>create-expo-module</code></td><td><code>--local</code> flag; <code>expo-module.config.json</code>; <code>ModuleDefinition</code>, <code>Function</code>, <code>AsyncFunction</code>, <code>Events</code>, <code>Record</code>, <code>View</code></td></tr>
+<tr><td>Config plugin authoring</td><td><code>@expo/config-plugins</code></td><td><code>withInfoPlist</code>, <code>withEntitlementsPlist</code>, <code>withAndroidManifest</code>, <code>withAppBuildGradle</code>, <code>withXcodeProject</code>, <code>withDangerousMod</code>, <code>createRunOncePlugin</code>, <code>AndroidConfig</code> helpers</td></tr>
+<tr><td>Live Activities</td><td>your own module (or study <code>expo-live-activity</code> / <code>react-native-live-activity</code>)</td><td>Swift: <code>ActivityAttributes</code>, <code>Activity.request/update/end</code>, <code>ActivityConfiguration</code>, <code>DynamicIsland</code></td></tr>
+<tr><td>Widgets</td><td><code>@bacons/apple-targets</code> (iOS), Glance (Android)</td><td>Bacon's plugin makes adding an Xcode widget target far less painful — read its source to learn <code>withXcodeProject</code>.</td></tr>
+<tr><td>Health</td><td><code>@kingstinct/react-native-healthkit</code>, <code>react-native-health-connect</code></td><td>Permission scopes, <code>saveWorkoutSample</code>, route sample writing</td></tr>
+<tr><td>Database</td><td><code>expo-sqlite</code></td><td>Same as Project 01. WAL mode matters more here — you're writing from a background context while the UI reads.</td></tr>
+<tr><td>Battery/device info</td><td><code>expo-battery</code>, <code>expo-device</code></td><td><code>getBatteryLevelAsync</code>, <code>isLowPowerModeEnabledAsync</code> — log these alongside workouts to correlate drain.</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+  <strong>Expo Go cannot run this project at all</strong>
+  <p>Background location, custom native modules, Live Activities, and widgets all require a development build. Budget for build times: a clean iOS build is several minutes locally, longer on EAS free tier. Set up <code>--local</code> builds early so your iteration loop isn't network-bound.</p>
+</div>
+
+<h2 id="pitfalls">Failure modes to experience deliberately</h2>
+
+<ol>
+  <li><strong>Task defined inside a component.</strong> It works in the foreground, then silently records nothing in the background. The single most common background-location bug.</li>
+  <li><strong>Points held in memory.</strong> Force-kill during a workout and lose the whole run. Persist in the task callback.</li>
+  <li><strong>Permission ordering.</strong> Request background location before foreground on Android — the prompt won't appear at all. Order matters and differs by OS version.</li>
+  <li><strong>Missing foreground service type.</strong> On modern Android, starting a location foreground service without declaring <code>foregroundServiceType</code> throws at runtime, not build time.</li>
+  <li><strong>OEM battery killer.</strong> Test on a Xiaomi or Samsung with default settings; your service gets killed after ~20 minutes. Detect it and educate the user.</li>
+  <li><strong>GPS drift while stationary.</strong> Stand still for five minutes with no accuracy filter and record 200 m of "distance". This is why the filter exists.</li>
+  <li><strong>Rendering raw polylines.</strong> Push 15,000 coordinates into a map polyline and watch the frame rate die.</li>
+  <li><strong>Live Activity update storm.</strong> Update at 10 Hz; iOS throttles or terminates the activity. Throttle to ~1 Hz.</li>
+  <li><strong>Hand-editing generated native code.</strong> Make a change in Xcode, then run <code>prebuild --clean</code> and watch it disappear. Feel it once; it's the lesson that makes plugins click.</li>
+  <li><strong>App Group mismatch.</strong> Widget shows no data because the app and the extension use different group identifiers. Silent and maddening.</li>
+</ol>
+
+<h2 id="stretch">Stretch goals</h2>
+<ul>
+  <li><strong>Apple Watch companion</strong> — a watchOS target with its own tracking, syncing via WatchConnectivity. Deep native work.</li>
+  <li><strong>Offline maps</strong> with Mapbox tile packs for hikes without signal.</li>
+  <li><strong>Live sharing</strong> — a web link where friends can watch your position update in real time.</li>
+  <li><strong>Route matching</strong> — detect that today's run is the same route as a previous one and compare splits segment by segment.</li>
+  <li><strong>On-device ML</strong> for activity classification from accelerometer data.</li>
+  <li><strong>Voice cues</strong> via <code>expo-speech</code> at each kilometre, ducking background music correctly.</li>
+</ul>
+
+<div class="nav-links">
+  <a href="03-commerce-platform.html">← Project 03 · Commerce</a>
+  <a href="05-podcast-player.html">Project 05 · Podcast →</a>
+</div>
+
+<footer>Project 04 · targets Expo SDK 57 / RN 0.86</footer>
+
+</div>
+</body>
+</html>

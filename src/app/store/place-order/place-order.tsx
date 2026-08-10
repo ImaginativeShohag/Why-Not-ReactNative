@@ -1,7 +1,9 @@
+import ProductImage from "@/src/components/ui/product-image";
+import { useTotalPrice } from "@/src/stores/cartSelectors";
+import { CartItem, useCartStore } from "@/src/stores/cartStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { Image } from "expo-image";
-import React, { useState } from "react";
+import { useNavigation } from "expo-router/react-navigation";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -11,9 +13,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { CartItem, useCartStore } from "@/src/stores/cartStore";
-import { useTotalPrice } from "@/src/stores/cartSelectors";
-import ProductImage from "@/src/components/ui/product-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Product = {
@@ -35,6 +34,12 @@ export default function PlaceOrderScreen() {
   const [address, setAddress] = useState("");
   //const [cartItems, setCartItems] = useState<Product[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: "Confirm Order",
+    });
+  }, [navigation]);
 
   const submitOrder = async () => {
     setIsSubmitting(true);
@@ -61,7 +66,7 @@ export default function PlaceOrderScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
       <View style={{ flex: 1, backgroundColor: "#f2f2f7" }}>
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           {/* Shipping Info */}

@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "expo-router/react-navigation";
 import { useRouter } from "expo-router";
 import { useBottomSheetModal } from "@gorhom/bottom-sheet";
 

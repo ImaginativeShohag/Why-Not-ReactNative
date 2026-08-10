@@ -1,20 +1,21 @@
-import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  ScrollView,
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams } from "expo-router";
 import { useProductDetails } from "@/src/hooks/useProduct";
 import { useCartStore } from "@/src/stores/cartStore";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useEffect } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProductDetailsScreen() {
+  const navigation = useNavigation();
   const { productId } = useLocalSearchParams();
   const { items, addToCart, updateQuantity } = useCartStore();
 
@@ -23,6 +24,12 @@ export default function ProductDetailsScreen() {
     isLoading: productIsLoading,
     error: productLoadingError,
   } = useProductDetails(Number(productId) ?? 0);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: product?.title,
+    });
+  });
 
   if (productIsLoading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" />;

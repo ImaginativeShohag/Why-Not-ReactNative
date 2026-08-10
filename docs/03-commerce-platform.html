@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Production Commerce App — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Learning path</a> / Project 03</div>
+
+<h1>03 · Production Commerce App</h1>
+<p class="subtitle">Take the store already in this repo and make it production-shaped: real auth with token refresh, secure storage, push notifications, payments, universal links, environments, analytics, crash reporting, and tests.</p>
+
+<div class="meta-row">
+  <span class="chip purple">Production tier</span>
+  <span class="chip amber">Dev build + a backend</span>
+  <span class="chip">~4 weeks</span>
+  <span class="chip accent">Core skill: everything around the features</span>
+</div>
+
+<div class="note">
+  <strong>Why this one third</strong>
+  <p>You already have the fun part — screens, a cart, product lists. What's missing is everything that makes an app <em>shippable</em>: what happens when the token expires mid-checkout, when a push arrives during a cold start, when the API returns 500, when a user has two devices, when you need a staging build alongside production. This project is entirely about that layer.</p>
+</div>
+
+<ul class="toc">
+  <li><a href="#objectives">Learning objectives</a></li>
+  <li><a href="#audit">Start with an audit of what exists</a></li>
+  <li><a href="#ui">UI design &amp; screens</a></li>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#auth">Auth &amp; token refresh</a></li>
+  <li><a href="#push">Push &amp; deep-link routing</a></li>
+  <li><a href="#milestones">Build order (milestones)</a></li>
+  <li><a href="#libraries">Library hints</a></li>
+  <li><a href="#pitfalls">Failure modes to experience</a></li>
+  <li><a href="#stretch">Stretch goals</a></li>
+</ul>
+
+<h2 id="objectives">Learning objectives</h2>
+
+<table>
+<thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
+<tbody>
+<tr><td>Auth architecture</td><td>Session context, secure token storage, silent refresh with a single-flight coordinator, logout-on-refresh-failure, biometric re-auth.</td></tr>
+<tr><td>Protected routing</td><td><code>Stack.Protected</code> guards, redirect-after-login (preserving the intended destination), onboarding vs authenticated vs guest trees.</td></tr>
+<tr><td>TanStack Query, properly</td><td>Query key factories, optimistic updates with rollback, infinite queries, prefetching, cache persistence, <code>focusManager</code> and <code>onlineManager</code> wired to RN.</td></tr>
+<tr><td>Push notifications</td><td>Token registration, backend association, foreground vs background handling, notification categories with actions, badge counts, routing from a tapped push.</td></tr>
+<tr><td>Payments</td><td>Payment sheet integration, 3DS handling, and the Apple/Google rules about what must use in-app purchase.</td></tr>
+<tr><td>Universal links</td><td>Real https links with AASA / assetlinks.json, so <code>https://shop.example/p/42</code> opens the app.</td></tr>
+<tr><td>Environments</td><td>Dynamic <code>app.config.ts</code>, three variants installable side-by-side, EAS build profiles, secrets that don't land in git.</td></tr>
+<tr><td>Observability</td><td>Crash reporting with source maps, structured analytics events, performance traces.</td></tr>
+<tr><td>Forms &amp; validation</td><td>A multi-step checkout with per-step validation, address autocomplete, and correct keyboard/autofill hints.</td></tr>
+<tr><td>Testing</td><td>Unit tests for logic, MSW-mocked integration tests for hooks, and a smoke e2e run.</td></tr>
+<tr><td>Accessibility &amp; i18n</td><td>Screen-reader labels, dynamic type, RTL layout, and localized currency/date formatting.</td></tr>
+</tbody>
+</table>
+
+<h2 id="audit">Start with an audit</h2>
+
+<p>Before writing anything, read the existing code and write down honest answers. This is the first exercise.</p>
+
+<table>
+<thead><tr><th>Question</th><th>Where to look</th><th>What "production" would require</th></tr></thead>
+<tbody>
+<tr><td>What happens on a 401?</td><td><code>src/api/axios.ts</code></td><td>A response interceptor that refreshes once and replays queued requests.</td></tr>
+<tr><td>Where would a token live?</td><td>nowhere yet</td><td>Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td></tr>
+<tr><td>Is the cart durable?</td><td><code>src/stores/cartStore.ts</code></td><td>Persisted locally and reconciled with a server cart on login.</td></tr>
+<tr><td>Are query keys collision-safe?</td><td><code>src/utils/queryKeys.ts</code></td><td>A hierarchical factory with typed params, so invalidation is precise.</td></tr>
+<tr><td>How is the base URL chosen?</td><td><code>src/api/axios.ts</code>, <code>app.json</code></td><td>From <code>expo-constants</code> extra, driven by a dynamic config per environment.</td></tr>
+<tr><td>What does the orders screen do offline?</td><td><code>src/app/store/orders/</code></td><td>Serve cached data with a stale indicator, not a spinner.</td></tr>
+<tr><td>Is <code>useOrders</code> N+1?</td><td><code>src/hooks/useProduct.ts</code></td><td>It fetches each product individually — fine as a demo, wrong at scale. Note the fix even if the fake API forces it.</td></tr>
+</tbody>
+</table>
+
+<div class="tip">
+  <strong>Deliverable for this step</strong>
+  <p>Write <code>docs/audit-03.md</code> with a table of gaps and a priority. You'll close them one by one. Doing this before coding is itself the senior-engineer habit being taught.</p>
+</div>
+
+<h2 id="ui">UI design &amp; screens</h2>
+
+<h3>Design language</h3>
+<ul>
+  <li><strong>Tone:</strong> commercial and trustworthy. Product imagery leads; typography is quiet; the primary CTA is the only saturated element on screen.</li>
+  <li><strong>Skeletons, not spinners</strong> for anything that has a known shape. Spinners only for indeterminate actions like payment authorization.</li>
+  <li><strong>Every price is formatted through one function</strong> using <code>Intl.NumberFormat</code> with the user's locale and the store's currency. Never string-concatenate a currency symbol.</li>
+  <li><strong>Checkout is a linear, interruption-safe flow</strong> — the user can background the app at any step and come back to the same state.</li>
+</ul>
+
+<h3>Screen inventory</h3>
+
+<table>
+<thead><tr><th>Route</th><th>Screen</th><th>New vs existing</th></tr></thead>
+<tbody>
+<tr><td><code>/(auth)/sign-in</code></td><td>Sign in</td><td>new — email/password + social + guest</td></tr>
+<tr><td><code>/(auth)/sign-up</code></td><td>Sign up</td><td>new</td></tr>
+<tr><td><code>/(auth)/forgot</code></td><td>Password reset</td><td>new — email link handling</td></tr>
+<tr><td><code>/(app)/(tabs)/home</code></td><td>Home</td><td>exists — add sections, banners, prefetch</td></tr>
+<tr><td><code>/(app)/(tabs)/categories</code></td><td>Categories</td><td>exists</td></tr>
+<tr><td><code>/(app)/(tabs)/search</code></td><td>Search</td><td>new — debounced, with recents and suggestions</td></tr>
+<tr><td><code>/(app)/(tabs)/bag</code></td><td>Bag</td><td>exists — add server reconciliation, promo codes</td></tr>
+<tr><td><code>/(app)/(tabs)/account</code></td><td>Account</td><td>extend the profile screen</td></tr>
+<tr><td><code>/(app)/product/[id]</code></td><td>Product detail</td><td>exists — add variants, reviews, related, share</td></tr>
+<tr><td><code>/(app)/checkout/address</code></td><td>Checkout · address</td><td>new</td></tr>
+<tr><td><code>/(app)/checkout/shipping</code></td><td>Checkout · shipping</td><td>new</td></tr>
+<tr><td><code>/(app)/checkout/payment</code></td><td>Checkout · payment</td><td>new — payment sheet</td></tr>
+<tr><td><code>/(app)/checkout/review</code></td><td>Checkout · review</td><td>new — the only place the order is placed</td></tr>
+<tr><td><code>/(app)/order/[id]</code></td><td>Order detail</td><td>new — push/deep-link target, live status</td></tr>
+<tr><td><code>/(app)/orders</code></td><td>Order history</td><td>exists — add infinite scroll, filters</td></tr>
+<tr><td><code>/(app)/wishlist</code></td><td>Wishlist</td><td>new — optimistic toggles</td></tr>
+</tbody>
+</table>
+
+<h3>Wireframes</h3>
+
+<div class="wireframes">
+<div class="ascii">┌─────────────────────────────┐
+│  ‹                    ♡  ⤴  │
+│                             │
+│    ┌───────────────────┐    │
+│    │                   │    │
+│    │   PRODUCT IMAGE   │    │  swipeable
+│    │                   │    │  gallery
+│    └───────────────────┘    │
+│         ● ○ ○ ○             │
+│                             │
+│  Wireless Headphones        │
+│  ★★★★☆  4.3 · 1,204 reviews │
+│  $129.00   $̶1̶8̶9̶.̶0̶0̶  −32%    │
+│                             │
+│  Colour                     │
+│  ⬤ ⬤ ⬤  Black               │
+│  Size    S  [M]  L          │
+│                             │
+│  ▸ Description              │
+│  ▸ Shipping & returns       │
+│  ▸ Reviews (1,204)          │
+├─────────────────────────────┤
+│  $129.00    ┌─────────────┐ │
+│  In stock   │  Add to bag │ │
+│             └─────────────┘ │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ‹  Checkout                │
+│  ①──②──③──④                 │  ← step indicator
+│  Address                    │
+├─────────────────────────────┤
+│  SHIPPING ADDRESS           │
+│  ┌───────────────────────┐  │
+│  │ Full name             │  │
+│  ├───────────────────────┤  │
+│  │ Street address        │  │
+│  │  ⚠ Required           │  │  ← inline error
+│  ├───────────────────────┤  │
+│  │ City        │ Post    │  │
+│  ├───────────────────────┤  │
+│  │ Country          ▼    │  │
+│  └───────────────────────┘  │
+│  ☑ Save for next time       │
+│  ☐ Billing same as shipping │
+│                             │
+├─────────────────────────────┤
+│  ┌───────────────────────┐  │
+│  │      Continue         │  │  ← above keyboard
+│  └───────────────────────┘  │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  ‹  Order #10482            │
+├─────────────────────────────┤
+│   ●━━━━●━━━━○────○          │
+│  Placed Packed Shipped Del. │
+│                             │
+│  Out for delivery           │
+│  Arriving today, 4–7 PM     │
+│  ┌───────────────────────┐  │
+│  │     [ MAP / ETA ]     │  │
+│  └───────────────────────┘  │
+│                             │
+│  2 ITEMS                    │
+│  ▣ Headphones      ×1  $129 │
+│  ▣ Cable           ×2   $18 │
+│  ─────────────────────────  │
+│  Subtotal              $147 │
+│  Shipping             $5.00 │
+│  Tax                 $12.40 │
+│  Total              $164.40 │
+│                             │
+│  Track  ·  Invoice  ·  Help │
+└─────────────────────────────┘</div>
+
+<div class="ascii">┌─────────────────────────────┐
+│  Sign in                    │
+├─────────────────────────────┤
+│  Welcome back               │
+│                             │
+│  ┌───────────────────────┐  │
+│  │ Email                 │  │  textContentType
+│  ├───────────────────────┤  │  = username
+│  │ Password          👁  │  │  = password
+│  └───────────────────────┘  │
+│              Forgot? ›      │
+│  ┌───────────────────────┐  │
+│  │       Sign in         │  │
+│  └───────────────────────┘  │
+│                             │
+│  ──────── or ────────       │
+│   Continue with Apple       │
+│   Continue with Google      │
+│                             │
+│  Continue as guest ›        │
+│  New here? Create account › │
+└─────────────────────────────┘</div>
+</div>
+<p class="figcap">Note the sticky CTA above the keyboard, the inline field errors, and the step indicator — checkout abandonment lives in those details.</p>
+
+<h2 id="architecture">Architecture</h2>
+
+<h3>Route groups</h3>
+<pre><code>src/app/
+├── _layout.tsx              providers + Stack.Protected guards
+├── (auth)/
+│   ├── _layout.tsx
+│   ├── sign-in.tsx
+│   ├── sign-up.tsx
+│   └── forgot.tsx
+├── (app)/
+│   ├── _layout.tsx
+│   ├── (tabs)/{home,categories,search,bag,account}.tsx
+│   ├── product/[id].tsx
+│   ├── checkout/{address,shipping,payment,review}.tsx
+│   ├── order/[id].tsx
+│   ├── orders.tsx
+│   └── wishlist.tsx
+└── onboarding.tsx</code></pre>
+
+<h3>Feature-sliced source layout</h3>
+<pre><code>src/
+├── api/
+│   ├── client.ts               axios instance + interceptors
+│   ├── refreshCoordinator.ts   single-flight token refresh
+│   ├── errors.ts               ApiError normalisation
+│   └── endpoints/{product,auth,order,cart,payment}.api.ts
+├── features/
+│   ├── auth/
+│   │   ├── SessionProvider.tsx  the only owner of session state
+│   │   ├── useSession.ts
+│   │   ├── tokenStorage.ts      secure-store wrapper
+│   │   └── socialSignIn.ts      AuthSession flows
+│   ├── catalog/{hooks,components}
+│   ├── cart/                    zustand + server reconciliation
+│   ├── checkout/
+│   │   ├── checkoutMachine.ts   explicit step state
+│   │   └── components/
+│   ├── orders/{hooks,components}
+│   ├── notifications/
+│   │   ├── registerForPush.ts
+│   │   ├── handlers.ts
+│   │   └── routeFromNotification.ts
+│   └── search/
+├── lib/
+│   ├── analytics.ts            one facade over the vendor SDK
+│   ├── monitoring.ts           crash + perf
+│   ├── money.ts                Intl formatting
+│   └── env.ts                  typed access to Constants.expoConfig.extra
+├── config/
+│   └── queryKeys.ts            key factory
+└── components/ui/</code></pre>
+
+<h3>Query key factory</h3>
+<pre><code>// shape, not code
+products.all                        → ['products']
+products.list(filters)              → ['products','list',filters]
+products.detail(id)                 → ['products','detail',id]
+orders.all                          → ['orders']
+orders.list(userId, status)         → ['orders','list',userId,status]
+orders.detail(id)                   → ['orders','detail',id]
+cart.current()                      → ['cart']
+
+// invalidation becomes surgical:
+//   invalidate(['orders'])              → everything order-shaped
+//   invalidate(orders.detail(id))       → just this one</code></pre>
+<p>The repo already centralizes keys — upgrade them into a nested factory with typed params, and make every hook consume the factory rather than a literal array.</p>
+
+<h3>Config &amp; environments</h3>
+<p>Move <code>app.json</code> → <code>app.config.ts</code> so config is computed:</p>
+<pre><code>APP_VARIANT = development | preview | production   (env var, set per EAS profile)
+
+  → bundleIdentifier:  org.iw.wnrn.dev  /  .preview  /  (base)
+  → app name:          "Store (Dev)"    /  "Store (Beta)"  /  "Store"
+  → icon:              tinted per variant
+  → extra.apiUrl:      localhost / staging / prod
+  → extra.eas.projectId
+
+Secrets → EAS environment variables, never in the config file.
+Public-but-variable values → extra, read via expo-constants.</code></pre>
+<p>Three variants installed side-by-side on one device is the goal — it changes how you test forever.</p>
+
+<h2 id="auth">Auth &amp; token refresh</h2>
+
+<h3>The state machine</h3>
+<pre><code>          ┌──────────┐
+          │ loading  │  (reading keychain on boot)
+          └────┬─────┘
+       token?  │  no token
+     ┌─────────┴─────────┐
+     ▼                   ▼
+┌──────────┐        ┌──────────┐
+│  signed  │◄──────►│  signed  │
+│    in    │ logout │   out    │
+└────┬─────┘        └──────────┘
+     │ 401 from any request
+     ▼
+┌──────────────┐   success   ┌──────────┐
+│  refreshing  │────────────►│ signed in│
+└──────┬───────┘             └──────────┘
+       │ refresh fails (401/invalid)
+       ▼
+  clear tokens → signed out → route to /sign-in</code></pre>
+
+<h3>Single-flight refresh — the part everyone gets wrong</h3>
+<p>Five requests fire in parallel. All five get a 401. A naive interceptor performs five refreshes; four of them invalidate the token the fifth just obtained, and the user is logged out for no reason.</p>
+<pre><code>refreshCoordinator:
+  if (inFlightPromise) return inFlightPromise      ← the whole trick
+  inFlightPromise = doRefresh()
+    .finally(() => inFlightPromise = null)
+  return inFlightPromise
+
+axios response interceptor on 401:
+  if (request.isRetry) → give up, sign out
+  newToken = await refreshCoordinator.get()
+  retry original request once with newToken</code></pre>
+<p>Verify it: add an artificial-401 toggle in a dev menu, fire six requests at once, and assert exactly one refresh call hits the network.</p>
+
+<h3>Storage rules</h3>
+<table>
+<thead><tr><th>Data</th><th>Where</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Refresh token</td><td><code>expo-secure-store</code>, with <code>WHEN_UNLOCKED_THIS_DEVICE_ONLY</code></td><td>Keychain/Keystore-backed; never leaves the device, never in a backup.</td></tr>
+<tr><td>Access token</td><td>In memory (plus secure-store if you need cold-start resume)</td><td>Short-lived; keeping it only in memory limits exposure.</td></tr>
+<tr><td>User profile</td><td>MMKV / AsyncStorage</td><td>Non-sensitive, needed instantly for the boot UI.</td></tr>
+<tr><td>Cart</td><td>MMKV + server</td><td>Must survive reinstall via the server copy.</td></tr>
+<tr><td>Anything else sensitive</td><td>Nowhere</td><td>Don't cache PII you don't need.</td></tr>
+</tbody>
+</table>
+
+<h2 id="push">Push &amp; deep-link routing</h2>
+
+<pre><code>REGISTRATION
+  request permission (with rationale first)
+  Android: create channels BEFORE requesting
+  getExpoPushTokenAsync({ projectId })      ← projectId from Constants
+  POST token + deviceId to your backend, tied to the user
+  re-register on: login, token change, app update
+
+DELIVERY  (three very different cases)
+  1. Foreground → setNotificationHandler decides banner/sound/list
+  2. Background, app alive → response listener fires on tap
+  3. Cold start → getLastNotificationResponseAsync() on boot
+
+ROUTING
+  notification.data = { type: 'order', orderId: '10482' }
+       │
+       ├─ parse into a route:  /order/10482
+       ├─ ensure auth is resolved FIRST (else the guard bounces you to sign-in)
+       └─ router.push after the navigation tree is mounted
+
+TEARDOWN
+  remove listeners on unmount; unregister token on logout</code></pre>
+
+<div class="warn">
+  <strong>The cold-start race</strong>
+  <p>On a cold start from a push, three things race: reading the token from the keychain, mounting the router, and handling the notification response. Get the order wrong and the user lands on the sign-in screen instead of their order. Solution: hold the splash screen until the session resolves, buffer the pending route, and replay it once the navigator is ready. Build this deliberately — it's the single most valuable thing in this project.</p>
+</div>
+
+<h2 id="milestones">Build order</h2>
+
+<div class="milestone">
+  <h3><span class="tag">M1</span> Audit &amp; foundations</h3>
+  <div class="goal">Goal: know what you have, and make config real.</div>
+  <ul>
+    <li>Write the audit doc.</li>
+    <li>Migrate <code>app.json</code> → <code>app.config.ts</code> with three variants.</li>
+    <li>Typed env access module; base URL from config.</li>
+    <li>Normalize API errors into one <code>ApiError</code> shape with a user-facing message.</li>
+    <li>Upgrade the query-key file into a factory.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each hitting a different API.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M2</span> Auth</h3>
+  <div class="goal">Goal: a session that survives everything.</div>
+  <ul>
+    <li><code>SessionProvider</code> + <code>useSession</code>; splash held until the session resolves.</li>
+    <li>Secure token storage; sign-in / sign-up / sign-out.</li>
+    <li><code>Stack.Protected</code> guards for the <code>(app)</code> and <code>(auth)</code> groups.</li>
+    <li>Redirect-after-login: deep-link to a protected route while signed out → sign in → land on the original destination.</li>
+    <li>Refresh coordinator + axios interceptors.</li>
+    <li>Optional biometric unlock for returning users.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Six concurrent requests with an expired token trigger exactly one refresh and zero spurious logouts.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M3</span> Social sign-in</h3>
+  <div class="goal">Goal: OAuth without a WebView hack.</div>
+  <ul>
+    <li>Sign in with Apple (required by App Store rules if you offer other social logins).</li>
+    <li>Google via <code>expo-auth-session</code> with PKCE and a proper redirect URI.</li>
+    <li><code>WebBrowser.maybeCompleteAuthSession()</code> and the redirect plumbing.</li>
+    <li>Account linking: same email arriving via two providers.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Cancel the OAuth sheet mid-flow. The app returns to a clean state, not a stuck spinner.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M4</span> Catalog &amp; query mastery</h3>
+  <div class="goal">Goal: data layer that feels instant.</div>
+  <ul>
+    <li>Infinite scroll on product lists with <code>useInfiniteQuery</code>.</li>
+    <li>Prefetch product detail on list-item press-in.</li>
+    <li>Search with debounce, <code>placeholderData</code> to keep previous results, and recents.</li>
+    <li>Wishlist with optimistic toggle + rollback on failure.</li>
+    <li>Cache persistence so a cold start shows last-known data immediately.</li>
+    <li>Wire <code>focusManager</code> to <code>AppState</code> and <code>onlineManager</code> to <code>expo-network</code>.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Airplane mode cold start shows cached products with a "showing offline data" banner, not an error screen.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M5</span> Cart &amp; checkout</h3>
+  <div class="goal">Goal: an interruption-safe purchase flow.</div>
+  <ul>
+    <li>Cart persistence + merge with the server cart on login (decide the merge rule and write it down).</li>
+    <li>Multi-step checkout with per-step validation and a resumable state.</li>
+    <li>Address form with correct <code>textContentType</code>/<code>autoComplete</code> so OS autofill works.</li>
+    <li>Promo codes, shipping options, tax recalculation.</li>
+    <li>Order placement with an idempotency key — a double-tap must not create two orders.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Force-quit at the payment step and relaunch. The user resumes where they were, with the cart intact.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M6</span> Payments</h3>
+  <div class="goal">Goal: money actually moves (in test mode).</div>
+  <ul>
+    <li>Stripe payment sheet (or your provider's equivalent) with a server-created payment intent.</li>
+    <li>Apple Pay / Google Pay.</li>
+    <li>3DS / SCA challenge handling.</li>
+    <li>Failure paths: declined card, network drop mid-confirm, app killed after charge but before your server callback.</li>
+    <li>Understand the store rules: physical goods → external payments fine; digital content → in-app purchase required.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Kill the app immediately after confirming payment. On relaunch, the order state is correct — the server, not the client, is the source of truth.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M7</span> Push &amp; universal links</h3>
+  <div class="goal">Goal: the app can be entered from outside.</div>
+  <ul>
+    <li>Push registration, backend association, permission rationale.</li>
+    <li>Notification categories with actions ("Track", "Reorder").</li>
+    <li>Badge count management.</li>
+    <li>Routing from a tap in all three delivery states, including cold start.</li>
+    <li>Universal links: host an AASA file and <code>assetlinks.json</code>, configure <code>associatedDomains</code> and Android intent filters.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Tap <code>https://yourdomain/p/42</code> in Messages on a device with the app installed. It opens the product screen directly, no browser bounce.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M8</span> Observability &amp; tests</h3>
+  <div class="goal">Goal: you'd find out about a bug before your users tell you.</div>
+  <ul>
+    <li>Crash reporting with uploaded source maps — verify a stack trace is readable in the dashboard.</li>
+    <li>Analytics facade with a typed event catalogue (<code>view_product</code>, <code>add_to_cart</code>, <code>begin_checkout</code>, <code>purchase</code>).</li>
+    <li>Error boundaries per route group with a real recovery action.</li>
+    <li>Unit tests for the refresh coordinator, cart math, and money formatting.</li>
+    <li>MSW-mocked tests for the key hooks.</li>
+    <li>One Maestro flow: sign in → add to cart → checkout.</li>
+    <li>Accessibility pass: labels, roles, dynamic type, contrast; then run it with VoiceOver/TalkBack.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Deliberately throw in production-mode code and read the symbolicated stack trace in your dashboard.</div>
+</div>
+
+<h2 id="libraries">Library hints</h2>
+
+<table>
+<thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
+<tbody>
+<tr><td>Secure storage</td><td><code>expo-secure-store</code></td><td><code>setItemAsync</code>, <code>getItemAsync</code>, <code>deleteItemAsync</code>, <code>keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, <code>requireAuthentication</code></td></tr>
+<tr><td>Routing guards</td><td><code>expo-router</code> <span class="chip green">installed</span></td><td><code>&lt;Stack.Protected guard={…}&gt;</code>, <code>&lt;Redirect&gt;</code>, <code>useRouter</code>, <code>useLocalSearchParams</code>, <code>unstable_settings.initialRouteName</code>, <code>useRootNavigationState</code></td></tr>
+<tr><td>Server state</td><td><code>@tanstack/react-query</code> <span class="chip green">installed</span></td><td><code>useInfiniteQuery</code>, <code>useMutation</code> with <code>onMutate</code>/<code>onError</code>/<code>onSettled</code>, <code>queryClient.setQueryData</code>, <code>prefetchQuery</code>, <code>focusManager</code>, <code>onlineManager</code></td></tr>
+<tr><td>Cache persistence</td><td><code>@tanstack/query-async-storage-persister</code> + <code>@tanstack/react-query-persist-client</code></td><td><code>PersistQueryClientProvider</code>, <code>maxAge</code>, <code>dehydrateOptions</code> — exclude auth-bearing queries</td></tr>
+<tr><td>OAuth</td><td><code>expo-auth-session</code> + <code>expo-web-browser</code> <span class="chip green">installed</span></td><td><code>useAuthRequest</code>, <code>makeRedirectUri</code>, <code>exchangeCodeAsync</code>, PKCE by default, <code>maybeCompleteAuthSession()</code></td></tr>
+<tr><td>Apple sign-in</td><td><code>expo-apple-authentication</code></td><td><code>signInAsync</code>, <code>&lt;AppleAuthenticationButton&gt;</code>, credential state checks</td></tr>
+<tr><td>Push</td><td><code>expo-notifications</code></td><td><code>getExpoPushTokenAsync({projectId})</code>, <code>setNotificationCategoryAsync</code>, <code>setBadgeCountAsync</code>, <code>getLastNotificationResponseAsync</code>, <code>addNotificationResponseReceivedListener</code></td></tr>
+<tr><td>Payments</td><td><code>@stripe/stripe-react-native</code></td><td><code>StripeProvider</code>, <code>useStripe().initPaymentSheet/presentPaymentSheet</code>, <code>PlatformPayButton</code>. Requires a dev build + config plugin.</td></tr>
+<tr><td>In-app purchase</td><td><code>expo-iap</code> or <code>react-native-iap</code></td><td>Only if you sell digital goods — then it's mandatory, not optional.</td></tr>
+<tr><td>Forms</td><td><code>react-hook-form</code> + <code>zod</code></td><td><code>useForm</code>, <code>Controller</code>, <code>zodResolver</code>, per-step schemas</td></tr>
+<tr><td>Fast KV</td><td><code>react-native-mmkv</code></td><td>Synchronous — great for a Zustand persist adapter, no async hydration flash.</td></tr>
+<tr><td>Crash/perf</td><td><code>@sentry/react-native</code></td><td><code>Sentry.init</code>, <code>wrap()</code>, Expo config plugin, automatic source-map upload via EAS</td></tr>
+<tr><td>Analytics</td><td>Firebase Analytics / PostHog / Amplitude</td><td>Wrap in your own facade so swapping vendors is a one-file change.</td></tr>
+<tr><td>Config</td><td><code>expo-constants</code> <span class="chip green">installed</span></td><td><code>Constants.expoConfig.extra</code>, <code>Constants.easConfig.projectId</code></td></tr>
+<tr><td>i18n</td><td><code>expo-localization</code> + <code>i18next</code></td><td><code>getLocales()</code>, <code>getCalendars()</code>, RTL via <code>I18nManager</code>, <code>Intl.NumberFormat</code></td></tr>
+<tr><td>Testing</td><td><code>jest-expo</code>, <code>@testing-library/react-native</code>, <code>msw</code>, <code>maestro</code></td><td>Component queries by accessibility role; MSW intercepts at the network layer so hooks are tested for real.</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+  <strong>Backend options if you don't want to write one</strong>
+  <p>Supabase (auth + Postgres + realtime, generous free tier), Medusa or Saleor (real commerce backends), or a small Hono/Express service on a free host. FakeStoreAPI — what this repo uses now — has no auth and no persistence, so it can't take you past M3. Plan to replace it.</p>
+</div>
+
+<h2 id="pitfalls">Failure modes to experience deliberately</h2>
+
+<ol>
+  <li><strong>The refresh stampede.</strong> Described above. Reproduce it before you fix it, so you recognise the symptom (random logouts) in the wild.</li>
+  <li><strong>Token in AsyncStorage.</strong> Put one there, then read it off a jailbroken/rooted device or an emulator's file system. Now you'll never do it again.</li>
+  <li><strong>Guard flicker.</strong> Render the protected tree before the session finishes loading, and users see the sign-in screen flash on every cold start. Fix by holding the splash.</li>
+  <li><strong>Double order.</strong> Ship without an idempotency key, then double-tap "Place order" on a slow network.</li>
+  <li><strong>Optimistic update without rollback.</strong> Toggle a wishlist item offline; the server rejects it; the UI now lies permanently.</li>
+  <li><strong>Cached PII.</strong> Persist the query cache including the user profile, then log out. The next user on the device sees the previous person's data. Clear the cache on logout.</li>
+  <li><strong>Deep link to a protected route while signed out.</strong> Without an intent buffer, the user signs in and lands on Home, having lost what they clicked.</li>
+  <li><strong>Unsymbolicated crashes.</strong> Ship without source maps and try to read <code>index.android.bundle:1:284736</code>.</li>
+  <li><strong>Hardcoded currency.</strong> Test with a locale where the symbol goes after the number and the decimal separator is a comma.</li>
+</ol>
+
+<h2 id="stretch">Stretch goals</h2>
+<ul>
+  <li><strong>Server-driven UI</strong> — home-screen sections described by a JSON schema so merchandising changes ship without a release.</li>
+  <li><strong>A/B testing</strong> via remote config, gated behind an experiment facade.</li>
+  <li><strong>Realtime order tracking</strong> over websockets/Supabase Realtime feeding the order-detail screen.</li>
+  <li><strong>App Clip / Instant App</strong> for a single product page.</li>
+  <li><strong>iOS widget</strong> showing the latest order status (bridges into Project 04).</li>
+  <li><strong>Web parity</strong> — this app already builds for web. Make checkout work there and discover which of your abstractions were platform-leaky.</li>
+</ul>
+
+<div class="nav-links">
+  <a href="02-camera-social.html">← Project 02 · Camera</a>
+  <a href="04-fitness-tracker.html">Project 04 · Fitness →</a>
+</div>
+
+<footer>Project 03 · targets Expo SDK 57 / RN 0.86</footer>
+
+</div>
+</body>
+</html>

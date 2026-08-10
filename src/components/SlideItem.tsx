@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import type { AnimatedProps } from "react-native-reanimated";
 import Animated from "react-native-reanimated";
+import { Product } from "../models/Product";
 
 interface Props extends AnimatedProps<ViewProps> {
   style?: StyleProp<ImageStyle>;
   index?: number;
+  item: Product;
   rounded?: boolean;
   source?: ImageSourcePropType;
 }
@@ -23,6 +25,7 @@ export const SlideItem: React.FC<Props> = (props) => {
   const {
     style,
     index = 0,
+    item,
     rounded = false,
     testID,
     ...animatedViewProps
@@ -37,12 +40,15 @@ export const SlideItem: React.FC<Props> = (props) => {
     <Animated.View testID={testID} style={{ flex: 1 }} {...animatedViewProps}>
       <Animated.Image
         style={[style, styles.container, rounded && { borderRadius: 15 }]}
-        source={source}
+        source={{ uri: source }}
         resizeMode="cover"
       />
       <View style={styles.overlay}>
         <View style={styles.overlayTextContainer}>
-          <Text style={styles.overlayText}>{index}</Text>
+          <Text style={styles.overlayText}>{item.title}</Text>
+        </View>
+        <View style={styles.overlayTextContainer}>
+          <Text style={styles.overlayText}>{item.price}</Text>
         </View>
       </View>
     </Animated.View>
@@ -62,6 +68,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 4,
+    borderColor: "#00000055",
+    borderRadius: 16
   },
   overlayText: {
     color: "white",

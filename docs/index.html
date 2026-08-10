@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expo Deep-Dive Learning Path — Why-Not-ReactNative</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<h1>Expo Deep-Dive Learning Path</h1>
+<p class="subtitle">Five projects that, together, cover essentially the whole Expo + React Native production surface — from managed-workflow basics to custom native modules and OTA release engineering.</p>
+
+<div class="meta-row">
+  <span class="chip accent">Expo SDK 57</span>
+  <span class="chip">React Native 0.86</span>
+  <span class="chip">React 19.2 + Compiler</span>
+  <span class="chip">Expo Router v7</span>
+  <span class="chip">New Architecture</span>
+  <span class="chip">TypeScript</span>
+</div>
+
+<p class="lead">This is a curriculum, not a list of app ideas. Each project deliberately introduces a <em>new capability tier</em> and retires the training wheels of the previous one. Build them in order — the ordering is the point.</p>
+
+<div class="note">
+  <strong>How to use these docs</strong>
+  <p>Each project page contains: the learning objectives, a screen-by-screen UI breakdown with wireframes, the folder/architecture layout, data-flow diagrams, milestone-based build order with checkpoints, library hints with the exact package names, and a list of "things that will break" so you learn the failure modes too. <strong>There is no copy-pasteable implementation code</strong> — only API surface hints. You write the code; that is where the learning lives.</p>
+</div>
+
+<h2>The path</h2>
+
+<div class="cards">
+
+  <a class="card" href="01-offline-journal.html">
+    <div class="num">PROJECT 01</div>
+    <h3>Offline-First Journal</h3>
+    <p>A private journaling app that works with the network cable cut. SQLite, migrations, FTS search, local notifications, background sync reconciliation.</p>
+    <div class="meta-row">
+      <span class="chip green">Foundation</span>
+      <span class="chip">Expo Go OK</span>
+      <span class="chip">~2 weeks</span>
+    </div>
+  </a>
+
+  <a class="card" href="02-camera-social.html">
+    <div class="num">PROJECT 02</div>
+    <h3>Camera &amp; Social Capture</h3>
+    <p>Capture, edit, share. Camera preview, video, image pipeline, media library, deep links, share intents, gesture-driven editor UI.</p>
+    <div class="meta-row">
+      <span class="chip green">Device I/O</span>
+      <span class="chip amber">Dev Client</span>
+      <span class="chip">~2–3 weeks</span>
+    </div>
+  </a>
+
+  <a class="card" href="03-commerce-platform.html">
+    <div class="num">PROJECT 03</div>
+    <h3>Production Commerce App</h3>
+    <p>Extends this repo's store. Real auth with token refresh, secure storage, OAuth, push notifications, payments, universal links, analytics, error reporting.</p>
+    <div class="meta-row">
+      <span class="chip purple">Production</span>
+      <span class="chip amber">Dev Client + Backend</span>
+      <span class="chip">~4 weeks</span>
+    </div>
+  </a>
+
+  <a class="card" href="04-fitness-tracker.html">
+    <div class="num">PROJECT 04</div>
+    <h3>Background Fitness Tracker</h3>
+    <p>The native boundary. Background geolocation, sensors, foreground services, a custom config plugin, an Expo Module in Swift/Kotlin, iOS Live Activity, home-screen widgets.</p>
+    <div class="meta-row">
+      <span class="chip red">Native</span>
+      <span class="chip red">Bare-adjacent</span>
+      <span class="chip">~4–6 weeks</span>
+    </div>
+  </a>
+
+  <a class="card" href="05-podcast-player.html">
+    <div class="num">PROJECT 05</div>
+    <h3>Podcast Player &amp; Release Pipeline</h3>
+    <p>Background audio, lock-screen controls, offline downloads, plus the shipping half: EAS Build, EAS Update channels, staged rollouts, rollback, e2e tests, CI/CD.</p>
+    <div class="meta-row">
+      <span class="chip pink">Ship it</span>
+      <span class="chip">EAS + CI</span>
+      <span class="chip">~4 weeks</span>
+    </div>
+  </a>
+
+</div>
+
+<h2>Coverage map</h2>
+<p>What each project is responsible for teaching. Nothing is taught twice as a headline topic — later projects assume the earlier ones.</p>
+
+<table>
+<thead>
+<tr><th>Domain</th><th>01 Journal</th><th>02 Camera</th><th>03 Commerce</th><th>04 Fitness</th><th>05 Podcast</th></tr>
+</thead>
+<tbody>
+<tr><td>Navigation (Expo Router)</td><td>Stack, modals, typed routes</td><td>Tabs + shared element</td><td>Protected routes, deep links</td><td>—</td><td>Persistent mini-player layout</td></tr>
+<tr><td>Local persistence</td><td><b>expo-sqlite + Drizzle</b></td><td>File system, media library</td><td>MMKV / secure store</td><td>SQLite time-series</td><td>Download manager</td></tr>
+<tr><td>Server state</td><td>Offline mutation queue</td><td>—</td><td><b>TanStack Query deep</b></td><td>—</td><td>Feed parsing + cache</td></tr>
+<tr><td>Device APIs</td><td>Notifications</td><td><b>Camera, media, sharing</b></td><td>Biometrics</td><td><b>Location, sensors</b></td><td>Audio session</td></tr>
+<tr><td>Background execution</td><td>Background task (sync)</td><td>—</td><td>Push handlers</td><td><b>Background location + FGS</b></td><td>Background downloads</td></tr>
+<tr><td>Animation / gesture</td><td>Layout animations</td><td><b>Reanimated 4 + gestures</b></td><td>Skeletons, transitions</td><td>Live charts</td><td>Draggable player, scrubber</td></tr>
+<tr><td>Auth &amp; security</td><td>Local auth lock</td><td>—</td><td><b>OAuth, refresh, keychain</b></td><td>—</td><td>—</td></tr>
+<tr><td>Native layer</td><td>—</td><td>—</td><td>—</td><td><b>Config plugin + Expo Module</b></td><td>Native audio hooks</td></tr>
+<tr><td>Build &amp; release</td><td>—</td><td>Dev client</td><td>Env/variants</td><td>Local + cloud builds</td><td><b>EAS Update, rollouts, CI</b></td></tr>
+<tr><td>Testing</td><td>Unit (logic)</td><td>—</td><td>MSW + integration</td><td>—</td><td><b>Maestro e2e</b></td></tr>
+</tbody>
+</table>
+
+<h2>Before you start — the baseline</h2>
+
+<p>You already have this repo running. Get these three things in place first; every project assumes them.</p>
+
+<h3>1. A development build, not Expo Go</h3>
+<p>Expo Go is a fixed binary containing a fixed set of native modules. The moment Project 02 needs a library outside that set, Expo Go stops being an option. Learn the dev-client workflow now, while nothing depends on it.</p>
+<pre><code>npx expo install expo-dev-client
+eas build --profile development --platform ios --local
+# then: npx expo start --dev-client</code></pre>
+<p>This repo already has <code>expo-dev-client</code> and an <code>eas.json</code>. Confirm you can produce a build and connect to it.</p>
+
+<h3>2. Understand the three "workflow" myths</h3>
+<ul>
+  <li>There is no "managed vs bare" split anymore in the old sense. There is <em>Continuous Native Generation</em> (CNG): <code>android/</code> and <code>ios/</code> are build artifacts generated by <code>npx expo prebuild</code> from <code>app.json</code> + config plugins.</li>
+  <li>This repo currently has a committed <code>android/</code> folder. Decide deliberately: either treat it as generated (add to <code>.gitignore</code>, rely on plugins) or as hand-maintained. Project 04 will force this decision — make it early.</li>
+  <li>Native code does not mean "ejecting". You can add Swift/Kotlin via a local Expo Module and still regenerate projects freely.</li>
+</ul>
+
+<h3>3. Set up your feedback loop</h3>
+<table>
+<thead><tr><th>Tool</th><th>Purpose</th><th>Command / package</th></tr></thead>
+<tbody>
+<tr><td>React DevTools / Expo Atlas</td><td>Bundle size + render inspection</td><td><code>npx expo start --atlas</code></td></tr>
+<tr><td>Drizzle Studio plugin</td><td>Browse on-device SQLite live</td><td><code>expo-drizzle-studio-plugin</code></td></tr>
+<tr><td>React Query Devtools</td><td>Cache/state inspection (already installed)</td><td><code>@tanstack/react-query-devtools</code></td></tr>
+<tr><td>Reactotron / Flipper alt</td><td>Network + log inspection</td><td>optional</td></tr>
+<tr><td>Perf monitor</td><td>FPS + JS thread health</td><td>Dev menu → Performance monitor</td></tr>
+</tbody>
+</table>
+
+<h2>Ground rules that apply to all five</h2>
+
+<ol>
+  <li><strong>No implementation copy-paste.</strong> These docs give you the API surface and the shape. Reading <code>docs.expo.dev</code> for the exact signature <em>is</em> the exercise.</li>
+  <li><strong>Components stay dumb.</strong> Screens own state and hooks; components receive plain props and callbacks. Same rule as your Swift work — a component that imports a store is a component you can't reuse.</li>
+  <li><strong>One state tool per concern.</strong> Server data → TanStack Query. Ephemeral client state → Zustand or local state. Persisted domain data → SQLite. Do not mirror the same fact in two of them.</li>
+  <li><strong>Handle the four states, always.</strong> Every screen has loading / empty / error / content. Design the empty and error states before the happy path.</li>
+  <li><strong>Test on a real device early.</strong> Simulators lie about camera, GPS, background execution, audio interruptions, and battery behaviour — which is exactly what projects 02, 04 and 05 are about.</li>
+  <li><strong>Write down what broke.</strong> Keep a <code>.agents/lessons/_learned.md</code> per project. The failure modes are the durable knowledge.</li>
+</ol>
+
+<h2>Suggested pacing</h2>
+<table>
+<thead><tr><th>Weeks</th><th>Project</th><th>You'll know you're done when…</th></tr></thead>
+<tbody>
+<tr><td>1–2</td><td>01 Journal</td><td>You can kill the network, write 20 entries, restart the app, reconnect, and every entry syncs exactly once.</td></tr>
+<tr><td>3–5</td><td>02 Camera</td><td>Someone can share a photo <em>into</em> your app from Photos, and your app can share back out.</td></tr>
+<tr><td>6–9</td><td>03 Commerce</td><td>A push notification opens the correct order screen from a cold start, with a valid refreshed token.</td></tr>
+<tr><td>10–15</td><td>04 Fitness</td><td>Phone in pocket, screen off, 30-minute walk → an accurate route with no dropped segment, and a Live Activity that ticked the whole way.</td></tr>
+<tr><td>16–19</td><td>05 Podcast</td><td>You ship a JS-only fix to production via EAS Update, watch it roll out to 10%, then roll it back.</td></tr>
+</tbody>
+</table>
+
+<div class="tip">
+  <strong>If you only have time for two</strong>
+  <p>Do <strong>03</strong> (it turns this repo into something production-shaped) and <strong>04</strong> (it's the only one that forces you past the JS boundary into config plugins and native modules — the part almost every tutorial skips).</p>
+</div>
+
+<h2>Reference shelf</h2>
+<ul>
+  <li><a href="https://docs.expo.dev/versions/latest/">Expo SDK API reference</a> — bookmark the version selector; SDK 57 is what this repo targets.</li>
+  <li><a href="https://docs.expo.dev/router/introduction/">Expo Router docs</a> — especially <em>Advanced → Authentication</em> and <em>Protected routes</em>.</li>
+  <li><a href="https://docs.expo.dev/config-plugins/introduction/">Config plugins</a> and <a href="https://docs.expo.dev/modules/overview/">Expo Modules API</a> — required reading before Project 04.</li>
+  <li><a href="https://docs.expo.dev/eas-update/introduction/">EAS Update</a> — required before Project 05.</li>
+  <li><a href="https://docs.swmansion.com/react-native-reanimated/">Reanimated 4</a> and <a href="https://docs.swmansion.com/react-native-gesture-handler/">Gesture Handler</a> — Project 02 onward.</li>
+  <li><a href="https://tanstack.com/query/latest/docs/framework/react/react-native">TanStack Query for React Native</a> — offline persistence + focus manager.</li>
+</ul>
+
+<footer>
+  Why-Not-ReactNative learning path · targets Expo SDK 57 / RN 0.86 · authored by Md. Mahmudul Hasan Shohag
+</footer>
+
+</div>
+</body>
+</html>
