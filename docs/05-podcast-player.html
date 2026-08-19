@@ -70,13 +70,15 @@
 
 <h3>Screen inventory</h3>
 
+<p>All routes are relative to <code>/projects/podcast-player</code>.</p>
+
 <table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
-<tr><td><code>/(tabs)/home</code></td><td>Home</td><td>Continue listening, new episodes, subscriptions grid.</td></tr>
-<tr><td><code>/(tabs)/discover</code></td><td>Discover</td><td>Search a podcast index, browse categories, preview before subscribing.</td></tr>
-<tr><td><code>/(tabs)/queue</code></td><td>Queue</td><td>Drag-to-reorder up-next list with swipe-to-remove.</td></tr>
-<tr><td><code>/(tabs)/downloads</code></td><td>Downloads</td><td>Active transfers, downloaded episodes, storage usage bar.</td></tr>
+<tr><td><code>/(tab)/</code></td><td>Home</td><td>Continue listening, new episodes, subscriptions grid.</td></tr>
+<tr><td><code>/(tab)/discover</code></td><td>Discover</td><td>Search a podcast index, browse categories, preview before subscribing.</td></tr>
+<tr><td><code>/(tab)/queue</code></td><td>Queue</td><td>Drag-to-reorder up-next list with swipe-to-remove.</td></tr>
+<tr><td><code>/(tab)/downloads</code></td><td>Downloads</td><td>Active transfers, downloaded episodes, storage usage bar.</td></tr>
 <tr><td><code>/podcast/[id]</code></td><td>Podcast detail</td><td>Show info, episode list, subscribe toggle, per-show settings.</td></tr>
 <tr><td><code>/episode/[id]</code></td><td>Episode detail</td><td>Show notes with links and chapters, play/download actions.</td></tr>
 <tr><td><code>/player</code></td><td>Now playing</td><td>Full-screen player, presented as a modal over everything.</td></tr>
@@ -217,14 +219,22 @@
                 (lock screen)   (throttled 5s)</code></pre>
 
 <h3>Folder layout</h3>
-<pre><code>src/
-├── app/
-│   ├── _layout.tsx               providers + &lt;MiniPlayerHost&gt;
-│   ├── (tabs)/{home,discover,queue,downloads}.tsx
-│   ├── podcast/[id].tsx
-│   ├── episode/[id].tsx
-│   ├── player.tsx                modal, transparent presentation
-│   └── settings.tsx
+<p>Routes under <code>src/app/projects/podcast-player/</code>, code in the slice at <code>src/projects/podcast-player/</code>.</p>
+
+<pre><code>src/app/projects/podcast-player/
+├── _layout.tsx                   project stack + &lt;MiniPlayerHost&gt;
+├── (tab)/
+│   ├── _layout.tsx
+│   ├── index.tsx                 home
+│   ├── discover.tsx
+│   ├── queue.tsx
+│   └── downloads.tsx
+├── podcast/[id].tsx
+├── episode/[id].tsx
+├── player.tsx                    modal, transparent presentation
+└── settings.tsx</code></pre>
+
+<pre><code>src/projects/podcast-player/
 ├── playback/
 │   ├── service.ts                the singleton
 │   ├── queue.ts                  pure queue operations
@@ -241,11 +251,24 @@
 │   ├── sync.ts                   incremental refresh
 │   └── index-api.ts              podcast search API client
 ├── db/                           subscriptions, episodes, progress
-├── features/
-│   ├── player-ui/                MiniPlayer, FullPlayer, Scrubber
-│   └── episode-list/
+├── api/                          index-api endpoints, using shared axios
+├── components/
+│   ├── player/                   MiniPlayer, FullPlayer, Scrubber, MiniPlayerHost
+│   └── episode/                  EpisodeRow, DownloadBadge, ProgressBar
+├── models/
+│   └── Episode.ts                Podcast, Episode, QueueItem, Progress types
+├── hooks/
+├── stores/
+│   └── playerStore.ts            zustand; fed by the singleton's events
+├── utils/
+│   └── queryKeys.ts              this project's own keys
 └── lib/
     └── updates.ts                EAS Update check/apply UX</code></pre>
+
+<div class="warn">
+  <strong><code>MiniPlayerHost</code> mounts in <em>your</em> layout, not the root</strong>
+  <p>The mini-player should persist across this project's screens — and stop existing the moment the user backs out to the launcher. Mounting it in <code>src/app/_layout.tsx</code> would leave a podcast player floating over the store's checkout. Wrap your project's <code>&lt;Stack /&gt;</code> instead. The <em>service</em> singleton is module-scope and survives regardless; that's the point of separating them.</p>
+</div>
 
 <h2 id="audio">Audio session model</h2>
 
@@ -395,6 +418,7 @@ nightly
   <h3><span class="tag">M1</span> Feeds &amp; catalog</h3>
   <div class="goal">Goal: real content in the app.</div>
   <ul>
+    <li>Claim the slot: replace the stub at <code>src/app/projects/podcast-player/index.tsx</code>, create the slice, flip <code>available</code> in the registry.</li>
     <li>Podcast search via an index API; subscribe/unsubscribe.</li>
     <li>RSS parsing into typed episodes; handle the messy real world (missing durations, weird enclosures, HTML in show notes).</li>
     <li>SQLite for shows, episodes, and progress.</li>

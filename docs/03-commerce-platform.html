@@ -60,18 +60,22 @@
 
 <h2 id="audit">Start with an audit</h2>
 
-<p>Before writing anything, read the existing code and write down honest answers. This is the first exercise.</p>
+<p>Before writing anything, read the existing code and write down honest answers. This is the first exercise. The store slice already exists — <code>src/projects/store/</code> for code, <code>src/app/projects/store/</code> for routes — so every path below is real and you can open it right now.</p>
 
 <table>
 <thead><tr><th>Question</th><th>Where to look</th><th>What "production" would require</th></tr></thead>
 <tbody>
-<tr><td>What happens on a 401?</td><td><code>src/api/axios.ts</code></td><td>A response interceptor that refreshes once and replays queued requests.</td></tr>
-<tr><td>Where would a token live?</td><td>nowhere yet</td><td>Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td></tr>
-<tr><td>Is the cart durable?</td><td><code>src/stores/cartStore.ts</code></td><td>Persisted locally and reconciled with a server cart on login.</td></tr>
-<tr><td>Are query keys collision-safe?</td><td><code>src/utils/queryKeys.ts</code></td><td>A hierarchical factory with typed params, so invalidation is precise.</td></tr>
-<tr><td>How is the base URL chosen?</td><td><code>src/api/axios.ts</code>, <code>app.json</code></td><td>From <code>expo-constants</code> extra, driven by a dynamic config per environment.</td></tr>
-<tr><td>What does the orders screen do offline?</td><td><code>src/app/store/orders/</code></td><td>Serve cached data with a stale indicator, not a spinner.</td></tr>
-<tr><td>Is <code>useOrders</code> N+1?</td><td><code>src/hooks/useProduct.ts</code></td><td>It fetches each product individually — fine as a demo, wrong at scale. Note the fix even if the fake API forces it.</td></tr>
+<tr><td>What happens on a 401?</td><td><code>src/shared/api/axios.ts</code></td><td>Currently the request interceptor is a commented-out stub and there is no response interceptor at all. You need one that refreshes once and replays queued requests.</td></tr>
+<tr><td>Where would a token live?</td><td>nowhere yet — <code>useLogin</code> in <code>src/projects/store/hooks/useAuth.ts</code> returns a token and drops it</td><td>Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td></tr>
+<tr><td>Is the login screen actually gated?</td><td><code>src/app/projects/store/splash/index.tsx</code>, <code>login/index.tsx</code></td><td>Splash redirects on a timer and login <code>router.replace</code>s to main on success — nothing stops you deep-linking straight past both. Real protected routes.</td></tr>
+<tr><td>Are credentials hardcoded?</td><td><code>src/projects/store/constants/credentials.ts</code></td><td>Yes, and deliberately — it's a FakeStoreAPI demo. Deleting this file is part of M2.</td></tr>
+<tr><td>Is the cart durable?</td><td><code>src/projects/store/stores/cartStore.ts</code></td><td>Plain in-memory Zustand — it empties on relaunch. Persist locally and reconcile with a server cart on login.</td></tr>
+<tr><td>Are query keys collision-safe?</td><td><code>src/projects/store/utils/queryKeys.ts</code></td><td>Flat strings like <code>["products"]</code> and <code>["product", id]</code> — you can't invalidate "everything product-shaped" in one call. Needs a hierarchical factory with typed params.</td></tr>
+<tr><td>Is a credentials object in a query key?</td><td><code>queryKeys.loginUser(credentials)</code></td><td>It exists but nothing uses it — a leftover from when login was a query. A password must never be part of a cache key. Delete it.</td></tr>
+<tr><td>How is the base URL chosen?</td><td><code>src/shared/api/axios.ts</code>, <code>app.json</code></td><td>Hardcoded to <code>https://fakestoreapi.com</code>. Should come from <code>expo-constants</code> extra, driven by a dynamic config per environment.</td></tr>
+<tr><td>What does the orders screen do offline?</td><td><code>src/app/projects/store/orders/index.tsx</code></td><td>Serve cached data with a stale indicator, not a spinner.</td></tr>
+<tr><td>Is <code>useOrders</code> N+1?</td><td><code>src/projects/store/hooks/useProduct.ts</code></td><td>It fetches the cart, then fetches each product individually — fine as a demo, wrong at scale. Note the fix even if the fake API forces it.</td></tr>
+<tr><td>Does <code>axios.ts</code> belong to this project?</td><td><code>src/shared/api/axios.ts</code></td><td>No — it's shared infra. Anything you add there must stay project-agnostic; store-specific interceptor logic belongs in the slice, injected. This is the first real test of the isolation rule.</td></tr>
 </tbody>
 </table>
 
@@ -92,17 +96,19 @@
 
 <h3>Screen inventory</h3>
 
+<p>All routes are relative to <code>/projects/store</code>, and the group segments <code>(auth)</code> / <code>(app)</code> / <code>(tab)</code> don't appear in the URL. So <code>/(app)/(tab)/bag</code> resolves to <code>/projects/store/bag</code>.</p>
+
 <table>
 <thead><tr><th>Route</th><th>Screen</th><th>New vs existing</th></tr></thead>
 <tbody>
 <tr><td><code>/(auth)/sign-in</code></td><td>Sign in</td><td>new — email/password + social + guest</td></tr>
 <tr><td><code>/(auth)/sign-up</code></td><td>Sign up</td><td>new</td></tr>
 <tr><td><code>/(auth)/forgot</code></td><td>Password reset</td><td>new — email link handling</td></tr>
-<tr><td><code>/(app)/(tabs)/home</code></td><td>Home</td><td>exists — add sections, banners, prefetch</td></tr>
-<tr><td><code>/(app)/(tabs)/categories</code></td><td>Categories</td><td>exists</td></tr>
-<tr><td><code>/(app)/(tabs)/search</code></td><td>Search</td><td>new — debounced, with recents and suggestions</td></tr>
-<tr><td><code>/(app)/(tabs)/bag</code></td><td>Bag</td><td>exists — add server reconciliation, promo codes</td></tr>
-<tr><td><code>/(app)/(tabs)/account</code></td><td>Account</td><td>extend the profile screen</td></tr>
+<tr><td><code>/(app)/(tab)/</code></td><td>Home</td><td>exists — add sections, banners, prefetch</td></tr>
+<tr><td><code>/(app)/(tab)/categories</code></td><td>Categories</td><td>exists</td></tr>
+<tr><td><code>/(app)/(tab)/search</code></td><td>Search</td><td>new — debounced, with recents and suggestions</td></tr>
+<tr><td><code>/(app)/(tab)/bag</code></td><td>Bag</td><td>exists — add server reconciliation, promo codes</td></tr>
+<tr><td><code>/(app)/(tab)/account</code></td><td>Account</td><td>extend the profile screen</td></tr>
 <tr><td><code>/(app)/product/[id]</code></td><td>Product detail</td><td>exists — add variants, reviews, related, share</td></tr>
 <tr><td><code>/(app)/checkout/address</code></td><td>Checkout · address</td><td>new</td></tr>
 <tr><td><code>/(app)/checkout/shipping</code></td><td>Checkout · shipping</td><td>new</td></tr>
@@ -221,60 +227,86 @@
 <h2 id="architecture">Architecture</h2>
 
 <h3>Route groups</h3>
-<pre><code>src/app/
-├── _layout.tsx              providers + Stack.Protected guards
+<p>Today the store's routes are a flat list under <code>src/app/projects/store/</code>: <code>splash/</code>, <code>login/</code>, <code>main/(tab)/</code>, <code>orders/</code>, <code>place-order/</code>, <code>product-details/[productId]</code>, <code>products/[categoryId]</code>. Nothing separates signed-in from signed-out. The target shape introduces that split:</p>
+
+<pre><code>src/app/projects/store/
+├── _layout.tsx              Stack.Protected guards (project-level, not root)
 ├── (auth)/
 │   ├── _layout.tsx
-│   ├── sign-in.tsx
+│   ├── sign-in.tsx          ← today's login/index.tsx
 │   ├── sign-up.tsx
 │   └── forgot.tsx
 ├── (app)/
 │   ├── _layout.tsx
-│   ├── (tabs)/{home,categories,search,bag,account}.tsx
-│   ├── product/[id].tsx
+│   ├── (tab)/{index,categories,search,bag,account}.tsx
+│   ├── product/[id].tsx     ← today's product-details/[productId]
+│   ├── products/[categoryId].tsx
 │   ├── checkout/{address,shipping,payment,review}.tsx
-│   ├── order/[id].tsx
-│   ├── orders.tsx
-│   └── wishlist.tsx
+│   └── order/[id].tsx, orders.tsx, wishlist.tsx
 └── onboarding.tsx</code></pre>
 
-<h3>Feature-sliced source layout</h3>
-<pre><code>src/
-├── api/
-│   ├── client.ts               axios instance + interceptors
-│   ├── refreshCoordinator.ts   single-flight token refresh
-│   ├── errors.ts               ApiError normalisation
-│   └── endpoints/{product,auth,order,cart,payment}.api.ts
-├── features/
-│   ├── auth/
-│   │   ├── SessionProvider.tsx  the only owner of session state
-│   │   ├── useSession.ts
-│   │   ├── tokenStorage.ts      secure-store wrapper
-│   │   └── socialSignIn.ts      AuthSession flows
-│   ├── catalog/{hooks,components}
-│   ├── cart/                    zustand + server reconciliation
-│   ├── checkout/
-│   │   ├── checkoutMachine.ts   explicit step state
-│   │   └── components/
-│   ├── orders/{hooks,components}
-│   ├── notifications/
-│   │   ├── registerForPush.ts
-│   │   ├── handlers.ts
-│   │   └── routeFromNotification.ts
-│   └── search/
-├── lib/
-│   ├── analytics.ts            one facade over the vendor SDK
-│   ├── monitoring.ts           crash + perf
-│   ├── money.ts                Intl formatting
-│   └── env.ts                  typed access to Constants.expoConfig.extra
-├── config/
-│   └── queryKeys.ts            key factory
-└── components/ui/</code></pre>
+<div class="warn">
+  <strong>Every <code>Stack.Screen name=</code> must be re-derived, not guessed</strong>
+  <p>Adding <code>(auth)</code> and <code>(app)</code> changes the path every store route resolves to. Route names come from the <em>file tree</em>; a stale <code>name=</code> in <code>src/app/_layout.tsx</code> fails silently, leaving a screen with a path-derived header title rather than an error. After the move, grep for <code>"projects/store/</code> across <code>src/</code> and check each hit against the tree — typed routes will not catch all of them.</p>
+</div>
+
+<h3>Slice layout</h3>
+<p>The store's non-route code lives at <code>src/projects/store/</code>. What's there now, and what this project adds:</p>
+
+<pre><code>src/projects/store/
+├── api/                        exists: auth, product, user
+│   ├── auth.api.ts             + refresh, social
+│   ├── product.api.ts
+│   ├── user.api.ts
+│   ├── order.api.ts            new
+│   ├── cart.api.ts             new
+│   ├── payment.api.ts          new
+│   ├── interceptors.ts         new — 401 handling, injected into shared axios
+│   ├── refreshCoordinator.ts   new — single-flight token refresh
+│   └── errors.ts               new — ApiError normalisation
+├── auth/                       new
+│   ├── SessionProvider.tsx     the only owner of session state
+│   ├── useSession.ts
+│   ├── tokenStorage.ts         secure-store wrapper
+│   └── socialSignIn.ts         AuthSession flows
+├── components/                 exists: SlideItem, sheet/, ui/
+│   ├── ui/                     cart-footer, cart-item, product-image,
+│   │                           product-item, background-view
+│   ├── sheet/ProfileSheet.tsx
+│   └── checkout/               new
+├── hooks/                      exists: useAuth, useProduct, useUser,
+│   │                           useComponentHeight
+│   └── useCheckout.ts, useOrders.ts, useSearch.ts   new
+├── notifications/              new
+│   ├── registerForPush.ts
+│   ├── handlers.ts
+│   └── routeFromNotification.ts
+├── models/                     exists: Auth, CartItem, Product, User
+│   └── Order.ts, Payment.ts, Address.ts             new
+├── stores/                     exists: cartStore, cartSelectors
+│   └── + persistence and server reconciliation
+├── constants/                  exists: purple-images, credentials
+│   └── credentials.ts          DELETE in M2
+├── utils/
+│   ├── queryKeys.ts            exists — rebuild as a nested factory
+│   ├── render-item.tsx         exists
+│   ├── money.ts                new — Intl formatting
+│   ├── analytics.ts            new — one facade over the vendor SDK
+│   └── monitoring.ts           new — crash + perf
+└── checkout/
+    └── checkoutMachine.ts      new — explicit step state</code></pre>
+
+<div class="note">
+  <strong>What goes to <code>src/shared/</code> and what doesn't</strong>
+  <p><code>src/shared/api/axios.ts</code> is already shared and every project's endpoint files import it. Auth interceptors are <em>not</em> generic — the journal and podcast projects have no session concept. Keep the axios instance dumb and have the store install its own interceptors at startup, from its slice. The genuinely generic new thing is <code>env.ts</code> (typed access to <code>Constants.expoConfig.extra</code>): that belongs in <code>src/shared/constants/</code>, because every project will read the API URL the same way.</p>
+</div>
 
 <h3>Query key factory</h3>
+<p>Today's <code>src/projects/store/utils/queryKeys.ts</code> is flat — <code>["products"]</code>, <code>["product", id]</code>, <code>["product-by-category", cat]</code>, <code>["orders", userId]</code>. Products and product-by-category don't share a prefix, so no single <code>invalidate</code> reaches both. Rebuild it nested:</p>
 <pre><code>// shape, not code
 products.all                        → ['products']
 products.list(filters)              → ['products','list',filters]
+products.byCategory(category)       → ['products','list',{category}]
 products.detail(id)                 → ['products','detail',id]
 orders.all                          → ['orders']
 orders.list(userId, status)         → ['orders','list',userId,status]
@@ -282,9 +314,9 @@ orders.detail(id)                   → ['orders','detail',id]
 cart.current()                      → ['cart']
 
 // invalidation becomes surgical:
-//   invalidate(['orders'])              → everything order-shaped
+//   invalidate(['products'])            → everything product-shaped
 //   invalidate(orders.detail(id))       → just this one</code></pre>
-<p>The repo already centralizes keys — upgrade them into a nested factory with typed params, and make every hook consume the factory rather than a literal array.</p>
+<p>Make every hook consume the factory rather than a literal array, and delete <code>loginUser(credentials)</code> while you're in there — a login is a mutation, and a password has no business in a cache key. Keep the file inside the store's slice; there is no shared key file, because two projects sharing a namespace is a collision waiting to happen.</p>
 
 <h3>Config &amp; environments</h3>
 <p>Move <code>app.json</code> → <code>app.config.ts</code> so config is computed:</p>
@@ -365,7 +397,8 @@ DELIVERY  (three very different cases)
 ROUTING
   notification.data = { type: 'order', orderId: '10482' }
        │
-       ├─ parse into a route:  /order/10482
+       ├─ parse into a route:  /projects/store/order/10482
+       │    (the project prefix is mandatory — the launcher owns the root)
        ├─ ensure auth is resolved FIRST (else the guard bounces you to sign-in)
        └─ router.push after the navigation tree is mounted
 
@@ -377,6 +410,11 @@ TEARDOWN
   <p>On a cold start from a push, three things race: reading the token from the keychain, mounting the router, and handling the notification response. Get the order wrong and the user lands on the sign-in screen instead of their order. Solution: hold the splash screen until the session resolves, buffer the pending route, and replay it once the navigator is ready. Build this deliberately — it's the single most valuable thing in this project.</p>
 </div>
 
+<div class="note">
+  <strong>Push registration is store-specific, not global</strong>
+  <p>Register for push from the store's session lifecycle, not from <code>src/app/_layout.tsx</code>. A user who only ever opens Tic-Tac-Toe should never see a push permission prompt. Same for the notification response listener — it routes into store screens, so it belongs to the store.</p>
+</div>
+
 <h2 id="milestones">Build order</h2>
 
 <div class="milestone">
@@ -384,12 +422,13 @@ TEARDOWN
   <div class="goal">Goal: know what you have, and make config real.</div>
   <ul>
     <li>Write the audit doc.</li>
+    <li>Restructure the store's routes into <code>(auth)</code> / <code>(app)</code> groups and update every <code>Stack.Screen name=</code> in <code>src/app/_layout.tsx</code> to match the new tree.</li>
     <li>Migrate <code>app.json</code> → <code>app.config.ts</code> with three variants.</li>
-    <li>Typed env access module; base URL from config.</li>
+    <li>Typed env access module in <code>src/shared/constants/</code>; base URL from config, not the hardcoded FakeStoreAPI string.</li>
     <li>Normalize API errors into one <code>ApiError</code> shape with a user-facing message.</li>
-    <li>Upgrade the query-key file into a factory.</li>
+    <li>Upgrade <code>src/projects/store/utils/queryKeys.ts</code> into a nested factory; delete the unused <code>loginUser</code> key.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each hitting a different API.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each hitting a different API. <code>npm run lint</code> and <code>npx tsc --noEmit</code> are both clean after the route move.</div>
 </div>
 
 <div class="milestone">
@@ -397,10 +436,10 @@ TEARDOWN
   <div class="goal">Goal: a session that survives everything.</div>
   <ul>
     <li><code>SessionProvider</code> + <code>useSession</code>; splash held until the session resolves.</li>
-    <li>Secure token storage; sign-in / sign-up / sign-out.</li>
-    <li><code>Stack.Protected</code> guards for the <code>(app)</code> and <code>(auth)</code> groups.</li>
+    <li>Secure token storage; sign-in / sign-up / sign-out. Delete <code>src/projects/store/constants/credentials.ts</code> — the demo credentials stop being the login path.</li>
+    <li><code>Stack.Protected</code> guards for the <code>(app)</code> and <code>(auth)</code> groups, declared in the store's own <code>_layout.tsx</code>, not the root one.</li>
     <li>Redirect-after-login: deep-link to a protected route while signed out → sign in → land on the original destination.</li>
-    <li>Refresh coordinator + axios interceptors.</li>
+    <li>Refresh coordinator, installed into the shared axios instance from the store's slice rather than baked into <code>src/shared/api/axios.ts</code>.</li>
     <li>Optional biometric unlock for returning users.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Six concurrent requests with an expired token trigger exactly one refresh and zero spurious logouts.</div>

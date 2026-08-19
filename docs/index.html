@@ -10,7 +10,7 @@
 <div class="wrap">
 
 <h1>Expo Deep-Dive Learning Path</h1>
-<p class="subtitle">Five projects that, together, cover essentially the whole Expo + React Native production surface — from managed-workflow basics to custom native modules and OTA release engineering.</p>
+<p class="subtitle">Five projects that, together, cover essentially the whole Expo + React Native production surface — from managed-workflow basics to custom native modules and OTA release engineering. Plus a launcher that holds them all and a side quest or two.</p>
 
 <div class="meta-row">
   <span class="chip accent">Expo SDK 57</span>
@@ -25,7 +25,44 @@
 
 <div class="note">
   <strong>How to use these docs</strong>
-  <p>Each project page contains: the learning objectives, a screen-by-screen UI breakdown with wireframes, the folder/architecture layout, data-flow diagrams, milestone-based build order with checkpoints, library hints with the exact package names, and a list of "things that will break" so you learn the failure modes too. <strong>There is no copy-pasteable implementation code</strong> — only API surface hints. You write the code; that is where the learning lives.</p>
+  <p>Each project page contains: the learning objectives, a screen-by-screen UI breakdown with wireframes, the folder/architecture layout for that project's slice, data-flow diagrams, milestone-based build order with checkpoints, library hints with the exact package names, and a list of "things that will break" so you learn the failure modes too. <strong>There is no copy-pasteable implementation code</strong> — only API surface hints. You write the code; that is where the learning lives.</p>
+</div>
+
+<div class="tip">
+  <strong>Step 00 is done — <a href="00-launcher-restructure.html">Launcher &amp; Multi-Project Restructure</a></strong>
+  <p>The repo is no longer "the store app." Home is a launcher list driven by a registry, and every exercise — the store included — is an isolated slice. Each numbered project below already has a clean slot to grow into. Read Step 00 before adding a project, because the isolation rules it establishes are the ones you'll be held to.</p>
+</div>
+
+<h2>Where the repo is right now</h2>
+
+<p>Two homes for non-route code — a project slice or <code>shared</code> — and no "misc" folder. Every project below fills in the same two blanks.</p>
+
+<pre><code>src/
+├── app/                    routes only — expo-router owns this tree
+│   ├── index.tsx           the launcher, maps over the registry
+│   └── projects/&lt;slug&gt;/    one route subtree per project
+├── assets/                 images, fonts
+├── projects/&lt;slug&gt;/        that project's api/ components/ constants/
+│                           hooks/ models/ stores/ utils/
+├── shared/                 api/ components/ config/ constants/
+│                           hooks/ providers/ — promoted deliberately
+└── types/                  global declarations</code></pre>
+
+<table>
+<thead><tr><th>Project</th><th>Route subtree</th><th>Code slice</th><th>State</th></tr></thead>
+<tbody>
+<tr><td>Store (doc 03)</td><td><code>src/app/projects/store/</code></td><td><code>src/projects/store/</code></td><td>Built — the only populated slice</td></tr>
+<tr><td>Tic-Tac-Toe (side quest)</td><td><code>src/app/projects/tic-tac-toe/</code></td><td>none yet — all in the route file</td><td>Built</td></tr>
+<tr><td>Offline Journal (01)</td><td><code>src/app/projects/offline-journal/</code></td><td>—</td><td>Stub screen</td></tr>
+<tr><td>Camera &amp; Social (02)</td><td><code>src/app/projects/camera-social/</code></td><td>—</td><td>Stub screen</td></tr>
+<tr><td>Fitness Tracker (04)</td><td><code>src/app/projects/fitness-tracker/</code></td><td>—</td><td>Stub screen</td></tr>
+<tr><td>Podcast Player (05)</td><td><code>src/app/projects/podcast-player/</code></td><td>—</td><td>Stub screen</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+  <strong>Two rules the structure enforces, and one it can't</strong>
+  <p><strong>No cross-project imports</strong> — nothing in <code>src/projects/camera-social/</code> may ever import from <code>src/projects/store/</code>. If two projects need the same thing, promote it to <code>src/shared/</code> deliberately. <strong>Shared stays small</strong> — promote only when a <em>second</em> project actually needs it. And the one nothing enforces: <strong>a file under <code>src/app/</code> is a reachable route whether or not you declare it in a <code>Stack.Screen</code></strong>. A sheet body or list row parked there becomes a route that crashes when someone hits it directly. Put non-route code in a slice.</p>
 </div>
 
 <h2>The path</h2>
@@ -57,9 +94,10 @@
   <a class="card" href="03-commerce-platform.html">
     <div class="num">PROJECT 03</div>
     <h3>Production Commerce App</h3>
-    <p>Extends this repo's store. Real auth with token refresh, secure storage, OAuth, push notifications, payments, universal links, analytics, error reporting.</p>
+    <p>Extends the store slice that already exists. Real auth with token refresh, secure storage, OAuth, push notifications, payments, universal links, analytics, error reporting.</p>
     <div class="meta-row">
       <span class="chip purple">Production</span>
+      <span class="chip green">Slice exists</span>
       <span class="chip amber">Dev Client + Backend</span>
       <span class="chip">~4 weeks</span>
     </div>
@@ -84,6 +122,24 @@
       <span class="chip pink">Ship it</span>
       <span class="chip">EAS + CI</span>
       <span class="chip">~4 weeks</span>
+    </div>
+  </a>
+
+</div>
+
+<h2>Side quests</h2>
+<p>Not part of the tier progression — small, self-contained builds that isolate a single idea. They live in the same launcher and follow the same rules, but nothing later depends on them.</p>
+
+<div class="cards">
+
+  <a class="card" href="zustand-tic-tac-toe-typescript.html">
+    <div class="num">SIDE QUEST</div>
+    <h3>Zustand Tic-Tac-Toe</h3>
+    <p>The official Zustand tutorial, ported twice: every snippet typed, every DOM element replaced with a React Native primitive. Covers the <code>combine</code> middleware and derived-vs-stored state.</p>
+    <div class="meta-row">
+      <span class="chip green">Built</span>
+      <span class="chip">Zustand + TS</span>
+      <span class="chip">~half a day</span>
     </div>
   </a>
 
@@ -124,7 +180,7 @@ eas build --profile development --platform ios --local
 <h3>2. Understand the three "workflow" myths</h3>
 <ul>
   <li>There is no "managed vs bare" split anymore in the old sense. There is <em>Continuous Native Generation</em> (CNG): <code>android/</code> and <code>ios/</code> are build artifacts generated by <code>npx expo prebuild</code> from <code>app.json</code> + config plugins.</li>
-  <li>This repo currently has a committed <code>android/</code> folder. Decide deliberately: either treat it as generated (add to <code>.gitignore</code>, rely on plugins) or as hand-maintained. Project 04 will force this decision — make it early.</li>
+  <li>This repo has already made the CNG choice — <code>/ios</code> and <code>/android</code> are both in <code>.gitignore</code>, so neither is tracked. Treat any local <code>android/</code> folder as disposable output: if a change can't be expressed in <code>app.json</code> or a config plugin, it will be wiped on the next prebuild. Project 04 is where you feel this.</li>
   <li>Native code does not mean "ejecting". You can add Swift/Kotlin via a local Expo Module and still regenerate projects freely.</li>
 </ul>
 
@@ -144,12 +200,31 @@ eas build --profile development --platform ios --local
 
 <ol>
   <li><strong>No implementation copy-paste.</strong> These docs give you the API surface and the shape. Reading <code>docs.expo.dev</code> for the exact signature <em>is</em> the exercise.</li>
+  <li><strong>Stay inside your slice.</strong> Routes go in <code>src/app/projects/&lt;slug&gt;/</code>, everything else in <code>src/projects/&lt;slug&gt;/</code>. Never import from another project's slice. Promote to <code>src/shared/</code> only when a second project genuinely needs the thing.</li>
   <li><strong>Components stay dumb.</strong> Screens own state and hooks; components receive plain props and callbacks. Same rule as your Swift work — a component that imports a store is a component you can't reuse.</li>
   <li><strong>One state tool per concern.</strong> Server data → TanStack Query. Ephemeral client state → Zustand or local state. Persisted domain data → SQLite. Do not mirror the same fact in two of them.</li>
+  <li><strong>Own your query keys.</strong> Each project gets its own <code>utils/queryKeys.ts</code> inside its slice. There is no shared key file — two projects sharing a key namespace is a cache-collision bug waiting to happen.</li>
   <li><strong>Handle the four states, always.</strong> Every screen has loading / empty / error / content. Design the empty and error states before the happy path.</li>
   <li><strong>Test on a real device early.</strong> Simulators lie about camera, GPS, background execution, audio interruptions, and battery behaviour — which is exactly what projects 02, 04 and 05 are about.</li>
   <li><strong>Write down what broke.</strong> Keep a <code>.agents/lessons/_learned.md</code> per project. The failure modes are the durable knowledge.</li>
 </ol>
+
+<h2>Starting a new project — the mechanical part</h2>
+
+<p>Same five steps every time, so none of the docs below repeat them.</p>
+
+<ol>
+  <li>Replace the stub at <code>src/app/projects/&lt;slug&gt;/index.tsx</code> — it currently renders <code>ComingSoonView</code>.</li>
+  <li>Create the slice: <code>src/projects/&lt;slug&gt;/</code> with only the subfolders you actually need. Don't scaffold empty ones.</li>
+  <li>Flip <code>available: false</code> → <code>true</code> for that entry in <code>src/shared/config/projects.ts</code>. The launcher reads the registry; it has no hardcoded knowledge of any project.</li>
+  <li>Add a <code>&lt;Stack.Screen name="projects/&lt;slug&gt;/…"&gt;</code> per route in <code>src/app/_layout.tsx</code>. The <code>name</code> must match the path derived from the file tree exactly — verify against the tree, don't trust typed routes to catch a mismatch.</li>
+  <li>Run <code>npm run lint</code> and <code>npx tsc --noEmit</code> before you call a milestone done.</li>
+</ol>
+
+<div class="warn">
+  <strong>Providers your project may need are not free</strong>
+  <p><code>src/app/_layout.tsx</code> mounts <code>QueryProvider</code>, <code>SafeAreaProvider</code>, <code>GestureHandlerRootView</code> and <code>ThemeProvider</code> once, globally. Anything narrower — <code>SQLiteProvider</code> (01), <code>BottomSheetModalProvider</code>, a playback host (05) — mounts in <em>your project's</em> layout, not the root. And never mount a second <code>QueryProvider</code>: two clients means two independent caches, and data fetched on one screen is invisible to the next.</p>
+</div>
 
 <h2>Suggested pacing</h2>
 <table>
@@ -176,6 +251,8 @@ eas build --profile development --platform ios --local
   <li><a href="https://docs.expo.dev/eas-update/introduction/">EAS Update</a> — required before Project 05.</li>
   <li><a href="https://docs.swmansion.com/react-native-reanimated/">Reanimated 4</a> and <a href="https://docs.swmansion.com/react-native-gesture-handler/">Gesture Handler</a> — Project 02 onward.</li>
   <li><a href="https://tanstack.com/query/latest/docs/framework/react/react-native">TanStack Query for React Native</a> — offline persistence + focus manager.</li>
+  <li><a href="00-launcher-restructure.html">Step 00 · Launcher &amp; restructure</a> and <a href="zustand-tic-tac-toe-typescript.html">Zustand Tic-Tac-Toe</a> — the two in-repo docs that aren't numbered projects.</li>
+  <li><code>AGENTS.md</code> at the repo root — the same structure rules in the form the tooling reads. If it and this page ever disagree, <code>AGENTS.md</code> is the one that gets checked against disk.</li>
 </ul>
 
 <footer>

@@ -71,12 +71,14 @@
 
 <h3>Screen inventory</h3>
 
+<p>All routes are relative to <code>/projects/fitness-tracker</code>.</p>
+
 <table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
-<tr><td><code>/(tabs)/today</code></td><td>Today</td><td>Rings/goals, step count, recent activity, weekly streak.</td></tr>
-<tr><td><code>/(tabs)/history</code></td><td>History</td><td>Workout list with mini route thumbnails; filter by type.</td></tr>
-<tr><td><code>/(tabs)/stats</code></td><td>Stats</td><td>Charts: weekly distance, pace trend, elevation, personal bests.</td></tr>
+<tr><td><code>/(tab)/</code></td><td>Today</td><td>Rings/goals, step count, recent activity, weekly streak.</td></tr>
+<tr><td><code>/(tab)/history</code></td><td>History</td><td>Workout list with mini route thumbnails; filter by type.</td></tr>
+<tr><td><code>/(tab)/stats</code></td><td>Stats</td><td>Charts: weekly distance, pace trend, elevation, personal bests.</td></tr>
 <tr><td><code>/workout/start</code></td><td>Pre-start</td><td>Type picker, GPS-fix indicator, goal setting, countdown.</td></tr>
 <tr><td><code>/workout/active</code></td><td>Active workout</td><td>The critical screen. Keeps the display awake; map + metrics.</td></tr>
 <tr><td><code>/workout/[id]</code></td><td>Workout detail</td><td>Full map, splits table, charts, share card, export GPX.</td></tr>
@@ -216,13 +218,24 @@
     └────────────┘ └────────────┘ └──────────────┘</code></pre>
 
 <h3>Folder layout</h3>
-<pre><code>src/
-├── app/
-│   ├── (tabs)/{today,history,stats}.tsx
-│   ├── workout/{start,active,[id]}.tsx
-│   └── settings/permissions.tsx
+<p>Routes under <code>src/app/projects/fitness-tracker/</code>, code in the slice at <code>src/projects/fitness-tracker/</code>. The <code>modules/</code> and <code>plugins/</code> trees are the exception — they sit at the <strong>repo root</strong>, outside <code>src/</code> entirely, because Expo's tooling looks for them there.</p>
+
+<pre><code>src/app/projects/fitness-tracker/
+├── _layout.tsx
+├── (tab)/
+│   ├── _layout.tsx
+│   ├── index.tsx                 today
+│   ├── history.tsx
+│   └── stats.tsx
+├── workout/
+│   ├── start.tsx
+│   ├── active.tsx
+│   └── [id].tsx
+└── settings/permissions.tsx</code></pre>
+
+<pre><code>src/projects/fitness-tracker/
 ├── tracking/
-│   ├── task.ts                   defineTask — imported by root layout
+│   ├── task.ts                   defineTask — imported by the project layout
 │   ├── controller.ts             start/pause/resume/stop, idempotent
 │   ├── filters.ts                accuracy gate, smoothing, outlier rejection
 │   ├── metrics.ts                distance, pace, elevation, splits (PURE)
@@ -233,28 +246,37 @@
 ├── sensors/
 │   ├── pedometer.ts
 │   └── motion.ts
-├── features/
+├── components/
 │   ├── map/                      polyline, camera, pace colouring
 │   ├── charts/
-│   └── liveactivity/             TS wrapper around the local native module
+│   └── PermissionFlow.tsx
+├── liveactivity/
+│   └── index.ts                  TS wrapper around the local native module
+├── models/
+│   └── Workout.ts                Workout, Point, Split, Summary types
+├── hooks/
 ├── health/
 │   └── sync.ts                   HealthKit / Health Connect
-└── permissions/
-    └── PermissionFlow.tsx
+└── utils/</code></pre>
 
-modules/                          ← local Expo Modules live here
-└── live-activity/
-    ├── expo-module.config.json
-    ├── index.ts                  typed JS API
-    ├── src/LiveActivityModule.ts
-    ├── ios/
-    │   ├── LiveActivityModule.swift
-    │   └── WorkoutAttributes.swift
-    └── android/
-        └── LiveActivityModule.kt  (maps to an ongoing notification)
+<pre><code>&lt;repo root&gt;
+├── modules/                      ← local Expo Modules; NOT under src/
+│   └── live-activity/
+│       ├── expo-module.config.json
+│       ├── index.ts              typed JS API
+│       ├── src/LiveActivityModule.ts
+│       ├── ios/
+│       │   ├── LiveActivityModule.swift
+│       │   └── WorkoutAttributes.swift
+│       └── android/
+│           └── LiveActivityModule.kt  (maps to an ongoing notification)
+└── plugins/                      ← your hand-written config plugins
+    └── withWorkoutCapabilities.js</code></pre>
 
-plugins/                          ← your hand-written config plugins
-└── withWorkoutCapabilities.js</code></pre>
+<div class="note">
+  <strong>Why <code>modules/</code> and <code>plugins/</code> escape the slice rule</strong>
+  <p>The slice rule governs <em>app source</em>. A local Expo Module is a package the autolinker discovers by convention at the project root, and a config plugin is build-time tooling that runs before any app code exists. Neither is importable app code, so neither belongs under <code>src/</code>. The thin TS wrapper that app code <em>does</em> import — <code>liveactivity/index.ts</code> — stays in the slice and is the only thing your screens touch.</p>
+</div>
 
 <h3>Pure metrics, testable</h3>
 <p>Keep <code>metrics.ts</code> free of React, SQLite, and the location API: <code>(points: Point[]) =&gt; Summary</code>. Then you can feed it a recorded GPX from a real run and unit-test distance and pace against known values. This is the only realistic way to verify tracking correctness without going outside for every change.</p>
@@ -262,15 +284,15 @@ plugins/                          ← your hand-written config plugins
 <h2 id="native">The native layer</h2>
 
 <h3>Step 1 — Understand CNG</h3>
-<p>This repo currently commits an <code>android/</code> directory. Decide now:</p>
+<p>The repo has already taken this decision — <code>/ios</code> and <code>/android</code> are both gitignored, so nothing native is tracked. Know what that commits you to:</p>
 <table>
 <thead><tr><th>Approach</th><th>Meaning</th><th>Trade-off</th></tr></thead>
 <tbody>
-<tr><td><strong>CNG (recommended)</strong></td><td><code>ios/</code> and <code>android/</code> are gitignored and regenerated by <code>npx expo prebuild --clean</code>.</td><td>All native changes must be expressible as config plugins. Upgrades are trivial.</td></tr>
+<tr><td><strong>CNG (what this repo does)</strong></td><td><code>ios/</code> and <code>android/</code> are gitignored and regenerated by <code>npx expo prebuild --clean</code>.</td><td>All native changes must be expressible as config plugins. Upgrades are trivial.</td></tr>
 <tr><td>Committed native</td><td>You edit Xcode/Gradle directly.</td><td>Full freedom, but SDK upgrades become manual merges and you lose the main reason to use Expo.</td></tr>
 </tbody>
 </table>
-<p>Take the CNG path. Anything you can't do with a plugin becomes the motivation to write one.</p>
+<p>Stay on the CNG path. Anything you can't do with a plugin becomes the motivation to write one — and any local <code>android/</code> folder on your disk is disposable output that the next prebuild will overwrite.</p>
 
 <h3>Step 2 — Write a config plugin by hand</h3>
 <p>Don't just install someone's plugin — author one. A plugin is a function <code>(config) =&gt; config</code> composed of <em>mods</em>:</p>
@@ -353,7 +375,8 @@ Test loop:
   <h3><span class="tag">M1</span> Go CNG</h3>
   <div class="goal">Goal: native projects become disposable.</div>
   <ul>
-    <li>Gitignore <code>ios/</code> and <code>android/</code>; run <code>npx expo prebuild --clean</code>.</li>
+    <li>Claim the slot: replace the stub at <code>src/app/projects/fitness-tracker/index.tsx</code>, create the slice, flip <code>available</code> in the registry.</li>
+    <li>Confirm <code>ios/</code> and <code>android/</code> are gitignored (they already are); run <code>npx expo prebuild --clean</code>.</li>
     <li>Confirm the app still builds and runs from a fully regenerated project.</li>
     <li>Read the generated Info.plist and AndroidManifest and map each entry back to something in <code>app.config.ts</code>.</li>
   </ul>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>00 · Launcher &amp; Multi-Project Restructure — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Learning path</a> / Step 00</div>
+
+<h1>00 · Launcher &amp; Multi-Project Restructure</h1>
+<p class="subtitle">Turn this repo from "one store app" into a home screen that lists every exercise, where each exercise (Store, Offline Journal, Camera &amp; Social, Fitness Tracker, Podcast Player) lives in its own isolated directory and is opened by tapping a list item.</p>
+
+<div class="meta-row">
+  <span class="chip accent">Prerequisite</span>
+  <span class="chip">Structural only — no new features</span>
+  <span class="chip green">Complete — M1–M5 done</span>
+</div>
+
+<div class="note">
+  <strong>✅ This step is done.</strong>
+  <p>The restructure landed in full: one launcher Home screen, six projects as isolated vertical slices, a small deliberate <code>shared</code> layer, clean lint and typecheck. This page is now a <em>record</em> rather than a plan — keep it for the rationale and the isolation rules, which still govern every project added from here on. Start the actual exercises at <a href="index.html">the learning path index</a>.</p>
+</div>
+
+<div class="note">
+  <strong>Why this came before everything else</strong>
+  <p>The store app used to <em>be</em> the whole repo — its routes sat at the top of <code>src/app/</code> and its code sat directly in <code>src/components</code>, <code>src/hooks</code>, <code>src/stores</code>, etc. Projects 01, 02, 04 and 05 from the learning path needed the same top-level slot the store occupied. Rather than bolt each new project on awkwardly, the repo was restructured once: one launcher <strong>Home</strong> screen, and every exercise — including the store — became a self-contained sibling module underneath it.</p>
+</div>
+
+<ul class="toc">
+  <li><a href="#status">Status — complete</a></li>
+  <li><a href="#accepted">Accepted deviations &amp; leftovers</a></li>
+  <li><a href="#current">Original state (before the move)</a></li>
+  <li><a href="#target">Target shape</a></li>
+  <li><a href="#layout">Directory layout (as built)</a></li>
+  <li><a href="#home">The Home / launcher screen</a></li>
+  <li><a href="#routing">Routing strategy</a></li>
+  <li><a href="#migration">File-by-file migration map</a></li>
+  <li><a href="#rules">Rules for keeping projects isolated</a></li>
+  <li><a href="#milestones">Migration order (milestones)</a></li>
+  <li><a href="#decisions">Open decisions — resolved</a></li>
+  <li><a href="#pitfalls">Failure modes — what actually bit</a></li>
+</ul>
+
+<h2 id="status">Status — complete</h2>
+
+<p>Final audit against the working tree on <strong>2026-08-19</strong> (branch <code>dev</code>). Earlier audits: 2026-08-11 (M4 partial, M5 blocked).</p>
+
+<table>
+<thead><tr><th>Milestone</th><th>State</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td><span class="tag">M1</span> Carve out <code>src/shared/</code></td><td><strong>✅ Done</strong></td><td>All shared files present under <code>src/shared/{api,components,components/ui,config,constants,hooks,providers}</code>.</td></tr>
+<tr><td><span class="tag">M2</span> Store feature code</td><td><strong>✅ Done</strong></td><td><code>src/projects/store/{api,components,constants,hooks,models,stores,utils}</code> all populated. The stray duplicate <code>use-theme-color.ts</code> is gone.</td></tr>
+<tr><td><span class="tag">M3</span> Store routes</td><td><strong>✅ Done</strong></td><td>Tree lives at <code>src/app/projects/store/</code>. Grep for <code>"/store/</code>, <code>href="/store</code> and <code>@/src/{components,hooks,stores,api,models,constants,utils}/</code> across <code>src/</code> returns <em>zero</em> hits. <code>src/</code> is now exactly <code>app/ assets/ projects/ shared/ types/</code>.</td></tr>
+<tr><td><span class="tag">M4</span> Build the launcher</td><td><strong>✅ Done</strong></td><td>Registry drives Home; all rows tappable; the four planned projects share one <code>ComingSoonView</code>; store routes and <code>tic-tac-toe</code> declared in the root <code>Stack</code> with explicit titles.</td></tr>
+<tr><td><span class="tag">M5</span> Verify &amp; clean up</td><td><strong>✅ Done</strong></td><td><code>npm run lint</code> exits 0. <code>npx tsc --noEmit</code> is clean (all 9 errors cleared). One <code>QueryProvider</code>. Template leftovers deleted. <code>src/app/</code> holds routes only. <code>AGENTS.md</code> rewritten, every path it names verified to exist on disk.</td></tr>
+</tbody>
+</table>
+
+<div class="tip">
+  <strong>Grew beyond the original plan, all to the good</strong>
+  <ul>
+    <li>The splash screen was <em>not</em> deleted — it moved to <code>src/app/projects/store/splash/index.tsx</code> and became the store's own entry route, matching the plan's intent ("if a splash concept is still wanted it becomes the store project's own concern").</li>
+    <li>The store gained a real <strong>login flow</strong> — <code>login/index.tsx</code>, <code>api/auth.api.ts</code>, <code>hooks/useAuth.ts</code>, <code>models/Auth.ts</code>, <code>constants/credentials.ts</code> — plus a <strong>profile sheet</strong> and a <code>user.api.ts</code>/<code>useUser.ts</code> pair.</li>
+    <li>A sixth project, <strong>Tic-Tac-Toe</strong>, was added to exercise Zustand's <code>combine</code> middleware.</li>
+    <li>Screen routes settled on <code>&lt;folder&gt;/index.tsx</code>, so a route path equals its folder path — this removed the doubled-segment footgun (<code>orders/orders</code>) that the original plan's own migration map baked in.</li>
+  </ul>
+</div>
+
+<div class="note">
+  <strong>Scope grew: six projects, not five</strong>
+  <p>The registry lists <strong>Tic-Tac-Toe</strong> as "Project 06" alongside the original five. Its write-up is <a href="zustand-tic-tac-toe-typescript.html">zustand-tic-tac-toe-typescript.html</a>, which is not yet linked from <a href="index.html">the learning path index</a> and doesn't follow the <code>0N-*.html</code> naming of the others — see <a href="#decisions">decision #5</a>.</p>
+</div>
+
+<h2 id="accepted">Accepted deviations &amp; leftovers</h2>
+
+<p class="lead">Recorded so a future reader doesn't mistake a deliberate choice for an oversight, or re-litigate a settled one. None of these block anything.</p>
+
+<table>
+<thead><tr><th>Item</th><th>Why it's fine</th></tr></thead>
+<tbody>
+<tr>
+  <td>The four planned projects aren't declared in the root <code>Stack</code> — <code>projects/{offline-journal,camera-social,fitness-tracker,podcast-player}</code>. Placeholder comments mark where each will go.</td>
+  <td>Accepted. Expo Router auto-discovers them, so they work; they just inherit a path-derived header title. Each gets its real <code>Stack.Screen</code> when its project is actually built, which is when the title matters.</td>
+</tr>
+<tr>
+  <td><code>ProjectListItem</code> stays defined and exported inside <code>src/app/index.tsx</code>, taking the whole <code>Project</code> registry object rather than plain props.</td>
+  <td>Deferred. It has exactly one call site. Revisit if a second screen ever needs the row.</td>
+</tr>
+<tr>
+  <td>The registry has no <code>slug</code> or <code>docHref</code>; Home keys the list by <code>title</code>, and <code>available</code> stays a boolean rather than <code>status: "available" | "planned"</code>.</td>
+  <td>Deferred. Consequence to know about: <code>ComingSoonView</code> shows a title but can't link back to <code>docs/0N-*.html</code>.</td>
+</tr>
+<tr>
+  <td>Tic-Tac-Toe has no <code>src/projects/tic-tac-toe/</code> slice — its store, <code>Square</code>, <code>Board</code> and <code>calculateWinner</code>/<code>calculateTurns</code>/<code>calculateStatus</code> helpers all live in the route file.</td>
+  <td>Accepted while it's a single-file teaching example that reads top-to-bottom. Split it into a slice before it grows a second screen — it's the one place that bends <a href="#rules">rule 5</a>.</td>
+</tr>
+<tr>
+  <td><code>src/shared/components/ui/ComingSoonView.tsx</code> is PascalCase among kebab-case siblings, and exports a symbol named <code>ComingSoonScreen</code> though it's a reusable component, not a screen.</td>
+  <td>Cosmetic. Rename to <code>coming-soon-view.tsx</code> / <code>ComingSoonView</code> whenever that file is next touched.</td>
+</tr>
+<tr>
+  <td><code>splash/index.tsx</code> still carries <code>export const options = { headerShown: false }</code>.</td>
+  <td>Dead code — Expo Router ignores it (see <a href="#pitfalls">failure mode #5</a>). Harmless now only because the root layout sets the same option for real. Delete on sight; it will mislead the next reader.</td>
+</tr>
+<tr>
+  <td><code>queryKeys.loginUser: (credentials: any) =&gt; …</code> is orphaned — nothing references it since login became a mutation — and it's typed <code>any</code>.</td>
+  <td>Dead entry, safe to delete. A mutation doesn't need a query key, and keying a cache by credentials was the wrong idea anyway.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="current">Original state (before the move)</h2>
+
+<p class="lead">Kept for reference — this is what the repo looked like when this plan was written.</p>
+
+<p>Everything under <code>src/</code> was implicitly "the store app." There was no concept of a second project:</p>
+
+<div class="ascii">src/app/
+├── index.tsx                     splash → auto-redirects to /store/main
+├── _layout.tsx                   root Stack, hardcodes "store/…" screen names
+└── store/
+    ├── main/(tab)/{index,categories,bag,_layout}.tsx
+    ├── orders/orders.tsx
+    ├── place-order/place-order.tsx
+    ├── product-details/[productId].tsx
+    ├── products/[categoryId].tsx
+    └── profile/profile.tsx
+
+src/{api,components,constants,hooks,models,providers,stores,utils}/
+    → a flat mix of store-specific code (cart, product, orders)
+      and a few generic bits (theme, themed-text/view, QueryProvider,
+      icon-symbol) with no boundary between the two.</div>
+
+<p>Two things made that the right moment to fix it: <code>src/app/index.tsx</code> already auto-redirected away from a placeholder screen (easy to repurpose into a real launcher), and no second project existed yet to have grown its own conflicting conventions.</p>
+
+<h2 id="target">Target shape</h2>
+
+<ul>
+  <li><strong>Home</strong> (<code>src/app/index.tsx</code>) renders a list of exercises. Each row shows a title, one-line description, and a status dot (Available / Planned).</li>
+  <li>Tapping an <strong>Available</strong> row pushes into that project's own navigation stack. Tapping a <strong>Planned</strong> row opens a lightweight "not built yet" screen instead of doing nothing.</li>
+  <li>Each project is a <strong>vertical slice</strong>: its routes, components, hooks, stores, api calls and models all live under one project-named directory. Nothing about Project X's cart, auth, or models is importable from Project Y.</li>
+  <li>A small <strong>shared</strong> layer holds only what is genuinely generic across all projects: theming, the two themed primitives already used outside the store, the axios instance, the query provider, and the SF-Symbol/empty-state UI primitives.</li>
+  <li>Projects map 1:1 onto the docs in this folder — <code>store</code> ↔ <a href="03-commerce-platform.html">03</a>, <code>offline-journal</code> ↔ <a href="01-offline-journal.html">01</a>, <code>camera-social</code> ↔ <a href="02-camera-social.html">02</a>, <code>fitness-tracker</code> ↔ <a href="04-fitness-tracker.html">04</a>, <code>podcast-player</code> ↔ <a href="05-podcast-player.html">05</a>, and <code>tic-tac-toe</code> ↔ <a href="zustand-tic-tac-toe-typescript.html">the Zustand tutorial port</a>.</li>
+</ul>
+
+<h2 id="layout">Directory layout (as built)</h2>
+
+<h3>Routes (<code>src/app/</code> — expo-router keeps owning this tree)</h3>
+<div class="ascii">src/app/
+├── _layout.tsx                        root Stack + all providers
+├── index.tsx                          Home — renders the launcher list
+├── +not-found.tsx                     unchanged
+└── projects/
+    ├── store/                         Project 03
+    │   ├── splash/index.tsx           store's own entry; replaces the old root splash
+    │   ├── login/index.tsx            ← added: login form (React Query mutation)
+    │   ├── main/(tab)/{index,categories,bag,_layout}.tsx
+    │   ├── orders/index.tsx
+    │   ├── place-order/index.tsx
+    │   ├── product-details/[productId].tsx
+    │   └── products/[categoryId].tsx
+    ├── tic-tac-toe/index.tsx          ← added: Project 06, self-contained
+    ├── offline-journal/index.tsx      Project 01 — "coming soon" stub
+    ├── camera-social/index.tsx        Project 02 — stub
+    ├── fitness-tracker/index.tsx      Project 04 — stub
+    └── podcast-player/index.tsx       Project 05 — stub</div>
+
+<p class="figcap">Screen routes are <code>&lt;folder&gt;/index.tsx</code>, so a route path is just the folder path — <code>projects/store/orders</code>, not <code>projects/store/orders/orders</code>. Note there is <strong>no</strong> <code>profile/</code> route: profile is a bottom sheet, so it lives in the store's slice as a component. See <a href="#pitfalls">failure mode #7</a>.</p>
+
+<h3>Feature code (<code>src/projects/</code> — mirrors the route tree, holds everything that isn't a route)</h3>
+<div class="ascii">src/projects/
+├── store/
+│   ├── components/       SlideItem
+│   │   ├── sheet/        ProfileSheet          ← bottom-sheet body, not a route
+│   │   └── ui/           cart-footer, cart-item, product-image,
+│   │                     product-item, background-view
+│   ├── hooks/            useProduct.ts, useAuth.ts, useUser.ts,
+│   │                     useComponentHeight.ts
+│   ├── stores/           cartStore.ts, cartSelectors.ts
+│   ├── api/              product.api.ts, auth.api.ts, user.api.ts
+│   ├── models/           Product.ts, CartItem.ts, Auth.ts, User.ts
+│   ├── constants/        purple-images.ts, credentials.ts
+│   └── utils/            queryKeys.ts, render-item.tsx
+├── tic-tac-toe/          not created — code lives in the route file (accepted)
+├── offline-journal/      not created yet — add when Project 01 is built
+├── camera-social/        not created yet
+├── fitness-tracker/      not created yet
+└── podcast-player/       not created yet</div>
+
+<p class="figcap">Deviation from the original plan, deliberate and fine: the store kept sub-folders under <code>components/</code> (<code>ui/</code>, <code>sheet/</code>) rather than flattening. Per-project folders are not pre-created — they appear when their project starts.</p>
+
+<h3>Shared infra (<code>src/shared/</code> — generic, used by more than one project or by the launcher itself)</h3>
+<div class="ascii">src/shared/
+├── components/
+│   ├── themed-text.tsx        used by +not-found AND store today
+│   ├── themed-view.tsx
+│   └── ui/
+│       ├── icon-symbol.tsx / icon-symbol.ios.tsx
+│       ├── content-unavailable-view.tsx
+│       └── ComingSoonView.tsx  shared stub screen (rename pending)
+├── config/
+│   └── projects.ts            the launcher registry
+├── hooks/
+│   ├── use-color-scheme.ts / use-color-scheme.web.ts
+│   └── use-theme-color.ts
+├── providers/
+│   └── QueryProvider.tsx      mounted ONCE, in the root layout
+├── api/
+│   └── axios.ts               generic instance; each project's own api/ files import it
+└── constants/
+    └── theme.ts</div>
+
+<p>Everything else at the old top level of <code>src/</code> (<code>api/</code>, <code>components/</code>, <code>constants/</code>, <code>hooks/</code>, <code>models/</code>, <code>providers/</code>, <code>stores/</code>, <code>utils/</code>) is gone as flat folders — each file landed in exactly one of <code>src/shared/…</code> or <code>src/projects/&lt;slug&gt;/…</code>. <code>src/</code> is now <code>app/ assets/ projects/ shared/ types/</code>.</p>
+
+<h2 id="home">The Home / launcher screen</h2>
+
+<div class="wireframes">
+<div class="ascii">┌─────────────────────────────┐
+│  Why Not ReactNative        │
+│  Pick an exercise            │
+├─────────────────────────────┤
+│  ┌─────────────────────────┐ │
+│  │ 🛍  Store              ● │ │  ● = available
+│  │ Commerce app · Project03│ │
+│  └─────────────────────────┘ │
+│  ┌─────────────────────────┐ │
+│  │ 📓  Offline Journal    ○ │ │  ○ = planned
+│  │ SQLite · Project 01      │ │
+│  └─────────────────────────┘ │
+│  ┌─────────────────────────┐ │
+│  │ 📷  Camera & Social    ○ │ │
+│  │ Media pipeline · P.02   │ │
+│  └─────────────────────────┘ │
+│  ┌─────────────────────────┐ │
+│  │ 🏃  Fitness Tracker    ○ │ │
+│  │ Background loc · P.04   │ │
+│  └─────────────────────────┘ │
+│  ┌─────────────────────────┐ │
+│  │ 🎧  Podcast Player     ○ │ │
+│  │ Audio + EAS · Project05 │ │
+│  └─────────────────────────┘ │
+│  ┌─────────────────────────┐ │
+│  │ 🎮  Tic-Tac-Toe        ● │ │
+│  │ Zustand · Project 06    │ │
+│  └─────────────────────────┘ │
+└─────────────────────────────┘</div>
+</div>
+<p class="figcap">One list, one status dot per row. Every row is tappable: available rows push into that project's stack, planned rows push the shared "coming soon" screen.</p>
+
+<h3>The registry — one source of truth for the list</h3>
+<p><code>src/shared/config/projects.ts</code> exports a typed <code>PROJECTS</code> array describing every entry: <code>emoji</code>, <code>title</code>, <code>subtitle</code>, <code>available</code>, and <code>route</code> (an expo-router <code>Href</code>). The Home screen maps over this array — it has no hardcoded knowledge of "store" or any other project. Flipping a project from planned to available is a one-line change in this file plus replacing its stub.</p>
+
+<h3>Component split (keeping with this repo's "dumb components" rule)</h3>
+<table>
+<thead><tr><th>Piece</th><th>Owns</th><th>Receives</th></tr></thead>
+<tbody>
+<tr><td><code>Home</code> screen (<code>src/app/index.tsx</code>)</td><td>Reads the registry, holds no other state</td><td>—</td></tr>
+<tr><td><code>ProjectListItem</code></td><td>Nothing — pure presentation</td><td>The whole <code>Project</code> object + <code>onPress</code>; plain props were <a href="#accepted">deferred</a></td></tr>
+</tbody>
+</table>
+
+<h2 id="routing">Routing strategy</h2>
+
+<table>
+<thead><tr><th>Before</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td><code>/</code> (splash, auto-redirect)</td><td><code>/</code> — Home launcher list (no auto-redirect)</td></tr>
+<tr><td><em>(none)</em></td><td><code>/projects/store/splash</code> — store entry, redirects on to login</td></tr>
+<tr><td><em>(none)</em></td><td><code>/projects/store/login</code></td></tr>
+<tr><td><code>/store/main</code> (tabs)</td><td><code>/projects/store/main</code></td></tr>
+<tr><td><code>/store/main/categories</code></td><td><code>/projects/store/main/categories</code></td></tr>
+<tr><td><code>/store/main/bag</code></td><td><code>/projects/store/main/bag</code></td></tr>
+<tr><td><code>/store/orders/orders</code></td><td><code>/projects/store/orders</code></td></tr>
+<tr><td><code>/store/place-order/place-order</code></td><td><code>/projects/store/place-order</code></td></tr>
+<tr><td><code>/store/product-details/[productId]</code></td><td><code>/projects/store/product-details/[productId]</code></td></tr>
+<tr><td><code>/store/products/[categoryId]</code></td><td><code>/projects/store/products/[categoryId]</code></td></tr>
+<tr><td><code>/store/profile/profile</code></td><td><em>no route</em> — became a bottom sheet component in the store's slice</td></tr>
+<tr><td><em>(none)</em></td><td><code>/projects/tic-tac-toe</code></td></tr>
+<tr><td><em>(none)</em></td><td><code>/projects/offline-journal</code>, <code>/projects/camera-social</code>, <code>/projects/fitness-tracker</code>, <code>/projects/podcast-player</code> — each a "coming soon" screen</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+  <strong>Screen options come from the layout, never from a route-level export</strong>
+  <p>Expo Router does not read <code>export const options</code> from a route file. The supported ways to set screen options are the parent layout's <code>&lt;Stack.Screen name="…" options={…} /&gt;</code>, an inline <code>&lt;Stack.Screen options={…} /&gt;</code> rendered inside the route component, or <code>navigation.setOptions()</code> in an effect.</p>
+</div>
+
+<div class="warn">
+  <strong>A file under <code>src/app/</code> is a route whether you declare it or not</strong>
+  <p>Routes are derived from the <em>file tree</em>, not from your <code>Stack.Screen</code> declarations. Omitting a declaration doesn't hide a screen — it only leaves it with a path-derived header title. So a non-route component must live outside <code>src/app/</code> entirely, not merely go undeclared.</p>
+</div>
+
+<p>Back navigation is free: because each project is pushed onto the root Stack from Home rather than being the initial route, the OS back-gesture / header back-button already returns to the launcher list without extra code — just don't set any project as <code>initialRouteName</code>.</p>
+
+<h2 id="migration">File-by-file migration map</h2>
+
+<p class="lead">Historical record of the M1–M3 moves. All of these have executed.</p>
+
+<h3>Shared (moved into <code>src/shared/</code>)</h3>
+<table>
+<thead><tr><th>From</th><th>To</th><th>Why shared</th></tr></thead>
+<tbody>
+<tr><td><code>src/components/themed-text.tsx</code></td><td><code>src/shared/components/themed-text.tsx</code></td><td>Used by root <code>+not-found.tsx</code> and by the store</td></tr>
+<tr><td><code>src/components/themed-view.tsx</code></td><td><code>src/shared/components/themed-view.tsx</code></td><td>Same as above</td></tr>
+<tr><td><code>src/components/ui/icon-symbol.tsx</code> / <code>.ios.tsx</code></td><td><code>src/shared/components/ui/</code></td><td>Generic SF-Symbol wrapper, platform-split — reusable by design</td></tr>
+<tr><td><code>src/components/ui/content-unavailable-view.tsx</code></td><td><code>src/shared/components/ui/</code></td><td>Generic empty-state primitive with zero store-specific knowledge</td></tr>
+<tr><td><code>src/hooks/use-color-scheme.ts</code> / <code>.web.ts</code></td><td><code>src/shared/hooks/</code></td><td>Theme infra, project-agnostic</td></tr>
+<tr><td><code>src/hooks/use-theme-color.ts</code></td><td><code>src/shared/hooks/</code></td><td>Same</td></tr>
+<tr><td><code>src/constants/theme.ts</code></td><td><code>src/shared/constants/theme.ts</code></td><td>Color tokens used everywhere</td></tr>
+<tr><td><code>src/providers/QueryProvider.tsx</code></td><td><code>src/shared/providers/QueryProvider.tsx</code></td><td>Generic TanStack Query wrapper</td></tr>
+<tr><td><code>src/api/axios.ts</code></td><td><code>src/shared/api/axios.ts</code></td><td>Generic HTTP client; per-project endpoint files import it</td></tr>
+</tbody>
+</table>
+
+<h3>Store project (moved into <code>src/projects/store/</code> + <code>src/app/projects/store/</code>)</h3>
+<table>
+<thead><tr><th>From</th><th>To</th></tr></thead>
+<tbody>
+<tr><td><code>src/app/store/**</code></td><td><code>src/app/projects/store/**</code> (screens renamed to <code>index.tsx</code>)</td></tr>
+<tr><td><code>src/app/store/profile/profile.tsx</code></td><td><code>src/projects/store/components/sheet/ProfileSheet.tsx</code> (left the routes tree entirely)</td></tr>
+<tr><td><code>src/api/endpoints/product.api.ts</code></td><td><code>src/projects/store/api/product.api.ts</code></td></tr>
+<tr><td><code>src/components/SlideItem.tsx</code></td><td><code>src/projects/store/components/SlideItem.tsx</code></td></tr>
+<tr><td><code>src/components/ui/cart-footer.tsx</code>, <code>cart-item.tsx</code>, <code>product-image.tsx</code>, <code>product-item.tsx</code></td><td><code>src/projects/store/components/ui/</code></td></tr>
+<tr><td><code>src/constants/purple-images.ts</code></td><td><code>src/projects/store/constants/purple-images.ts</code></td></tr>
+<tr><td><code>src/hooks/useProduct.ts</code></td><td><code>src/projects/store/hooks/useProduct.ts</code></td></tr>
+<tr><td><code>src/hooks/useComponentHeight.ts</code></td><td><code>src/projects/store/hooks/useComponentHeight.ts</code></td></tr>
+<tr><td><code>src/models/Product.ts</code>, <code>CartItem.ts</code>, <code>Auth.ts</code></td><td><code>src/projects/store/models/</code></td></tr>
+<tr><td><code>src/stores/cartStore.ts</code>, <code>cartSelectors.ts</code></td><td><code>src/projects/store/stores/</code></td></tr>
+<tr><td><code>src/utils/queryKeys.ts</code></td><td><code>src/projects/store/utils/queryKeys.ts</code></td></tr>
+<tr><td><code>src/utils/render-item.tsx</code></td><td><code>src/projects/store/utils/render-item.tsx</code></td></tr>
+</tbody>
+</table>
+
+<h3>Rewritten, not moved</h3>
+<table>
+<thead><tr><th>File</th><th>Change</th></tr></thead>
+<tbody>
+<tr><td><code>src/app/index.tsx</code></td><td>Was a splash screen that faked an auth check and auto-redirected to <code>/store/main</code>. Replaced with the Home/launcher list. The splash/auth concept became the store project's <em>own</em> concern.</td></tr>
+<tr><td><code>src/app/_layout.tsx</code></td><td>Root <code>Stack.Screen</code> names changed from <code>store/…</code> to <code>projects/store/…</code>, plus one screen per added project. Also the single <code>QueryProvider</code> mount point.</td></tr>
+<tr><td><code>AGENTS.md</code></td><td>Rewritten for the new tree: every documented path verified to exist, isolation rules added, versions corrected to SDK 57 / RN 0.86.2, and the Expo Router gotchas recorded.</td></tr>
+</tbody>
+</table>
+
+<h2 id="rules">Rules for keeping projects isolated</h2>
+<p class="lead">These outlive the restructure — they govern every project added from here on.</p>
+<ol>
+  <li><strong>No cross-project imports.</strong> Nothing in <code>src/projects/camera-social/</code> may import from <code>src/projects/store/</code>, ever. If two projects seem to need the same thing, that thing belongs in <code>src/shared/</code>, decided deliberately — not copy-pasted, not reached across.</li>
+  <li><strong>Shared stays small.</strong> Only promote a file to <code>src/shared/</code> when a <em>second</em> project actually needs it. Don't pre-emptively share something because it looks generic — <code>content-unavailable-view</code> is the one exception since it was already written with zero store-specific knowledge.</li>
+  <li><strong>Each project owns its own query keys, its own Zustand stores, its own API endpoint files.</strong> There is no shared <code>queryKeys.ts</code> — each project's key factory only ever needs to disambiguate within itself.</li>
+  <li><strong>Components stay dumb</strong> (existing repo rule) — a component never assumes it's running inside a specific project's provider tree unless it's declared to live in that project.</li>
+  <li><strong><code>src/app/</code> is routes only.</strong> Anything that isn't a destination — a sheet body, a list row, a helper — belongs in a project slice or <code>shared</code>. Leaving it under <code>src/app/</code> creates a real, reachable route. Currently bent only by Tic-Tac-Toe (<a href="#accepted">accepted</a>).</li>
+  <li><strong>Mount <code>QueryProvider</code> exactly once.</strong> Nesting a second instance creates a second independent <code>QueryClient</code> cache, so data fetched on one side of the boundary is invisible on the other.</li>
+</ol>
+
+<h2 id="milestones">Migration order</h2>
+
+<p class="lead">All five milestones complete.</p>
+
+<div class="milestone">
+  <h3><span class="tag">M1</span> Carve out <code>src/shared/</code> — ✅ done</h3>
+  <div class="goal">Goal: the generic 20% moves first, so the store move in M2 has a stable foundation to import from.</div>
+  <ul>
+    <li>✅ Create <code>src/shared/{components,components/ui,hooks,providers,api,constants}</code>.</li>
+    <li>✅ Move the nine shared files from the migration map above.</li>
+    <li>✅ Update their existing importers (<code>+not-found.tsx</code>, store's tab layout/index) to the new paths.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — App still boots with no import errors; nothing else has changed yet.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M2</span> Move the store's feature code — ✅ done</h3>
+  <div class="goal">Goal: relocate non-route store code into its vertical slice.</div>
+  <ul>
+    <li>✅ Create <code>src/projects/store/{components,hooks,stores,api,models,constants,utils}</code>.</li>
+    <li>✅ Move every file from the "Store project" table above.</li>
+    <li>✅ Fix internal imports (most used the <code>@/src/...</code> alias, so this was path-string edits, not logic changes).</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Nothing remains under the old flat <code>src/{components,hooks,stores,api,models,constants,utils}/</code>; those directories are gone.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M3</span> Move the store's routes — ✅ done</h3>
+  <div class="goal">Goal: relocate <code>src/app/store/</code> to <code>src/app/projects/store/</code> and fix every reference.</div>
+  <ul>
+    <li>✅ Move the whole <code>src/app/store/</code> tree to <code>src/app/projects/store/</code>, renaming screens to <code>index.tsx</code>.</li>
+    <li>✅ Update <code>src/app/_layout.tsx</code>'s <code>Stack.Screen name="…"</code> values.</li>
+    <li>✅ Grep the moved tree for <code>"/store/</code> and <code>href="/store</code> and rewrite every match to <code>/projects/store/…</code>.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Every button inside the store navigates to the right screen, and deep-linking to <code>whynotreactnative://projects/store/main</code> opens the tab bar.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M4</span> Build the launcher — ✅ done</h3>
+  <div class="goal">Goal: Home becomes a real, driven-by-data list.</div>
+  <ul>
+    <li>✅ <code>src/shared/config/projects.ts</code> — the registry array (six entries; store and tic-tac-toe available, rest planned).</li>
+    <li>✅ Home maps the registry through <code>ProjectListItem</code>; every row is tappable.</li>
+    <li>✅ One shared <code>ComingSoonView</code> used by all four stub routes, each passing its own title.</li>
+    <li>✅ Root <code>_layout.tsx</code> declares the store routes and <code>tic-tac-toe</code> with explicit options; the four planned projects have placeholder comments awaiting their build (<a href="#accepted">accepted</a>).</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — Cold-launching the app shows the six-item list, not the store. Tapping Store opens its splash; tapping a planned item shows "coming soon"; back returns to the list every time.</div>
+</div>
+
+<div class="milestone">
+  <h3><span class="tag">M5</span> Verify &amp; clean up — ✅ done</h3>
+  <div class="goal">Goal: nothing was left behind.</div>
+  <ul>
+    <li>✅ <code>npm run lint</code> exits 0 with no findings — the <code>zod-validation-error</code> exports crash is resolved.</li>
+    <li>✅ <code>npx tsc --noEmit</code> is clean. All 9 errors cleared: <code>TabBarIcon</code>'s <code>color</code> widened to <code>ColorValue</code>, <code>ColorSchemeName</code> narrowed before indexing <code>Colors</code>, and the <code>icon-symbol</code> mapping constrained to the string branch.</li>
+    <li>✅ <code>grep -r "@/src/components/ui/cart" src/app</code> (and every other old flat path, plus <code>"/store/</code> route strings) returns nothing.</li>
+    <li>✅ Duplicate <code>use-theme-color.ts</code> deleted; only the <code>shared</code> copy remains.</li>
+    <li>✅ Unused <code>GestureHandlerRootView</code> import removed from the store's tab layout.</li>
+    <li>✅ Unused Expo-template leftovers deleted (see <a href="#decisions">decision #1</a>).</li>
+    <li>✅ Duplicated <code>QueryProvider</code> mount resolved — one instance, in the root layout (see <a href="#decisions">decision #3</a>).</li>
+    <li>✅ <code>src/app/</code> contains routes only — the profile sheet moved into the store's slice.</li>
+    <li>✅ Login consolidated onto one mutation: <code>loginUser</code> moved to <code>api/auth.api.ts</code>, the duplicate <code>useLoginUser</code> query deleted.</li>
+    <li>✅ <code>AGENTS.md</code> rewritten; every <code>src/…</code> path it names verified to exist on disk.</li>
+  </ul>
+  <div class="checkpoint"><b>Checkpoint</b> — A reviewer can list <code>src/</code> two levels deep and correctly guess what every top-level folder is for, with no "misc" folder anywhere.</div>
+</div>
+
+<h2 id="decisions">Open decisions — resolved</h2>
+<ol>
+  <li><strong>Unused template leftovers.</strong> <span class="chip green">Resolved — deleted.</span> <code>external-link.tsx</code>, <code>haptic-tab.tsx</code>, <code>hello-wave.tsx</code>, <code>parallax-scroll-view.tsx</code> and <code>ui/collapsible.tsx</code> are gone from the tree rather than parked in <code>src/shared/</code>. Right call — dead scaffolding in a shared folder invites accidental adoption.</li>
+  <li><strong>Project slug for the store.</strong> <span class="chip green">Resolved — kept <code>store</code>.</span> Routes are <code>/projects/store/…</code> and the code slice is <code>src/projects/store/</code>, even though doc 03 is titled "Production Commerce App." Minimal churn; the registry's <code>subtitle</code> carries the "Project 03" mapping.</li>
+  <li><strong>Where each project's <code>QueryProvider</code> lives.</strong> <span class="chip green">Resolved — one global client.</span> The store's tab-layout mount was removed; the single instance now wraps everything from <code>src/app/_layout.tsx</code>. This inverts the original per-project lean, and the reason matters: the store's login screen sits <em>outside</em> the tab layout, so with two clients any data fetched during login would have been invisible to the tab screens.</li>
+  <li><strong>Stub screen depth.</strong> <span class="chip green">Resolved — one shared component.</span> The four byte-identical files became four one-line routes rendering a shared <code>ComingSoonView</code> with a per-project title. The docs backlink is absent because <code>docHref</code> was <a href="#accepted">deferred</a>.</li>
+  <li><strong>How Tic-Tac-Toe fits the docs scheme.</strong> <span class="chip amber">Still open.</span> It's "Project 06" in the registry but its write-up is <code>zustand-tic-tac-toe-typescript.html</code>, unlinked from the index and off-pattern from <code>0N-*.html</code>. Either rename it to <code>06-*.html</code> and link it, or treat it as a standalone tutorial and drop the "Project 06" label from the registry subtitle. This is a docs-hygiene item, not a restructure blocker.</li>
+</ol>
+
+<h2 id="pitfalls">Failure modes — what actually bit</h2>
+<p class="lead">Kept as a checklist for the next large move. The verdicts are from the final audit.</p>
+<ol>
+  <li><strong>Stale route strings.</strong> <span class="chip green">Never bit.</span> Grep across <code>src/</code> for <code>"/store/</code>, <code>href="/store</code>, <code>(/store/</code> and <code>`/store/</code> returns zero hits. Expo Router's typed routes only catch some of these, so re-grep after any further move rather than trusting TypeScript alone.</li>
+  <li><strong>Two copies of a moved file.</strong> <span class="chip green">Bit once, resolved.</span> A duplicate <code>use-theme-color.ts</code> lingered under <code>src/projects/store/hooks/</code>, orphaned but contributing 2 type errors. The successor risk is duplicated <em>logic</em>, which also happened: two login paths (a mutation and a query) coexisted until the query was deleted.</li>
+  <li><strong>Metro cache showing ghosts.</strong> <span class="chip">Standing advice.</span> After large directory moves, clear the Metro cache (<code>npx expo start -c</code>) before trusting that a red-screen import error is real.</li>
+  <li><strong>Root <code>_layout.tsx</code> screen-name drift.</strong> <span class="chip green">Resolved by convention.</span> The <code>&lt;folder&gt;/index.tsx</code> convention makes each route path equal its folder path, which removed the old <code>orders/orders</code> footgun outright. Verify a <code>Stack.Screen name=</code> against a <em>fresh</em> listing of the route tree — a stale listing produced a false drift report during one audit.</li>
+  <li><strong>Screen options that silently do nothing.</strong> <span class="chip red">Bit.</span> A route-level <code>export const options</code> is ignored by Expo Router, so the splash screen looked configured while inheriting the layout default and showing a header. Fixed by setting <code>headerShown: false</code> on the root layout's <code>Stack.Screen</code>; the dead export is <a href="#accepted">still there to delete</a>.</li>
+  <li><strong>Back button landing in the wrong place.</strong> <span class="chip green">Fine by construction.</span> No <code>initialRouteName</code> is set anywhere, and each project is pushed onto the root Stack from Home. The store enters via <code>router.replace</code> from splash to login, which is the kind of thing that can eat a back entry — worth re-testing whenever that chain changes.</li>
+  <li><strong>A non-route component parked under <code>src/app/</code>.</strong> <span class="chip red">Bit.</span> The profile sheet lived at <code>src/app/projects/store/profile/index.tsx</code> and was imported as a component into the home tab's <code>BottomSheetModal</code>. Because routes come from the file tree, <code>/projects/store/profile</code> existed anyway — and hitting it crashed, since <code>useBottomSheetModal()</code> throws <code>"'BottomSheetModalContext' cannot be null!"</code> outside a <code>BottomSheetModalProvider</code>, which only the tab layout mounts. Fixed by moving the file to <code>src/projects/store/components/sheet/ProfileSheet.tsx</code>. Not declaring a route is not the same as not having one.</li>
+</ol>
+
+<div class="nav-links">
+  <a href="index.html">← Learning path</a>
+  <a href="03-commerce-platform.html">Project 03 · Commerce (the store, post-move) →</a>
+</div>
+
+<footer>Step 00 · complete — this repo is a launcher; start projects 01–06 from the learning path · last audited 2026-08-19</footer>
+
+</div>
+</body>
+</html>

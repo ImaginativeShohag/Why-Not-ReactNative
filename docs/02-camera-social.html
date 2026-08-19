@@ -67,18 +67,25 @@
 
 <h3>Screen inventory</h3>
 
+<p>All routes are relative to <code>/projects/camera-social</code>.</p>
+
 <table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
-<tr><td><code>/(tabs)/feed</code></td><td>Feed</td><td>Your captures as a masonry/grid; tap for the viewer.</td></tr>
+<tr><td><code>/(tab)/</code></td><td>Feed</td><td>Your captures as a masonry/grid; tap for the viewer.</td></tr>
 <tr><td><code>/camera</code></td><td>Camera</td><td>Full-bleed capture. Modes: Photo / Video / Scan.</td></tr>
-<tr><td><code>/(tabs)/library</code></td><td>Library</td><td>Device albums and assets, paginated grid, multi-select.</td></tr>
+<tr><td><code>/(tab)/library</code></td><td>Library</td><td>Device albums and assets, paginated grid, multi-select.</td></tr>
 <tr><td><code>/editor/[assetId]</code></td><td>Editor</td><td>Crop / rotate / filter / adjust, with an undo stack.</td></tr>
 <tr><td><code>/post/[id]</code></td><td>Post detail</td><td>Full-screen viewer with pinch-zoom, metadata, share actions. Deep-link target.</td></tr>
 <tr><td><code>/share-inbound</code></td><td>Inbound share</td><td>Where content shared <em>into</em> your app lands.</td></tr>
-<tr><td><code>/(tabs)/profile</code></td><td>Profile</td><td>Stats, storage usage, settings.</td></tr>
+<tr><td><code>/(tab)/profile</code></td><td>Profile</td><td>Stats, storage usage, settings.</td></tr>
 </tbody>
 </table>
+
+<div class="warn">
+  <strong>Deep links now carry the project prefix</strong>
+  <p>The universal-link and share-intent targets are <code>whynotreactnative://projects/camera-social/post/&lt;id&gt;</code>, not <code>://post/&lt;id&gt;</code>. Since the launcher owns the root, every project's links are namespaced. Decide your link shape before M6 — changing it after you've configured the native intent filters and associated domains is the expensive kind of change.</p>
+</div>
 
 <h3>Wireframes</h3>
 
@@ -172,39 +179,50 @@
 <h2 id="architecture">Architecture</h2>
 
 <h3>Folder layout</h3>
-<pre><code>src/
-├── app/
+<p>Routes under <code>src/app/projects/camera-social/</code>, everything else in the slice at <code>src/projects/camera-social/</code>.</p>
+
+<pre><code>src/app/projects/camera-social/
+├── _layout.tsx
+├── (tab)/
 │   ├── _layout.tsx
-│   ├── (tabs)/{feed,library,profile}.tsx
-│   ├── camera.tsx                  full-screen, no tab bar
-│   ├── editor/[assetId].tsx
-│   ├── post/[id].tsx               deep-link target
-│   └── share-inbound.tsx
-├── features/
-│   ├── camera/
-│   │   ├── useCameraController.ts  facing, flash, zoom, mode
-│   │   ├── useCapture.ts           takePicture / record orchestration
-│   │   └── components/             ShutterButton, ModeStrip, ZoomPills, FocusRing
-│   ├── editor/
-│   │   ├── useEditorHistory.ts     undo/redo stack of operations
-│   │   ├── operations.ts           pure op descriptors: crop/rotate/filter
-│   │   ├── applyOperations.ts      runs the op list through the manipulator
-│   │   └── components/             CropOverlay, FilterStrip, AdjustSlider
-│   ├── library/
-│   │   ├── useAssets.ts            paginated media-library reads
-│   │   └── components/             AssetGrid, AssetCell, SelectionBar
-│   ├── viewer/
-│   │   └── components/             ZoomableImage, DismissibleContainer
-│   └── sharing/
-│       ├── shareOut.ts
-│       └── useInboundShare.ts
+│   ├── index.tsx                   feed
+│   ├── library.tsx
+│   └── profile.tsx
+├── camera.tsx                      full-screen, no tab bar
+├── editor/[assetId].tsx
+├── post/[id].tsx                   deep-link target
+└── share-inbound.tsx</code></pre>
+
+<pre><code>src/projects/camera-social/
+├── hooks/
+│   ├── useCameraController.ts      facing, flash, zoom, mode
+│   ├── useCapture.ts               takePicture / record orchestration
+│   ├── useEditorHistory.ts         undo/redo stack of operations
+│   ├── useAssets.ts                paginated media-library reads
+│   └── useInboundShare.ts
+├── components/
+│   ├── camera/                     ShutterButton, ModeStrip, ZoomPills, FocusRing
+│   ├── editor/                     CropOverlay, FilterStrip, AdjustSlider
+│   ├── library/                    AssetGrid, AssetCell, SelectionBar
+│   └── viewer/                     ZoomableImage, DismissibleContainer
+├── editor/
+│   ├── operations.ts               pure op descriptors: crop/rotate/filter
+│   └── applyOperations.ts          runs the op list through the manipulator
 ├── media/
 │   ├── storage.ts                  app-owned media directory management
 │   ├── thumbnails.ts
 │   └── exif.ts
-├── components/ui/
+├── models/
+│   └── Asset.ts                    Asset, Op, EditorState types
+├── utils/
+│   └── shareOut.ts
 └── stores/
     └── captureStore.ts             transient capture session state</code></pre>
+
+<div class="note">
+  <strong>The one thing here that might belong in <code>shared/</code></strong>
+  <p><code>PermissionGate</code> (below) is written to be project-agnostic and projects 04 and 05 will both want it. That still doesn't mean it goes to <code>src/shared/components/ui/</code> today — build it in this slice first, and promote it when Project 04 actually reaches for it. Premature promotion is how a "shared" folder turns into a junk drawer.</p>
+</div>
 
 <h3>Key architectural decision: the editor as an operation list</h3>
 <p>Do <strong>not</strong> mutate the image on every gesture. Instead:</p>
@@ -236,7 +254,7 @@ Commit   → run operations sequentially through the image manipulator,
                      └───────────────────┘
    iOS extra branch: media library → "limited"
         → show banner + presentPermissionsPicker()</code></pre>
-<p>Build this once as a reusable <code>&lt;PermissionGate permission="camera"&gt;</code> component. You'll reuse it in projects 04 and 05.</p>
+<p>Build this once as a reusable <code>&lt;PermissionGate permission="camera"&gt;</code> component, living in <code>src/projects/camera-social/components/</code> for now. When Project 04 needs it for location, that's the moment to move it to <code>src/shared/components/ui/</code> — not before.</p>
 
 <h2 id="pipeline">The media pipeline</h2>
 
@@ -273,6 +291,7 @@ EXPORT
     <li><code>eas build --profile development --platform ios --local</code> (and Android).</li>
     <li>Install on a <strong>physical device</strong> — the simulator camera is useless for this project.</li>
     <li>Confirm hot reload works against the dev client.</li>
+    <li>Claim your slot: replace the <code>ComingSoonView</code> stub at <code>src/app/projects/camera-social/index.tsx</code>, create <code>src/projects/camera-social/</code>, and flip <code>available</code> in <code>src/shared/config/projects.ts</code>.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — You can add a native dependency, rebuild, and be running again in under 15 minutes.</div>
 </div>
@@ -346,7 +365,7 @@ EXPORT
   <ul>
     <li>Share out: <code>expo-sharing</code> to the system sheet; copy to clipboard with <code>expo-clipboard</code>.</li>
     <li>Save to the device gallery with a dedicated album.</li>
-    <li>Deep links: <code>whynotreactnative://post/123</code> and an https universal link. Test cold start, warm start, and background.</li>
+    <li>Deep links: <code>whynotreactnative://projects/camera-social/post/123</code> and an https universal link. Test cold start, warm start, and background.</li>
     <li>Inbound share: add a share extension via a config plugin (e.g. <code>expo-share-intent</code>) so photos can be shared <em>into</em> your app.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — From Apple Photos, share a photo into your app; it opens on the inbound screen with the asset ready to edit. This is the milestone that teaches you what config plugins are for.</div>

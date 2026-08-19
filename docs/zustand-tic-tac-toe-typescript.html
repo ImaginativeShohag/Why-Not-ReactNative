@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zustand Tic-Tac-Toe — TypeScript + React Native port</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .codeblock { margin: 0 0 18px; }
+  .codeblock pre { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .codeblock:has(.codehead) pre { border-top: 0; }
+  .codehead {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 6px 14px; font-family: var(--mono); font-size: 0.75rem;
+  }
+  .codehead .fname { color: var(--fg-dim); }
+  .codehead .lang {
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 20px; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border-soft); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-dim); }
+  .source { color: var(--fg-faint); font-size: 0.85rem; margin-top: 40px; border-top: 1px solid var(--border-soft); padding-top: 16px; }
+  h2.appendix { margin-top: 48px; border-top: 1px solid var(--border-soft); padding-top: 28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="index.html">← Docs</a> / Zustand tutorial · TypeScript · React Native</div>
+
+<h1>Tutorial: Tic-Tac-Toe <span style="color: var(--accent)">in TypeScript &amp; React Native</span></h1>
+<p class="subtitle">The official Zustand tic-tac-toe tutorial, ported twice over: every JavaScript snippet typed, and every DOM element replaced with a React Native primitive so the code actually runs on device.</p>
+
+<div class="meta-row">
+  <span class="chip accent">Zustand v5</span>
+  <span class="chip">React 19</span>
+  <span class="chip green">TypeScript</span>
+  <span class="chip purple">combine middleware</span>
+  <span class="chip">React Native / Expo</span>
+  <span class="chip green">Typechecks under strict</span>
+</div>
+
+<ul class="toc">
+  <li><a href="#building-a-game">Building a game</a></li>
+  <li><a href="#what-are-you-building">What are you building?</a></li>
+  <li><a href="#setup-the-four-types">Setup: the four types</a></li>
+  <li><a href="#building-the-board">Building the board</a></li>
+  <li><a href="#lifting-state-up">Lifting state up</a></li>
+  <li><a href="#taking-turns">Taking turns</a></li>
+  <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
+  <li><a href="#adding-time-travel">Adding time travel</a></li>
+  <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
+  <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
+  <li><a href="#final-cleanup">Final cleanup</a></li>
+  <li><a href="#wrapping-up">Wrapping up</a></li>
+  <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
+  <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
+</ul>
+
+<h2 id="building-a-game">Building a game</h2>
+<p>You will build a small tic-tac-toe game during this tutorial, in <strong>TypeScript</strong>, running on <strong>React Native</strong>. It assumes existing React knowledge. The techniques here are fundamental to building any React app, and fully understanding it will give you a deep understanding of React and Zustand.</p>
+<div class="note">
+  <strong>About this page</strong>
+  <p>This is the official Zustand <a href="https://zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe">Tutorial: Tic-Tac-Toe</a> with two ports applied on top of it: every JavaScript snippet converted to TypeScript, and every DOM element converted to a React Native component. Prose is from the original tutorial (which itself draws inspiration from React's tic-tac-toe tutorial); the code, the typing notes and the React Native notes are the port. Files are <code>.tsx</code> wherever JSX appears, <code>.ts</code> otherwise.</p>
+  <p>Snippets are labelled <code>App.tsx</code> to match the upstream tutorial. In this repo the finished screen lives at <code>src/app/projects/tic-tac-toe/index.tsx</code> — an Expo Router route, so the default export is the screen.</p>
+  <p>If you want the original DOM version — or you pasted the upstream code into an Expo app and hit a render error — jump to the <a href="#appendix-web">appendix</a>.</p>
+</div>
+<div class="warn">
+  <strong>Why the upstream snippets cannot be pasted into React Native</strong>
+  <p>The Zustand tutorial builds its board out of <code>&lt;button&gt;</code> and <code>&lt;div&gt;</code>. React Native has no DOM: a lowercase JSX tag is looked up as a <em>native</em> host component, and there is nothing registered under the name <code>button</code>, so the renderer throws <code>View config getter callback for component "button" must be a function (received undefined)</code>. The fix is not a shim — it is using the platform's own primitives, which is what every snippet below does. The <a href="#appendix-web">appendix</a> explains the error in full.</p>
+</div>
+<p>The tutorial is divided into several sections:</p>
+<ul>
+  <li><strong>Setup</strong> — the types you will use everywhere.</li>
+  <li><strong>Overview</strong> — the fundamentals of React: components, props, and state.</li>
+  <li><strong>Completing the game</strong> — the most common techniques in React development.</li>
+  <li><strong>Adding time travel</strong> — a deeper insight into the unique strengths of React.</li>
+</ul>
+<h3 id="what-are-you-building">What are you building?</h3>
+<p>In this tutorial, you'll build an interactive tic-tac-toe game with React Native, Zustand and TypeScript. You can see what it will look like when you're finished here:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { create } from 'zustand'
+import { combine } from 'zustand/middleware'
+
+type Player = 'X' | 'O'
+type SquareValue = Player | null
+type Squares = SquareValue[]
+type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
+
+const useGameStore = create(
+  combine(
+    {
+      history: [Array&lt;SquareValue&gt;(9).fill(null)],
+      currentMove: 0,
+    },
+    (set) =&gt; {
+      return {
+        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
+          set((state) =&gt; ({
+            history:
+              typeof nextHistory === 'function'
+                ? nextHistory(state.history)
+                : nextHistory,
+          }))
+        },
+        setCurrentMove: (nextCurrentMove: Updater&lt;number&gt;) =&gt; {
+          set((state) =&gt; ({
+            currentMove:
+              typeof nextCurrentMove === 'function'
+                ? nextCurrentMove(state.currentMove)
+                : nextCurrentMove,
+          }))
+        },
+      }
+    },
+  ),
+)
+
+type SquareProps = {
+  value: SquareValue
+  onSquareClick: () =&gt; void
+}
+
+function Square({ value, onSquareClick }: SquareProps) {
+  return (
+    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
+      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
+    &lt;/Pressable&gt;
+  )
+}
+
+type BoardProps = {
+  xIsNext: boolean
+  squares: Squares
+  onPlay: (nextSquares: Squares) =&gt; void
+}
+
+function Board({ xIsNext, squares, onPlay }: BoardProps) {
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    onPlay(nextSquares)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={`square-${squareIndex}`}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const currentMove = useGameStore((state) =&gt; state.currentMove)
+  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
+  const xIsNext = currentMove % 2 === 0
+  const currentSquares = history[currentMove]
+
+  function handlePlay(nextSquares: Squares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares]
+    setHistory(nextHistory)
+    setCurrentMove(nextHistory.length - 1)
+  }
+
+  function jumpTo(nextMove: number) {
+    setCurrentMove(nextMove)
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;
+        {history.map((_, historyIndex) =&gt; {
+          const description =
+            historyIndex &gt; 0
+              ? `Go to move #${historyIndex}`
+              : 'Go to game start'
+
+          return (
+            &lt;Pressable
+              key={historyIndex}
+              style={styles.moveButton}
+              onPress={() =&gt; jumpTo(historyIndex)}
+            &gt;
+              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
+            &lt;/Pressable&gt;
+          )
+        })}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+function calculateWinner(squares: Squares): SquareValue {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (let i = 0; i &lt; lines.length; i++) {
+    const [a, b, c] = lines[i]
+    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
+
+  return null
+}
+
+function calculateTurns(squares: Squares): number {
+  return squares.filter((square) =&gt; !square).length
+}
+
+function calculateStatus(
+  winner: SquareValue,
+  turns: number,
+  player: Player,
+): string {
+  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (winner) return `Winner ${winner}`
+  return `Next player: ${player}`
+}
+
+const SQUARE_SIZE = 40
+const MONO = Platform.select({ ios: 'Menlo', default: 'monospace' })
+
+const styles = StyleSheet.create({
+  game: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    padding: 16,
+  },
+  status: {
+    marginBottom: 8,
+    fontFamily: MONO,
+  },
+  board: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: SQUARE_SIZE * 3,
+  },
+  square: {
+    width: SQUARE_SIZE,
+    height: SQUARE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#999',
+  },
+  squareText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: MONO,
+  },
+  moves: {
+    gap: 4,
+  },
+  moveButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#999',
+    backgroundColor: '#fff',
+  },
+  moveText: {
+    fontFamily: MONO,
+  },
+})</code></pre></div>
+<h3 id="setup-the-four-types">Setup: the four types</h3>
+<p>Everything in the port hangs off four declarations. Add them once at the top of the file and the rest of the tutorial needs almost no annotations — inference does the work.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">types.ts</span><span class="lang">ts</span></div><pre><code>type Player = 'X' | 'O'
+type SquareValue = Player | null
+type Squares = SquareValue[]
+type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)</code></pre></div>
+<ul>
+  <li><code>Player</code> is the turn owner: only ever <code>'X'</code> or <code>'O'</code>, never an arbitrary string.</li>
+  <li><code>SquareValue</code> adds the empty case. A square holds a player mark or nothing.</li>
+  <li><code>Squares</code> is one board — nine <code>SquareValue</code>s. The whole game history is then <code>Squares[]</code>.</li>
+  <li><code>Updater&lt;T&gt;</code> is the "value or updater function" shape that every Zustand setter in this tutorial accepts, mirroring React's <code>setState</code> API.</li>
+</ul>
+<div class="tip">
+  <strong>Why Updater&lt;T&gt; narrows correctly</strong>
+  <p>Inside a setter, <code>typeof nextSquares === 'function'</code> narrows <code>Updater&lt;Squares&gt;</code> to the function branch, and the <code>else</code> branch to <code>Squares</code>. This works because the value branch (<code>Squares</code>, <code>number</code>, <code>boolean</code>) is never itself callable. If you ever store a function *as state*, this <code>typeof</code> trick collapses and you need a wrapper object or an explicit discriminator instead.</p>
+</div>
+<div class="note">
+  <strong>Do not use create&lt;T&gt;()(...) with combine</strong>
+  <p>The Zustand TypeScript guide recommends the curried <code>create&lt;T&gt;()(...)</code> form so <code>set</code> and <code>get</code> infer properly. That advice does <strong>not</strong> apply here: <code>combine</code> *creates* the state, so the type is already inferred from the initial object plus the returned actions. Annotating it manually would be redundant — and would fight the inference. Same rule for the <code>redux</code> middleware.</p>
+</div>
+<div class="warn">
+  <strong>Array(9).fill(null) infers any[]</strong>
+  <p>The JavaScript original writes <code>Array(9).fill(null)</code>. In TypeScript that infers <code>any[]</code>, which silently disables type checking for the entire board. Pass the element type explicitly: <code>Array&lt;SquareValue&gt;(9).fill(null)</code> infers <code>SquareValue[]</code>. That single change is what makes <code>history</code>, <code>squares</code>, <code>state.squares</code> and every selector below type-safe with no casts.</p>
+</div>
+<div class="note">
+  <strong>The store is platform-agnostic</strong>
+  <p>Nothing in these four types — or in the store, or in the three <code>calculate*</code> helpers — changes between web and React Native. That is worth noticing before you start: the React Native port touches only the components and the styles. State logic written with Zustand is portable by default, which is exactly why the same store drives both versions of this page.</p>
+</div>
+<h3 id="building-the-board">Building the board</h3>
+<p>Let's start by creating the <code>Square</code> component, which will be a building block for our <code>Board</code> component. This component will represent each square in our game.</p>
+<p>The <code>Square</code> component should take <code>value</code> and <code>onSquareClick</code> as props. It should return a <code>&lt;Pressable&gt;</code> — React Native's touch-handling primitive — styled to look like a square, with the <code>value</code> prop rendered inside a <code>&lt;Text&gt;</code>. When the square is pressed, it triggers the <code>onSquareClick</code> function passed in as a prop, allowing the game to respond to user input.</p>
+<p>Here's the code for the <code>Square</code> component:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">Square.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text } from 'react-native'
+
+type SquareProps = {
+  value: string
+  onSquareClick?: () =&gt; void
+}
+
+function Square({ value, onSquareClick }: SquareProps) {
+  return (
+    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
+      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
+    &lt;/Pressable&gt;
+  )
+}
+
+const SQUARE_SIZE = 40
+
+const styles = StyleSheet.create({
+  square: {
+    width: SQUARE_SIZE,
+    height: SQUARE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#999',
+  },
+  squareText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+})</code></pre></div>
+<div class="warn">
+  <strong>Text has to be inside &lt;Text&gt;</strong>
+  <p>On the web, <code>&lt;button&gt;{value}&lt;/button&gt;</code> is enough. React Native refuses to render a bare string as the child of a <code>View</code> or <code>Pressable</code> — you get <em>"Text strings must be rendered within a &lt;Text&gt; component"</em>. Every visible string in a React Native tree has a <code>&lt;Text&gt;</code> ancestor, no exceptions. That is also why styling splits in two: box styles (<code>width</code>, <code>borderWidth</code>, <code>justifyContent</code>) belong on the <code>Pressable</code>, text styles (<code>fontSize</code>, <code>fontWeight</code>) on the <code>Text</code>.</p>
+</div>
+<div class="note">
+  <strong>These prop types are temporary</strong>
+  <p>At this step the board is static: it passes <code>value="1"</code> and no press handler, so <code>value</code> is a <code>string</code> and <code>onSquareClick</code> is optional. Two sections from now, once the store owns the board, <code>SquareProps</code> tightens to its final shape — <code>value: SquareValue</code> and a required <code>onSquareClick: () =&gt; void</code>. Letting the props start loose and tighten is normal; what matters is that the final version leaves no <code>any</code> behind.</p>
+</div>
+<p>Let's move on to creating the <code>Board</code> component, which will consist of 9 squares arranged in a grid. This component will serve as the main playing area for our game.</p>
+<p>The <code>Board</code> component should return a <code>&lt;View&gt;</code> that lays its children out three-to-a-row. React Native's layout engine is flexbox only — there is no CSS Grid — so the 3×3 arrangement comes from <code>flexDirection: 'row'</code> plus <code>flexWrap: 'wrap'</code> on a container exactly three squares wide. Inside it, we place nine <code>Square</code> components, each with a <code>value</code> prop representing its position.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">Board.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+  return (
+    &lt;View style={styles.board}&gt;
+      &lt;Square value="1" /&gt;
+      &lt;Square value="2" /&gt;
+      &lt;Square value="3" /&gt;
+      &lt;Square value="4" /&gt;
+      &lt;Square value="5" /&gt;
+      &lt;Square value="6" /&gt;
+      &lt;Square value="7" /&gt;
+      &lt;Square value="8" /&gt;
+      &lt;Square value="9" /&gt;
+    &lt;/View&gt;
+  )
+}
+
+const styles = StyleSheet.create({
+  board: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: SQUARE_SIZE * 3,
+  },
+})</code></pre></div>
+<p>This <code>Board</code> component sets up the basic structure for our game board by arranging nine squares in a 3x3 grid. Note that nothing here needed annotating: a component that takes no props and returns JSX is fully inferred, and the object passed to <code>StyleSheet.create</code> is checked against React Native's <code>ViewStyle</code> / <code>TextStyle</code> for free — misspell <code>flexDirection</code>, or write <code>flexWrap: 'wrapped'</code>, and you get an error at the declaration, which the JavaScript version would never have told you about.</p>
+<div class="warn">
+  <strong>Do not put a border on the board container</strong>
+  <p>The web original draws a border around the grid as well as around each button. Try that here and the board collapses to two squares per row: React Native boxes are always <code>border-box</code>, so <code>width: 120</code> with <code>borderWidth: 1</code> leaves only 118px of content — one pixel short of three 40px squares, and <code>flexWrap</code> dutifully wraps. Keep the borders on the squares, keep the container's width an exact multiple of <code>SQUARE_SIZE</code>, and add padding or a border only on a wrapper <code>View</code> outside it.</p>
+</div>
+<h3 id="lifting-state-up">Lifting state up</h3>
+<p>Each <code>Square</code> component could maintain a part of the game's state. To check for a winner, the <code>Board</code> component would need to know the state of each of the 9 <code>Square</code> components. Although asking each child for its state is technically possible in React, we discourage it: the code becomes difficult to understand, susceptible to bugs, and hard to refactor. Instead, store the game's state in the parent, and let the parent tell each <code>Square</code> what to display by passing a prop.</p>
+<p>To collect data from multiple children, or to have two or more child components communicate with each other, declare the shared state in their parent component instead.</p>
+<p>Let's edit the <code>Board</code> component so that the state lives in a Zustand store holding an array of 9 nulls corresponding to the 9 squares:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { View } from 'react-native'
+import { create } from 'zustand'
+import { combine } from 'zustand/middleware'
+
+type Player = 'X' | 'O'
+type SquareValue = Player | null
+type Squares = SquareValue[]
+type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
+
+const useGameStore = create(
+  combine({ squares: Array&lt;SquareValue&gt;(9).fill(null) }, (set) =&gt; {
+    return {
+      setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
+        set((state) =&gt; ({
+          squares:
+            typeof nextSquares === 'function'
+              ? nextSquares(state.squares)
+              : nextSquares,
+        }))
+      },
+    }
+  }),
+)
+
+export default function Board() {
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+
+  return (
+    &lt;View style={styles.board}&gt;
+      {squares.map((square, squareIndex) =&gt; (
+        &lt;Square key={squareIndex} value={square} /&gt;
+      ))}
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p><code>Array&lt;SquareValue&gt;(9).fill(null)</code> creates an array with nine elements, sets each of them to <code>null</code>, and types the result as <code>SquareValue[]</code>. Each entry corresponds to the value of a square. When you fill the board in later, the squares array will look like this:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">squares.ts</span><span class="lang">ts</span></div><pre><code>const squares: Squares = ['O', null, 'X', 'X', 'X', 'O', 'O', null, null]</code></pre></div>
+<div class="tip">
+  <strong>The annotation is what catches typos</strong>
+  <p>Without <code>: Squares</code>, that literal infers <code>(string | null)[]</code> and a typo like <code>'0'</code> (zero) instead of <code>'O'</code> (letter) sails through. With it, TypeScript rejects anything that isn't <code>'X'</code>, <code>'O'</code>, or <code>null</code>. This is the whole payoff of declaring <code>Player</code> as a union of string literals rather than <code>string</code>.</p>
+</div>
+<p>Each <code>Square</code> will now receive a <code>value</code> prop that is <code>'X'</code>, <code>'O'</code>, or <code>null</code> for empty squares, so <code>SquareProps</code> tightens:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
+  value: SquareValue
+  onSquareClick?: () =&gt; void
+}</code></pre></div>
+<p>TypeScript will now flag the old static <code>&lt;Square value="1" /&gt;</code> usage as an error — that error is the type system telling you the refactor is complete. <code>onSquareClick</code> stays optional for one more step; it becomes required as soon as every square gets a handler.</p>
+<div class="tip">
+  <strong>value: SquareValue renders an empty square for free</strong>
+  <p><code>&lt;Text&gt;{value}&lt;/Text&gt;</code> keeps working once <code>value</code> can be <code>null</code>: React Native renders <code>null</code> children as nothing, so an empty square is genuinely empty rather than showing the string <code>"null"</code>. The square keeps its size because the size lives on the <code>Pressable</code>, not on the text.</p>
+</div>
+<p>Next, you need to change what happens when a <code>Square</code> component is pressed. Since state is private to the component that defines it, you cannot update the <code>Board</code>'s state directly from <code>Square</code>. Instead, you'll pass a function down from <code>Board</code> to <code>Square</code>, and have <code>Square</code> call it when pressed. You'll call that function <code>onSquareClick</code>, and connect it to a <code>handleClick</code> function in <code>Board</code> via an inline function:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Square key={squareIndex} value={square} onSquareClick={() =&gt; handleClick(squareIndex)} /&gt;</code></pre></div>
+<p>Lastly, define the <code>handleClick</code> function inside the <code>Board</code> component to update the squares array holding your board's state. It takes the index of the square to update, creates a copy of the <code>squares</code> array (<code>nextSquares</code>), and adds <code>X</code> at the specified index if it is not already filled.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+
+  function handleClick(i: number) {
+    if (squares[i]) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = 'X'
+    setSquares(nextSquares)
+  }
+
+  return (
+    &lt;View style={styles.board}&gt;
+      {squares.map((square, squareIndex) =&gt; (
+        &lt;Square
+          key={squareIndex}
+          value={square}
+          onSquareClick={() =&gt; handleClick(squareIndex)}
+        /&gt;
+      ))}
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p>Note how in <code>handleClick</code>, you call <code>.slice()</code> to create a copy of the squares array instead of modifying the existing array. <code>handleClick(i: number)</code> is the only annotation needed here: parameters of a plain function declaration are never inferred, while <code>squares.slice()</code> already returns <code>SquareValue[]</code> and <code>nextSquares[i] = 'X'</code> is checked against it.</p>
+<h3 id="taking-turns">Taking turns</h3>
+<p>It's now time to fix a major defect in this tic-tac-toe game: the <code>'O'</code>s cannot be used on the board. You'll set the first move to be <code>'X'</code> by default, tracked by another piece of state in the <code>useGameStore</code> hook:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
+  combine(
+    { squares: Array&lt;SquareValue&gt;(9).fill(null), xIsNext: true },
+    (set) =&gt; {
+      return {
+        setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
+          set((state) =&gt; ({
+            squares:
+              typeof nextSquares === 'function'
+                ? nextSquares(state.squares)
+                : nextSquares,
+          }))
+        },
+        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
+          set((state) =&gt; ({
+            xIsNext:
+              typeof nextXIsNext === 'function'
+                ? nextXIsNext(state.xIsNext)
+                : nextXIsNext,
+          }))
+        },
+      }
+    },
+  ),
+)</code></pre></div>
+<div class="warn">
+  <strong>xIsNext: true infers boolean, not true</strong>
+  <p><code>combine</code> infers the state type from the initial object, and an object property initialised to <code>true</code> widens to <code>boolean</code> — which is what you want. But if you ever wrap the initial state in <code>as const</code>, or declare it with <code>satisfies</code> on a narrower type, <code>xIsNext</code> becomes the literal type <code>true</code> and <code>setXIsNext(false)</code> stops compiling. Let the widening happen.</p>
+</div>
+<p>Each time a player moves, <code>xIsNext</code> will be flipped to determine which player goes next. Update the Board's <code>handleClick</code> function to flip the value of <code>xIsNext</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+  const player = xIsNext ? 'X' : 'O'
+
+  function handleClick(i: number) {
+    if (squares[i]) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    setSquares(nextSquares)
+    setXIsNext(!xIsNext)
+  }
+
+  return (
+    &lt;View style={styles.board}&gt;
+      {squares.map((square, squareIndex) =&gt; (
+        &lt;Square
+          key={squareIndex}
+          value={square}
+          onSquareClick={() =&gt; handleClick(squareIndex)}
+        /&gt;
+      ))}
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p><code>const player = xIsNext ? 'X' : 'O'</code> needs no annotation: a conditional over two string literals infers <code>'X' | 'O'</code>, which *is* <code>Player</code>. Resist the urge to annotate what inference already gets right — every unnecessary annotation is a place that can drift out of sync.</p>
+<h3 id="declaring-a-winner-or-draw">Declaring a winner or draw</h3>
+<p>Now that the players can take turns, you'll want to show when the game is won or drawn. Add three helper functions: <code>calculateWinner</code> takes an array of 9 squares and returns <code>'X'</code>, <code>'O'</code>, or <code>null</code>; <code>calculateTurns</code> returns the count of remaining (empty) squares; and <code>calculateStatus</code> builds the status string from the winner, the remaining turns, and the current player.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function calculateWinner(squares: Squares): SquareValue {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (let i = 0; i &lt; lines.length; i++) {
+    const [a, b, c] = lines[i]
+    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
+
+  return null
+}
+
+function calculateTurns(squares: Squares): number {
+  return squares.filter((square) =&gt; !square).length
+}
+
+function calculateStatus(
+  winner: SquareValue,
+  turns: number,
+  player: Player,
+): string {
+  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (winner) return `Winner ${winner}`
+  return `Next player: ${player}`
+}</code></pre></div>
+<div class="note">
+  <strong>Why the return type is SquareValue and not Player | null</strong>
+  <p>They are the same type — <code>SquareValue</code> *is* <code>Player | null</code> — but naming it once means the "a square may be empty" idea has a single definition. It also keeps <code>calculateWinner</code>'s return assignable straight into <code>calculateStatus(winner, …)</code> without a cast, because TypeScript compares structure, not names. <code>lines</code> needs no annotation: it infers <code>number[][]</code>, and destructuring <code>const [a, b, c] = lines[i]</code> gives three <code>number</code>s.</p>
+</div>
+<div class="warn">
+  <strong>One flag changes this file: noUncheckedIndexedAccess</strong>
+  <p>With <code>noUncheckedIndexedAccess: true</code> in your <code>tsconfig.json</code>, <code>lines[i]</code> becomes <code>number[] | undefined</code> and <code>squares[a]</code> becomes <code>SquareValue | undefined</code>, so this function needs guards (or <code>as const</code> tuples for <code>lines</code>). The tutorial code assumes the flag is <strong>off</strong>, which is the default and what <code>expo</code>'s and <code>vite</code>'s TypeScript templates ship. If you turn it on, expect to add a <code>if (!line) continue</code> and to handle <code>history[currentMove]</code> possibly being <code>undefined</code> later.</p>
+</div>
+<p>You will use the result of <code>calculateWinner(squares)</code> in <code>handleClick</code> to check if a player has won, at the same time you check whether the square is already taken. Return early in both cases:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handleClick(i: number) {
+  if (squares[i] || winner) return
+  const nextSquares = squares.slice()
+  nextSquares[i] = player
+  setSquares(nextSquares)
+  setXIsNext(!xIsNext)
+}</code></pre></div>
+<p>To let the players know when the game is over, add a <code>status</code> section to the <code>Board</code> component:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    setSquares(nextSquares)
+    setXIsNext(!xIsNext)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={squareIndex}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<div class="tip">
+  <strong>&lt;View&gt; where the web version used a fragment</strong>
+  <p>The DOM version wraps the status and the grid in <code>&lt;&gt;…&lt;/&gt;</code>, because a browser will lay two block elements out one above the other regardless. A fragment would work here too, but a <code>&lt;View&gt;</code> is the better default in React Native: fragments cannot carry a <code>style</code>, and the parent's <code>flexDirection</code> then decides your layout for you. Wrapping in a <code>View</code> makes this subtree stack vertically (React Native's default is <code>column</code>) no matter where it is mounted.</p>
+</div>
+<p>Congratulations! You now have a working tic-tac-toe game — and you've just learned the basics of React, Zustand, typing a Zustand store, and laying out a screen with React Native primitives. Here is what the whole file should look like:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { create } from 'zustand'
+import { combine } from 'zustand/middleware'
+
+type Player = 'X' | 'O'
+type SquareValue = Player | null
+type Squares = SquareValue[]
+type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
+
+const useGameStore = create(
+  combine(
+    { squares: Array&lt;SquareValue&gt;(9).fill(null), xIsNext: true },
+    (set) =&gt; {
+      return {
+        setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
+          set((state) =&gt; ({
+            squares:
+              typeof nextSquares === 'function'
+                ? nextSquares(state.squares)
+                : nextSquares,
+          }))
+        },
+        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
+          set((state) =&gt; ({
+            xIsNext:
+              typeof nextXIsNext === 'function'
+                ? nextXIsNext(state.xIsNext)
+                : nextXIsNext,
+          }))
+        },
+      }
+    },
+  ),
+)
+
+type SquareProps = {
+  value: SquareValue
+  onSquareClick: () =&gt; void
+}
+
+function Square({ value, onSquareClick }: SquareProps) {
+  return (
+    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
+      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
+    &lt;/Pressable&gt;
+  )
+}
+
+export default function Board() {
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    setSquares(nextSquares)
+    setXIsNext(!xIsNext)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={squareIndex}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+function calculateWinner(squares: Squares): SquareValue {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (let i = 0; i &lt; lines.length; i++) {
+    const [a, b, c] = lines[i]
+    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
+
+  return null
+}
+
+function calculateTurns(squares: Squares): number {
+  return squares.filter((square) =&gt; !square).length
+}
+
+function calculateStatus(
+  winner: SquareValue,
+  turns: number,
+  player: Player,
+): string {
+  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (winner) return `Winner ${winner}`
+  return `Next player: ${player}`
+}
+
+const SQUARE_SIZE = 40
+
+const styles = StyleSheet.create({
+  status: {
+    marginBottom: 8,
+  },
+  board: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: SQUARE_SIZE * 3,
+  },
+  square: {
+    width: SQUARE_SIZE,
+    height: SQUARE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#999',
+  },
+  squareText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+})</code></pre></div>
+<h3 id="adding-time-travel">Adding time travel</h3>
+<p>As a final exercise, let's make it possible to "go back in time" and revisit previous moves.</p>
+<p>If you had directly modified the squares array, implementing time travel would be very difficult. However, since you used <code>slice()</code> to create a new copy after every move, treating it as immutable, you can store every past version of the squares array and navigate between them.</p>
+<p>You'll keep track of these past squares arrays in a new state variable called <code>history</code> of type <code>Squares[]</code> — an array of boards:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">history.ts</span><span class="lang">ts</span></div><pre><code>const history: Squares[] = [
+  // First move
+  [null, null, null, null, null, null, null, null, null],
+  // Second move
+  ['X', null, null, null, null, null, null, null, null],
+  // Third move
+  ['X', 'O', null, null, null, null, null, null, null],
+  // and so on...
+]</code></pre></div>
+<p>Reading the type out loud is the clearest description of the feature: the game state is a list of boards, and "time travel" is just picking an index into it.</p>
+<h3 id="lifting-state-up-again">Lifting state up, again</h3>
+<p>Next, you will create a new top-level component called <code>Game</code> to display a list of past moves. This is where the <code>history</code> state lives. By placing <code>history</code> in <code>Game</code>, you can remove the <code>squares</code> state from <code>Board</code> — lifting the state up one more level so <code>Game</code> has full control over the <code>Board</code>'s data and can instruct it to render previous turns.</p>
+<p>First, add a <code>Game</code> component with <code>export default</code> and remove the export from <code>Board</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>function Board() {
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const squares = useGameStore((state) =&gt; state.squares)
+  const setSquares = useGameStore((state) =&gt; state.setSquares)
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    setSquares(nextSquares)
+    setXIsNext(!xIsNext)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={squareIndex}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+export default function Game() {
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board /&gt;
+      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<div class="tip">
+  <strong>The outer layout, in React Native terms</strong>
+  <p>The web version puts the board and the move list side by side with <code>display: 'flex'; flexDirection: 'row'</code> and separates them with <code>marginLeft: '1rem'</code>. In React Native <code>display: 'flex'</code> is unnecessary — every <code>View</code> is already a flex container — so only <code>flexDirection: 'row'</code> carries over, and the spacing is better expressed once as <code>gap: 16</code> on the parent. Add <code>alignItems: 'flex-start'</code> so the board keeps its natural height instead of stretching to match the move list.</p>
+</div>
+<p>Add some state to the <code>useGameStore</code> hook to track the history of moves:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
+  combine(
+    { history: [Array&lt;SquareValue&gt;(9).fill(null)], xIsNext: true },
+    (set) =&gt; {
+      return {
+        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
+          set((state) =&gt; ({
+            history:
+              typeof nextHistory === 'function'
+                ? nextHistory(state.history)
+                : nextHistory,
+          }))
+        },
+        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
+          set((state) =&gt; ({
+            xIsNext:
+              typeof nextXIsNext === 'function'
+                ? nextXIsNext(state.xIsNext)
+                : nextXIsNext,
+          }))
+        },
+      }
+    },
+  ),
+)</code></pre></div>
+<p>Notice how <code>[Array&lt;SquareValue&gt;(9).fill(null)]</code> creates an array with a single item, which is itself an array of 9 <code>null</code> values — so <code>history</code> infers as <code>SquareValue[][]</code>, structurally identical to <code>Squares[]</code>. The <code>Updater&lt;Squares[]&gt;</code> on <code>setHistory</code> is what keeps the two in agreement: pass a single board by mistake and it fails to compile.</p>
+<div class="warn">
+  <strong>The refactor does not compile in the middle</strong>
+  <p>The moment you replace <code>squares</code> with <code>history</code> in the store, <code>Board</code> stops compiling: it still calls <code>useGameStore((state) =&gt; state.squares)</code>, and that property no longer exists. In JavaScript this step silently produces <code>undefined</code> and blows up at render time with "cannot read properties of undefined"; in TypeScript it's a compile error that names the exact line. Both versions are broken here — only one of them tells you. Keep going: <code>Board</code> becomes prop-driven two snippets from now.</p>
+</div>
+<p>To render the squares for the current move, read the most recent squares array from <code>history</code>. You don't need extra state for this — you already have enough information to calculate it during rendering:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const currentSquares = history[history.length - 1]
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board /&gt;
+      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<div class="note">
+  <strong>Intermediate steps will trip your linter, not the compiler</strong>
+  <p><code>setHistory</code>, <code>setXIsNext</code> and <code>currentSquares</code> are unused for the next two steps, and the <code>handlePlay</code> stub below has an unused parameter. <code>tsc</code> is fine with unused *locals* unless you enable <code>noUnusedLocals</code>/<code>noUnusedParameters</code>, but ESLint's <code>no-unused-vars</code> will complain immediately. Push through the next two snippets rather than "fixing" it — the values all get used.</p>
+</div>
+<p>Next, create a <code>handlePlay</code> function inside <code>Game</code> that the <code>Board</code> component will call to update the game. Pass <code>xIsNext</code>, <code>currentSquares</code> and <code>handlePlay</code> as props to <code>Board</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const currentSquares = history[history.length - 1]
+
+  function handlePlay(nextSquares: Squares) {
+    // TODO
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p>Let's make the <code>Board</code> component fully controlled by the props it receives: <code>xIsNext</code>, <code>squares</code>, and a new <code>onPlay</code> callback that <code>Board</code> calls with the updated squares array when a player moves. This is where a props type earns its keep — <code>BoardProps</code> is the contract between <code>Game</code> and <code>Board</code>, and the compiler now checks both ends of it.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>type BoardProps = {
+  xIsNext: boolean
+  squares: Squares
+  onPlay: (nextSquares: Squares) =&gt; void
+}
+
+function Board({ xIsNext, squares, onPlay }: BoardProps) {
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    onPlay(nextSquares)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={squareIndex}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<div class="tip">
+  <strong>onPlay: (nextSquares: Squares) =&gt; void, not Function</strong>
+  <p>Typing a callback prop as <code>Function</code> (or leaving it implicitly <code>any</code>) throws away exactly the information you want: arity, argument type, and return type. Written out in full, <code>Game</code> cannot forget to accept the board, and <code>Board</code> cannot call <code>onPlay()</code> with nothing. The <code>void</code> return also lets <code>Game</code> pass a function that happens to return something without a complaint — a deliberate TypeScript rule that makes callbacks easy to compose.</p>
+</div>
+<div class="note">
+  <strong>This is also the repo's component rule</strong>
+  <p><code>Board</code> is now a dumb component: plain data in (<code>xIsNext</code>, <code>squares</code>), a callback out (<code>onPlay</code>), no store access of its own. That is the pattern this repo uses everywhere — screens own state, components receive props — and it is what makes <code>Board</code> reusable and trivially testable. Note that <code>Square</code> reached this shape two sections ago.</p>
+</div>
+<p>The <code>Board</code> component is now fully controlled by the props passed to it by <code>Game</code>. To get the game working again, implement <code>handlePlay</code> in <code>Game</code>: instead of calling <code>setSquares</code>, append the updated squares array as a new <code>history</code> entry, and toggle <code>xIsNext</code> as <code>Board</code> used to do.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handlePlay(nextSquares: Squares) {
+  setHistory(history.concat([nextSquares]))
+  setXIsNext(!xIsNext)
+}</code></pre></div>
+<p><code>history.concat([nextSquares])</code> returns <code>SquareValue[][]</code>, which is what <code>setHistory</code> wants. Note the inner array: <code>history.concat(nextSquares)</code> would spread the nine squares into the history as nine separate boards — and because <code>concat</code> accepts both elements and arrays of elements, TypeScript would <strong>not</strong> catch that mistake. It is one of the few places in this tutorial where types don't save you.</p>
+<p>Here is what the whole file should look like at this point:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { create } from 'zustand'
+import { combine } from 'zustand/middleware'
+
+type Player = 'X' | 'O'
+type SquareValue = Player | null
+type Squares = SquareValue[]
+type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
+
+const useGameStore = create(
+  combine(
+    { history: [Array&lt;SquareValue&gt;(9).fill(null)], xIsNext: true },
+    (set) =&gt; {
+      return {
+        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
+          set((state) =&gt; ({
+            history:
+              typeof nextHistory === 'function'
+                ? nextHistory(state.history)
+                : nextHistory,
+          }))
+        },
+        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
+          set((state) =&gt; ({
+            xIsNext:
+              typeof nextXIsNext === 'function'
+                ? nextXIsNext(state.xIsNext)
+                : nextXIsNext,
+          }))
+        },
+      }
+    },
+  ),
+)
+
+type SquareProps = {
+  value: SquareValue
+  onSquareClick: () =&gt; void
+}
+
+function Square({ value, onSquareClick }: SquareProps) {
+  return (
+    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
+      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
+    &lt;/Pressable&gt;
+  )
+}
+
+type BoardProps = {
+  xIsNext: boolean
+  squares: Squares
+  onPlay: (nextSquares: Squares) =&gt; void
+}
+
+function Board({ xIsNext, squares, onPlay }: BoardProps) {
+  const winner = calculateWinner(squares)
+  const turns = calculateTurns(squares)
+  const player = xIsNext ? 'X' : 'O'
+  const status = calculateStatus(winner, turns, player)
+
+  function handleClick(i: number) {
+    if (squares[i] || winner) return
+    const nextSquares = squares.slice()
+    nextSquares[i] = player
+    onPlay(nextSquares)
+  }
+
+  return (
+    &lt;View&gt;
+      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
+      &lt;View style={styles.board}&gt;
+        {squares.map((square, squareIndex) =&gt; (
+          &lt;Square
+            key={squareIndex}
+            value={square}
+            onSquareClick={() =&gt; handleClick(squareIndex)}
+          /&gt;
+        ))}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const currentSquares = history[history.length - 1]
+
+  function handlePlay(nextSquares: Squares) {
+    setHistory(history.concat([nextSquares]))
+    setXIsNext(!xIsNext)
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
+    &lt;/View&gt;
+  )
+}
+
+function calculateWinner(squares: Squares): SquareValue {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (let i = 0; i &lt; lines.length; i++) {
+    const [a, b, c] = lines[i]
+    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
+
+  return null
+}
+
+function calculateTurns(squares: Squares): number {
+  return squares.filter((square) =&gt; !square).length
+}
+
+function calculateStatus(
+  winner: SquareValue,
+  turns: number,
+  player: Player,
+): string {
+  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (winner) return `Winner ${winner}`
+  return `Next player: ${player}`
+}
+
+const SQUARE_SIZE = 40
+
+const styles = StyleSheet.create({
+  game: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    padding: 16,
+  },
+  status: {
+    marginBottom: 8,
+  },
+  board: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: SQUARE_SIZE * 3,
+  },
+  square: {
+    width: SQUARE_SIZE,
+    height: SQUARE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#999',
+  },
+  squareText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  moves: {
+    gap: 4,
+  },
+})</code></pre></div>
+<h3 id="showing-the-past-moves">Showing the past moves</h3>
+<p>Since you are recording the game's history, you can now display a list of past moves. You already have an array of <code>history</code> moves in the store, so you need to transform it into an array of React elements with <code>.map()</code>, and display a list of pressables to jump to past moves:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const currentSquares = history[history.length - 1]
+
+  function handlePlay(nextSquares: Squares) {
+    setHistory(history.concat([nextSquares]))
+    setXIsNext(!xIsNext)
+  }
+
+  function jumpTo(nextMove: number) {
+    // TODO
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;
+        {history.map((_, historyIndex) =&gt; {
+          const description =
+            historyIndex &gt; 0
+              ? `Go to move #${historyIndex}`
+              : 'Go to game start'
+
+          return (
+            &lt;Pressable
+              key={historyIndex}
+              style={styles.moveButton}
+              onPress={() =&gt; jumpTo(historyIndex)}
+            &gt;
+              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
+            &lt;/Pressable&gt;
+          )
+        })}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p>The <code>.map()</code> callback needs no annotations — <code>history</code> is <code>SquareValue[][]</code>, so <code>_</code> is one board and <code>historyIndex</code> is a <code>number</code>, both inferred. Naming the unused first parameter <code>_</code> is the convention that keeps <code>noUnusedParameters</code> and ESLint quiet.</p>
+<div class="note">
+  <strong>There is no &lt;ol&gt;, and that is fine</strong>
+  <p>The web version wraps the moves in an <code>&lt;ol&gt;</code>/<code>&lt;li&gt;</code> and gets the numbering from the browser. React Native has no list semantics and no markers, so a <code>View</code> with <code>gap</code> plus one <code>Pressable</code> per move is the direct translation — the move number is already inside <code>description</code>. Mapping over an array is right at this size; reach for <code>FlatList</code> (or this repo's <code>FlashList</code>) only when the list is long enough to need virtualisation, which a tic-tac-toe history never is.</p>
+</div>
+<p>Before you can implement <code>jumpTo</code>, <code>Game</code> needs to track which step the user is currently viewing. Define a new state variable called <code>currentMove</code>, starting at <code>0</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
+  combine(
+    {
+      history: [Array&lt;SquareValue&gt;(9).fill(null)],
+      currentMove: 0,
+      xIsNext: true,
+    },
+    (set) =&gt; {
+      return {
+        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
+          set((state) =&gt; ({
+            history:
+              typeof nextHistory === 'function'
+                ? nextHistory(state.history)
+                : nextHistory,
+          }))
+        },
+        setCurrentMove: (nextCurrentMove: Updater&lt;number&gt;) =&gt; {
+          set((state) =&gt; ({
+            currentMove:
+              typeof nextCurrentMove === 'function'
+                ? nextCurrentMove(state.currentMove)
+                : nextCurrentMove,
+          }))
+        },
+        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
+          set((state) =&gt; ({
+            xIsNext:
+              typeof nextXIsNext === 'function'
+                ? nextXIsNext(state.xIsNext)
+                : nextXIsNext,
+          }))
+        },
+      }
+    },
+  ),
+)</code></pre></div>
+<p>Next, update <code>jumpTo</code> to set <code>currentMove</code>. You'll also set <code>xIsNext</code> to <code>true</code> if the number you're changing <code>currentMove</code> to is even:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function jumpTo(nextMove: number) {
+  setCurrentMove(nextMove)
+  setXIsNext(currentMove % 2 === 0)
+}</code></pre></div>
+<p>Now make two changes to <code>handlePlay</code>:</p>
+<ul>
+  <li>If you "go back in time" and then make a new move from that point, you only want to keep the history up to that point — so append after <code>history.slice(0, currentMove + 1)</code> instead of after everything.</li>
+  <li>Each time a move is made, update <code>currentMove</code> to point to the latest history entry.</li>
+</ul>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handlePlay(nextSquares: Squares) {
+  const nextHistory = history.slice(0, currentMove + 1).concat([nextSquares])
+  setHistory(nextHistory)
+  setCurrentMove(nextHistory.length - 1)
+  setXIsNext(!xIsNext)
+}</code></pre></div>
+<p>Finally, modify <code>Game</code> to render the currently selected move instead of always rendering the final move:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const currentMove = useGameStore((state) =&gt; state.currentMove)
+  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
+  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
+  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
+  const currentSquares = history[currentMove]
+
+  function handlePlay(nextSquares: Squares) {
+    const nextHistory = history.slice(0, currentMove + 1).concat([nextSquares])
+    setHistory(nextHistory)
+    setCurrentMove(nextHistory.length - 1)
+    setXIsNext(!xIsNext)
+  }
+
+  function jumpTo(nextMove: number) {
+    setCurrentMove(nextMove)
+    setXIsNext(nextMove % 2 === 0)
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;
+        {history.map((_, historyIndex) =&gt; {
+          const description =
+            historyIndex &gt; 0
+              ? `Go to move #${historyIndex}`
+              : 'Go to game start'
+
+          return (
+            &lt;Pressable
+              key={historyIndex}
+              style={styles.moveButton}
+              onPress={() =&gt; jumpTo(historyIndex)}
+            &gt;
+              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
+            &lt;/Pressable&gt;
+          )
+        })}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<h3 id="final-cleanup">Final cleanup</h3>
+<p>If you look closely, <code>xIsNext</code> is <code>true</code> when <code>currentMove</code> is even and <code>false</code> when it's odd. If you know <code>currentMove</code>, you can always determine <code>xIsNext</code>. There's no need to store it separately — redundant state means more ways to introduce bugs. Calculate it instead:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
+  const history = useGameStore((state) =&gt; state.history)
+  const setHistory = useGameStore((state) =&gt; state.setHistory)
+  const currentMove = useGameStore((state) =&gt; state.currentMove)
+  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
+  const xIsNext = currentMove % 2 === 0
+  const currentSquares = history[currentMove]
+
+  function handlePlay(nextSquares: Squares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares]
+    setHistory(nextHistory)
+    setCurrentMove(nextHistory.length - 1)
+  }
+
+  function jumpTo(nextMove: number) {
+    setCurrentMove(nextMove)
+  }
+
+  return (
+    &lt;View style={styles.game}&gt;
+      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
+      &lt;View style={styles.moves}&gt;
+        {history.map((_, historyIndex) =&gt; {
+          const description =
+            historyIndex &gt; 0
+              ? `Go to move #${historyIndex}`
+              : 'Go to game start'
+
+          return (
+            &lt;Pressable
+              key={historyIndex}
+              style={styles.moveButton}
+              onPress={() =&gt; jumpTo(historyIndex)}
+            &gt;
+              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
+            &lt;/Pressable&gt;
+          )
+        })}
+      &lt;/View&gt;
+    &lt;/View&gt;
+  )
+}</code></pre></div>
+<p>You no longer need the <code>xIsNext</code> state declaration or the calls to <code>setXIsNext</code> — delete <code>setXIsNext</code> from the store too, and the compiler will point you at every remaining call site. Now there's no chance for <code>xIsNext</code> to get out of sync with <code>currentMove</code>.</p>
+<div class="tip">
+  <strong>Two React Native finishing touches</strong>
+  <p>The game is complete, but a real screen needs two more things this tutorial leaves out. Wrap the root in a safe-area view (<code>useSafeAreaInsets</code> or <code>SafeAreaView</code>) so the board is not under the notch or the home indicator, and give the monospace look a real font: <code>fontFamily: 'monospace'</code> resolves on Android but not on iOS, so use <code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code> — which is what the <a href="#what-are-you-building">complete program</a> at the top of this page does.</p>
+</div>
+<h3 id="wrapping-up">Wrapping up</h3>
+<p>Congratulations! You've created a fully typed tic-tac-toe game that:</p>
+<ul>
+  <li>Lets you play tic-tac-toe,</li>
+  <li>Indicates when a player has won the game or when it's drawn,</li>
+  <li>Stores a game's history as the game progresses,</li>
+  <li>Allows players to review the history and see previous versions of the board,</li>
+  <li>Runs on iOS and Android with no DOM anywhere in sight.</li>
+</ul>
+<h3 id="the-conversion-in-one-table">The conversion, in one table</h3>
+<p>First, the JavaScript → TypeScript half of the port:</p>
+<table>
+<thead><tr><th>JavaScript</th><th>TypeScript</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>Array(9).fill(null)</code></td><td><code>Array&lt;SquareValue&gt;(9).fill(null)</code></td><td><code>any[]</code> vs. a checked board — the single most important change on this page</td></tr>
+<tr><td><code>'X'</code> / <code>'O'</code> as strings</td><td><code>type Player = 'X' | 'O'</code></td><td>Typos become compile errors</td></tr>
+<tr><td><code>function Square({ value, onSquareClick })</code></td><td><code>function Square({ … }: SquareProps)</code></td><td>Destructured props are never inferred</td></tr>
+<tr><td><code>function handleClick(i)</code></td><td><code>function handleClick(i: number)</code></td><td>Function-declaration parameters are never inferred</td></tr>
+<tr><td><code>setSquares: (nextSquares) =&gt;</code></td><td><code>setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt;</code></td><td><code>combine</code> infers state, not action parameters</td></tr>
+<tr><td><code>create(combine(…))</code></td><td><code>create(combine(…))</code> — unchanged</td><td>Don't use curried <code>create&lt;T&gt;()()</code> with <code>combine</code></td></tr>
+<tr><td><code>calculateWinner(squares)</code></td><td><code>calculateWinner(squares: Squares): SquareValue</code></td><td>Return type documents the "no winner yet" case</td></tr>
+<tr><td><code>App.js</code></td><td><code>App.tsx</code></td><td>JSX needs the <code>x</code></td></tr>
+</tbody></table>
+<p>And the DOM → React Native half:</p>
+<table>
+<thead><tr><th>Web</th><th>React Native</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;button onClick&gt;</code></td><td><code>&lt;Pressable onPress&gt;</code> wrapping a <code>&lt;Text&gt;</code></td><td>No DOM: <code>button</code> is not a registered native component</td></tr>
+<tr><td><code>&lt;div&gt;</code></td><td><code>&lt;View&gt;</code></td><td>The generic box primitive</td></tr>
+<tr><td><code>{value}</code> as a direct child</td><td><code>&lt;Text&gt;{value}&lt;/Text&gt;</code></td><td>Strings must have a <code>Text</code> ancestor</td></tr>
+<tr><td><code>&lt;ol&gt;</code> / <code>&lt;li&gt;</code></td><td><code>&lt;View&gt;</code> + one <code>&lt;Pressable&gt;</code> per move</td><td>No list semantics or markers; the index is already in the label</td></tr>
+<tr><td>inline <code>style={{ … }}</code></td><td><code>StyleSheet.create</code> + <code>style={styles.x}</code></td><td>Stable references, and typed against <code>ViewStyle</code>/<code>TextStyle</code></td></tr>
+<tr><td><code>display: 'grid'</code>, <code>gridTemplateColumns</code></td><td><code>flexDirection: 'row'</code> + <code>flexWrap: 'wrap'</code> + fixed width</td><td>Layout is flexbox only — no CSS Grid</td></tr>
+<tr><td><code>border: '1px solid #999'</code></td><td><code>borderWidth: 1, borderColor: '#999'</code></td><td>No shorthand strings; numbers are density-independent pixels</td></tr>
+<tr><td><code>'1rem'</code>, <code>'0.5rem'</code>, <code>'calc(3 * 2.5rem)'</code></td><td><code>16</code>, <code>8</code>, <code>SQUARE_SIZE * 3</code></td><td>No CSS units and no <code>calc()</code> — do the arithmetic in JS</td></tr>
+<tr><td><code>outline: 0</code>, <code>borderRadius: 0</code></td><td>deleted</td><td>Neither has a React Native equivalent or a default worth resetting</td></tr>
+<tr><td><code>fontFamily: 'monospace'</code></td><td><code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code></td><td>Generic font families don't resolve on iOS</td></tr>
+<tr><td>web fragment <code>&lt;&gt;…&lt;/&gt;</code></td><td><code>&lt;View&gt;</code></td><td>Fragments can't hold styles, and the parent's <code>flexDirection</code> would decide the layout</td></tr>
+</tbody></table>
+<p>Everything else — the store shape, the four types, the game logic — is byte-for-byte the original. That is the point: the store and the types are platform-agnostic, so a React Native port touches only the view layer.</p>
+
+<h2 class="appendix" id="appendix-web">Appendix: if you came from the web tutorial</h2>
+<p>The upstream Zustand tutorial targets the browser. If you paste its <code>Square</code> straight into an Expo app, the very first render throws:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">Render Error</span><span class="lang">text</span></div><pre><code>View config getter callback for component `button` must be a function
+(received `undefined`). Make sure to start component names with a capital letter.
+
+  at invariant (node_modules/invariant/browser.js:38)
+  at get (react-native/Libraries/Renderer/shims/ReactNativeViewConfigRegistry.js:103)
+  at completeWork (react-native/Libraries/Renderer/implementations/ReactFabric-dev.js)</code></pre></div>
+<h3 id="appendix-why">Why it happens</h3>
+<p>In React, a lowercase JSX tag means "host component" — something the renderer provides rather than something you wrote. On the web that is a DOM element. Under React Native's Fabric renderer, the name is looked up in <code>ReactNativeViewConfigRegistry</code>, which only knows the components the native side registered: <code>RCTView</code>, <code>RCTText</code>, <code>RCTImage</code> and friends, exposed to you as <code>View</code>, <code>Text</code>, <code>Image</code>. Nothing registers a view config under the name <code>button</code>, so the getter returns <code>undefined</code> and the invariant fires while React is completing that fiber.</p>
+<p>Three consequences worth internalising:</p>
+<ul>
+  <li>The trailing advice about capital letters is React's generic guess. Renaming <code>&lt;button&gt;</code> to <code>&lt;Button&gt;</code> only changes the error — you need a real component, not a capital letter.</li>
+  <li><code>&lt;button&gt;</code> is just the first tag the renderer reaches. <code>&lt;div&gt;</code>, <code>&lt;ol&gt;</code> and <code>&lt;li&gt;</code> would each throw the same invariant in turn.</li>
+  <li>It is a runtime error, not a compile error: <code>@types/react</code> ships the JSX definitions for every DOM element, so <code>tsc</code> is perfectly happy with <code>&lt;button&gt;</code> in a React Native file. Nothing in the type system tells you the tag can't exist on device.</li>
+</ul>
+<h3 id="appendix-original">The original DOM snippets</h3>
+<p>For reference, here are the two components as the upstream tutorial writes them — still ported to TypeScript, but with the DOM elements and CSS intact. Compare them against the React Native versions in <a href="#building-the-board">Building the board</a>.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">Square.tsx — web</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
+  value: string
+  onSquareClick?: () =&gt; void
+}
+
+function Square({ value, onSquareClick }: SquareProps) {
+  return (
+    &lt;button
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        backgroundColor: '#fff',
+        border: '1px solid #999',
+        outline: 0,
+        borderRadius: 0,
+        fontSize: '1rem',
+        fontWeight: 'bold',
+      }}
+      onClick={onSquareClick}
+    &gt;
+      {value}
+    &lt;/button&gt;
+  )
+}</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">Board.tsx — web</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+  return (
+    &lt;div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(3, 1fr)',
+        width: 'calc(3 * 2.5rem)',
+        height: 'calc(3 * 2.5rem)',
+        border: '1px solid #999',
+      }}
+    &gt;
+      &lt;Square value="1" /&gt;
+      &lt;Square value="2" /&gt;
+      &lt;Square value="3" /&gt;
+      &lt;Square value="4" /&gt;
+      &lt;Square value="5" /&gt;
+      &lt;Square value="6" /&gt;
+      &lt;Square value="7" /&gt;
+      &lt;Square value="8" /&gt;
+      &lt;Square value="9" /&gt;
+    &lt;/div&gt;
+  )
+}</code></pre></div>
+<div class="note">
+  <strong>What about react-native-web?</strong>
+  <p>It solves the opposite problem — running React Native components in a browser — not DOM elements on a device. Expo's web target does render <code>&lt;div&gt;</code> and <code>&lt;button&gt;</code> because it is a real DOM there, which is exactly why <code>npm run web</code> can appear to work while iOS and Android crash on the same file. Write the React Native version and it runs on all three.</p>
+</div>
+
+<p class="source">
+Source: <a href="https://zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe">zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe</a> ·
+Typing guidance cross-checked against the Zustand <a href="https://zustand.docs.pmnd.rs/learn/guides/advanced-typescript">advanced TypeScript guide</a> ·
+Prose belongs to the Zustand authors (MIT); the TypeScript port, the React Native port and the notes were written for this repo.
+<br>
+Every snippet on this page was extracted and compiled with <code>tsc --strict</code> (TypeScript 6, Zustand 5,
+React Native 0.81, <code>@types/react</code> 19) — the three complete programs on their own, and each excerpt stitched
+into its stage context. Zero errors, zero <code>any</code>, no <code>@ts-ignore</code>. The only deliberate exceptions are the
+mid-refactor steps called out in the notes above.
+</p>
+
+</div>
+</body>
+</html>

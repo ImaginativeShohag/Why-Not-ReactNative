@@ -1,0 +1,277 @@
+import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import {
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import ProfileSheet from "@/src/projects/store/components/sheet/ProfileSheet";
+import ProductView from "@/src/projects/store/components/ui/product-item";
+import {
+  useCategories,
+  useProducts,
+} from "@/src/projects/store/hooks/useProduct";
+import { useCartStore } from "@/src/projects/store/stores/cartStore";
+import { renderCarouselItem } from "@/src/projects/store/utils/render-item";
+import { ThemedText } from "@/src/shared/components/themed-text";
+import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Link, useNavigation } from "expo-router";
+import { useCallback, useEffect, useRef } from "react";
+import Carousel from "react-native-reanimated-carousel";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const screenWidth = Dimensions.get("window").width;
+
+export default function HomeScreen() {
+  const navigation = useNavigation();
+  const { items, addToCart, updateQuantity } = useCartStore();
+  const sheetRef = useRef<BottomSheetModal>(null);
+
+  const { data: products = [] } = useProducts();
+  const { data: categories } = useCategories();
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
+  // callbacks
+  const handleSheetChange = useCallback((index: number) => {
+    console.log("handleSheetChange", index);
+  }, []);
+
+  return (
+    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+      <View style={styles.container}>
+        <FlashList
+          data={products}
+          keyExtractor={(item) => String(item.id)}
+          masonry={true}
+          numColumns={2}
+          contentContainerStyle={{ paddingHorizontal: 0 }}
+          ItemSeparatorComponent={() => <View style={{ height: 0 }} />}
+          ListHeaderComponent={() => (
+            <View style={{ gap: 16 }}>
+              <View style={styles.headerContainer}>
+                <ThemedText
+                  type={"subtitle"}
+                  style={{ flex: 1, fontWeight: "normal" }}
+                >
+                  Welcome,{" "}
+                  <ThemedText type={"subtitle"} style={{ fontWeight: "bold" }}>
+                    Lorem Ipsum!
+                  </ThemedText>
+                </ThemedText>
+
+                <Pressable
+                  onPress={() => {
+                    sheetRef.current?.present();
+                  }}
+                  style={({ pressed }) => [pressed && styles.buttonPressed]}
+                >
+                  <Ionicons name="person-circle-outline" size={32} />
+                </Pressable>
+              </View>
+
+              <Carousel
+                loop={true}
+                width={screenWidth - 16 * 2}
+                height={150}
+                snapEnabled={true}
+                pagingEnabled={true}
+                autoPlayInterval={2000}
+                autoPlay
+                data={products}
+                style={{ width: "100%" }}
+                onSnapToItem={(index) => console.log("current index:", index)}
+                mode="parallax"
+                modeConfig={{
+                  parallaxScrollingScale: 0.9,
+                  parallaxScrollingOffset: 50,
+                }}
+                renderItem={renderCarouselItem({
+                  rounded: true,
+                  style: { marginHorizontal: 0 },
+                })}
+              />
+
+              <FlashList
+                data={categories}
+                keyExtractor={(item) => item}
+                horizontal={true}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+                ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+                renderItem={({ item: category }) => (
+                  <Link
+                    href={{
+                      pathname: "/projects/store/products/[categoryId]",
+                      params: { categoryId: category },
+                    }}
+                    asChild
+                  >
+                    <Pressable
+                      style={({ pressed }) => [
+                        {
+                          opacity: pressed ? 0.2 : 1.0,
+                        },
+                      ]}
+                    >
+                      <View style={styles.categoryItemContainer}>
+                        <Ionicons name="cube-outline" size={16} color="black" />
+                        <Text style={styles.categoryItemText}>
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </Link>
+                )}
+              />
+            </View>
+          )}
+          renderItem={({ item: product }) => {
+            const cartItem = items.find((i) => i.id === product.id);
+
+            const increaseQuantity = () => {
+              if (!product) return;
+              if (!cartItem) {
+                addToCart(product);
+              } else {
+                updateQuantity(product.id, 1);
+              }
+            };
+
+            const decreaseQuantity = () => {
+              if (!cartItem) return;
+              if (cartItem.quantity > 1) {
+                updateQuantity(product.id, -1);
+              }
+            };
+
+            return (
+              <Link
+                href={{
+                  pathname: "/projects/store/product-details/[productId]",
+                  params: { productId: product.id },
+                }}
+                asChild
+              >
+                <Pressable
+                  style={({ pressed }) => [
+                    {
+                      opacity: pressed ? 0.2 : 1.0,
+                    },
+                  ]}
+                >
+                  <ProductView
+                    title={product.title}
+                    price={product.price}
+                    image={product.image}
+                    rating={product.rating.rate}
+                    ratingCount={product.rating.count}
+                    quantity={cartItem?.quantity ?? 0}
+                    onPlusClick={() => {
+                      increaseQuantity();
+                    }}
+                    onMinusClick={() => {
+                      decreaseQuantity();
+                    }}
+                  />
+                </Pressable>
+              </Link>
+            );
+          }}
+        />
+      </View>
+
+      <BottomSheetModal
+        ref={sheetRef}
+        index={0}
+        snapPoints={["90%"]}
+        enableDynamicSizing={false}
+        onChange={handleSheetChange}
+        handleComponent={() => (
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>My Title</Text>
+            <TouchableOpacity onPress={() => sheetRef.current?.close()}>
+              <Text style={styles.sheetDoneButton}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      >
+        <BottomSheetScrollView>
+          <ProfileSheet />
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  itemContainer: {
+    flex: 1, // Allows items to take equal width within their column
+    margin: 5,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 50, // Example minimum height for items
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  categoryItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(128,128,128,0.25)",
+  },
+  categoryItemText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sheetHeader: {
+    height: 50,
+    backgroundColor: "#fff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ccc",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    borderTopStartRadius: 16,
+    borderTopEndRadius: 16,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  sheetDoneButton: {
+    fontSize: 16,
+    color: "blue",
+  },
+  buttonPressed: {
+    opacity: 0.5,
+  },
+});
