@@ -235,7 +235,7 @@
 
 <pre><code>src/projects/fitness-tracker/
 ├── tracking/
-│   ├── task.ts                   defineTask — imported by the project layout
+│   ├── task.ts                   defineTask, action replay — imported by the root layout
 │   ├── controller.ts             start/pause/resume/stop, idempotent
 │   ├── filters.ts                accuracy gate, smoothing, outlier rejection
 │   ├── metrics.ts                distance, pace, elevation, splits (PURE)
@@ -342,8 +342,9 @@ Test loop:
 <h3>Point processing</h3>
 <pre><code>raw fix
   → reject if accuracy > 25 m
+  → reject if timestamp is not newer than the last accepted point
   → reject if implied speed > plausible max for the activity type
-  → reject if timestamp is older than the last accepted point
+     (after the stale check, so the speed division always has dt > 0)
   → smooth (moving average or a simple Kalman filter on lat/lng)
   → if distance from last accepted point < 5 m and not paused → skip
   → persist to SQLite

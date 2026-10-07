@@ -49,6 +49,11 @@
 
 <p>Final audit against the working tree on <strong>2026-08-19</strong> (branch <code>dev</code>). Earlier audits: 2026-08-11 (M4 partial, M5 blocked).</p>
 
+<div class="note">
+  <strong>Update 2026-10-07: the launcher has moved on since this audit</strong>
+  <p>All six projects are built now, so there are no planned rows and no <code>ComingSoonView</code>. The registry entries carry a <code>slug</code> (Home keys the list by it, and the root layout generates one <code>Stack.Screen</code> per slug) and an optional <code>singleScreen</code> flag. The <code>available</code> flag is gone. <code>ProjectListItem</code> lives in <code>src/shared/components/project-list-item.tsx</code>. Tic-Tac-Toe's pure helpers live in <code>src/projects/tic-tac-toe/utils/game.ts</code>, with tests. Rule 1 (no cross-project imports) is now enforced by <code>no-restricted-imports</code> in <code>eslint.config.js</code>. The rows marked <em>Superseded</em> below are history. <code>AGENTS.md</code> describes the current layout.</p>
+</div>
+
 <table>
 <thead><tr><th>Milestone</th><th>State</th><th>Evidence</th></tr></thead>
 <tbody>
@@ -72,7 +77,7 @@
 
 <div class="note">
   <strong>Scope grew: six projects, not five</strong>
-  <p>The registry lists <strong>Tic-Tac-Toe</strong> as "Project 06" alongside the original five. Its write-up is <a href="zustand-tic-tac-toe-typescript.html">zustand-tic-tac-toe-typescript.html</a>, which is not yet linked from <a href="index.html">the learning path index</a> and doesn't follow the <code>0N-*.html</code> naming of the others — see <a href="#decisions">decision #5</a>.</p>
+  <p>The registry lists <strong>Tic-Tac-Toe</strong> as "Project 06" alongside the original five. Its write-up is now <a href="06-tic-tac-toe.html">06-tic-tac-toe.html</a>, linked from <a href="index.html">the learning path index</a> like the others — see <a href="#decisions">decision #5</a>.</p>
 </div>
 
 <h2 id="accepted">Accepted deviations &amp; leftovers</h2>
@@ -88,19 +93,19 @@
 </tr>
 <tr>
   <td><code>ProjectListItem</code> stays defined and exported inside <code>src/app/index.tsx</code>, taking the whole <code>Project</code> registry object rather than plain props.</td>
-  <td>Deferred. It has exactly one call site. Revisit if a second screen ever needs the row.</td>
+  <td><em>Superseded 2026-10-07:</em> moved to <code>src/shared/components/project-list-item.tsx</code>, because a route file must not export components.</td>
 </tr>
 <tr>
   <td>The registry has no <code>slug</code> or <code>docHref</code>; Home keys the list by <code>title</code>, and <code>available</code> stays a boolean rather than <code>status: "available" | "planned"</code>.</td>
-  <td>Deferred. Consequence to know about: <code>ComingSoonView</code> shows a title but can't link back to <code>docs/0N-*.html</code>.</td>
+  <td><em>Superseded:</em> entries now have a <code>slug</code> and Home keys by it. <code>available</code> and <code>ComingSoonView</code> are gone because every project is built.</td>
 </tr>
 <tr>
   <td>Tic-Tac-Toe has no <code>src/projects/tic-tac-toe/</code> slice — its store, <code>Square</code>, <code>Board</code> and <code>calculateWinner</code>/<code>calculateTurns</code>/<code>calculateStatus</code> helpers all live in the route file.</td>
-  <td>Accepted while it's a single-file teaching example that reads top-to-bottom. Split it into a slice before it grows a second screen — it's the one place that bends <a href="#rules">rule 5</a>.</td>
+  <td><em>Superseded 2026-10-07:</em> the helpers (<code>calculateWinner</code>, <code>countRemainingTurns</code>, <code>calculateStatus</code>, <code>squareLabel</code>) moved to <code>src/projects/tic-tac-toe/utils/game.ts</code> and are unit-tested. The <code>combine</code> store and the components stay in the route file.</td>
 </tr>
 <tr>
   <td><code>src/shared/components/ui/ComingSoonView.tsx</code> is PascalCase among kebab-case siblings, and exports a symbol named <code>ComingSoonScreen</code> though it's a reusable component, not a screen.</td>
-  <td>Cosmetic. Rename to <code>coming-soon-view.tsx</code> / <code>ComingSoonView</code> whenever that file is next touched.</td>
+  <td><em>Superseded:</em> the file was deleted once all four stub routes became real projects.</td>
 </tr>
 <tr>
   <td><code>splash/index.tsx</code> still carries <code>export const options = { headerShown: false }</code>.</td>
@@ -144,7 +149,7 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
   <li>Tapping an <strong>Available</strong> row pushes into that project's own navigation stack. Tapping a <strong>Planned</strong> row opens a lightweight "not built yet" screen instead of doing nothing.</li>
   <li>Each project is a <strong>vertical slice</strong>: its routes, components, hooks, stores, api calls and models all live under one project-named directory. Nothing about Project X's cart, auth, or models is importable from Project Y.</li>
   <li>A small <strong>shared</strong> layer holds only what is genuinely generic across all projects: theming, the two themed primitives already used outside the store, the axios instance, the query provider, and the SF-Symbol/empty-state UI primitives.</li>
-  <li>Projects map 1:1 onto the docs in this folder — <code>store</code> ↔ <a href="03-commerce-platform.html">03</a>, <code>offline-journal</code> ↔ <a href="01-offline-journal.html">01</a>, <code>camera-social</code> ↔ <a href="02-camera-social.html">02</a>, <code>fitness-tracker</code> ↔ <a href="04-fitness-tracker.html">04</a>, <code>podcast-player</code> ↔ <a href="05-podcast-player.html">05</a>, and <code>tic-tac-toe</code> ↔ <a href="zustand-tic-tac-toe-typescript.html">the Zustand tutorial port</a>.</li>
+  <li>Projects map 1:1 onto the docs in this folder — <code>store</code> ↔ <a href="03-commerce-platform.html">03</a>, <code>offline-journal</code> ↔ <a href="01-offline-journal.html">01</a>, <code>camera-social</code> ↔ <a href="02-camera-social.html">02</a>, <code>fitness-tracker</code> ↔ <a href="04-fitness-tracker.html">04</a>, <code>podcast-player</code> ↔ <a href="05-podcast-player.html">05</a>, and <code>tic-tac-toe</code> ↔ <a href="06-tic-tac-toe.html">06</a>.</li>
 </ul>
 
 <h2 id="layout">Directory layout (as built)</h2>
@@ -198,10 +203,10 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
 ├── components/
 │   ├── themed-text.tsx        used by +not-found AND store today
 │   ├── themed-view.tsx
+│   ├── project-list-item.tsx  the launcher row (pure presentation)
 │   └── ui/
 │       ├── icon-symbol.tsx / icon-symbol.ios.tsx
-│       ├── content-unavailable-view.tsx
-│       └── ComingSoonView.tsx  shared stub screen (rename pending)
+│       └── content-unavailable-view.tsx
 ├── config/
 │   └── projects.ts            the launcher registry
 ├── hooks/
@@ -252,14 +257,14 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
 <p class="figcap">One list, one status dot per row. Every row is tappable: available rows push into that project's stack, planned rows push the shared "coming soon" screen.</p>
 
 <h3>The registry — one source of truth for the list</h3>
-<p><code>src/shared/config/projects.ts</code> exports a typed <code>PROJECTS</code> array describing every entry: <code>emoji</code>, <code>title</code>, <code>subtitle</code>, <code>available</code>, and <code>route</code> (an expo-router <code>Href</code>). The Home screen maps over this array — it has no hardcoded knowledge of "store" or any other project. Flipping a project from planned to available is a one-line change in this file plus replacing its stub.</p>
+<p><code>src/shared/config/projects.ts</code> exports a typed <code>PROJECTS</code> array describing every entry: <code>slug</code>, <code>emoji</code>, <code>title</code>, <code>subtitle</code>, <code>route</code> (an expo-router <code>Href</code>), and an optional <code>singleScreen</code> for a one-file project. The Home screen maps over this array, and so does the root layout, which generates one <code>Stack.Screen</code> per slug. Neither has any hardcoded knowledge of "store" or any other project. <em>(Originally the entries had an <code>available</code> flag and planned rows opened a stub. That flag was removed once all six projects were built.)</em></p>
 
 <h3>Component split (keeping with this repo's "dumb components" rule)</h3>
 <table>
 <thead><tr><th>Piece</th><th>Owns</th><th>Receives</th></tr></thead>
 <tbody>
 <tr><td><code>Home</code> screen (<code>src/app/index.tsx</code>)</td><td>Reads the registry, holds no other state</td><td>—</td></tr>
-<tr><td><code>ProjectListItem</code></td><td>Nothing — pure presentation</td><td>The whole <code>Project</code> object + <code>onPress</code>; plain props were <a href="#accepted">deferred</a></td></tr>
+<tr><td><code>ProjectListItem</code> (<code>src/shared/components/project-list-item.tsx</code>)</td><td>Nothing — pure presentation</td><td>The whole <code>Project</code> object + <code>onPress</code>; plain props were <a href="#accepted">deferred</a></td></tr>
 </tbody>
 </table>
 
@@ -283,6 +288,11 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
 <tr><td><em>(none)</em></td><td><code>/projects/offline-journal</code>, <code>/projects/camera-social</code>, <code>/projects/fitness-tracker</code>, <code>/projects/podcast-player</code> — each a "coming soon" screen</td></tr>
 </tbody>
 </table>
+
+<div class="note">
+  <strong>This table is the Step 00 snapshot</strong>
+  <p>Project 03 later regrouped the store behind auth guards: <code>splash</code> and <code>login</code> became <code>(auth)/sign-in</code> (the native splash is held until the session resolves), <code>main/(tab)</code> became <code>(app)/(tab)</code> — so the tabs live at <code>/projects/store</code>, <code>/projects/store/categories</code>, <code>/projects/store/bag</code> — <code>product-details/[productId]</code> became <code>product/[id]</code>, and <code>place-order</code> became the <code>checkout/{address,shipping,payment,review}</code> flow. The other four stubs were each replaced by a full project with its own <code>_layout.tsx</code>. See <a href="03-commerce-platform.html">doc 03</a> and <a href="audit-03.md">the store audit</a>.</p>
+</div>
 
 <div class="warn">
   <strong>Screen options come from the layout, never from a route-level export</strong>
@@ -390,7 +400,7 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
     <li>✅ Update <code>src/app/_layout.tsx</code>'s <code>Stack.Screen name="…"</code> values.</li>
     <li>✅ Grep the moved tree for <code>"/store/</code> and <code>href="/store</code> and rewrite every match to <code>/projects/store/…</code>.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Every button inside the store navigates to the right screen, and deep-linking to <code>whynotreactnative://projects/store/main</code> opens the tab bar.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Every button inside the store navigates to the right screen, and deep-linking to <code>whynotreactnative://projects/store/main</code> opens the tab bar. <em>(After Project 03 the tabs are at <code>whynotreactnative://projects/store</code>.)</em></div>
 </div>
 
 <div class="milestone">
@@ -429,7 +439,7 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
   <li><strong>Project slug for the store.</strong> <span class="chip green">Resolved — kept <code>store</code>.</span> Routes are <code>/projects/store/…</code> and the code slice is <code>src/projects/store/</code>, even though doc 03 is titled "Production Commerce App." Minimal churn; the registry's <code>subtitle</code> carries the "Project 03" mapping.</li>
   <li><strong>Where each project's <code>QueryProvider</code> lives.</strong> <span class="chip green">Resolved — one global client.</span> The store's tab-layout mount was removed; the single instance now wraps everything from <code>src/app/_layout.tsx</code>. This inverts the original per-project lean, and the reason matters: the store's login screen sits <em>outside</em> the tab layout, so with two clients any data fetched during login would have been invisible to the tab screens.</li>
   <li><strong>Stub screen depth.</strong> <span class="chip green">Resolved — one shared component.</span> The four byte-identical files became four one-line routes rendering a shared <code>ComingSoonView</code> with a per-project title. The docs backlink is absent because <code>docHref</code> was <a href="#accepted">deferred</a>.</li>
-  <li><strong>How Tic-Tac-Toe fits the docs scheme.</strong> <span class="chip amber">Still open.</span> It's "Project 06" in the registry but its write-up is <code>zustand-tic-tac-toe-typescript.html</code>, unlinked from the index and off-pattern from <code>0N-*.html</code>. Either rename it to <code>06-*.html</code> and link it, or treat it as a standalone tutorial and drop the "Project 06" label from the registry subtitle. This is a docs-hygiene item, not a restructure blocker.</li>
+  <li><strong>How Tic-Tac-Toe fits the docs scheme.</strong> <span class="chip green">Resolved — renamed to 06.</span> The write-up is now <a href="06-tic-tac-toe.html">06-tic-tac-toe.html</a>, matching the registry's "Project 06" label, linked from the index as a card in the path (marked as a warm-up outside the tier progression), and chained from Project 05's "next" link. Its page-local copy of the code-block CSS was dropped in favour of <code>assets/style.css</code>.</li>
 </ol>
 
 <h2 id="pitfalls">Failure modes — what actually bit</h2>
@@ -449,7 +459,7 @@ src/{api,components,constants,hooks,models,providers,stores,utils}/
   <a href="03-commerce-platform.html">Project 03 · Commerce (the store, post-move) →</a>
 </div>
 
-<footer>Step 00 · complete — this repo is a launcher; start projects 01–06 from the learning path · last audited 2026-08-19</footer>
+<footer>Step 00 · complete — this repo is a launcher; projects 01–06 are all built · last audited 2026-10-01</footer>
 
 </div>
 </body>

@@ -3,25 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zustand Tic-Tac-Toe — TypeScript + React Native port</title>
+<title>06 · Tic-Tac-Toe with Zustand — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .codeblock { margin: 0 0 18px; }
-  .codeblock pre { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
-  .codeblock:has(.codehead) pre { border-top: 0; }
-  .codehead {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: var(--bg-soft); border: 1px solid var(--border); border-bottom: 0;
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding: 6px 14px; font-family: var(--mono); font-size: 0.75rem;
-  }
-  .codehead .fname { color: var(--fg-dim); }
-  .codehead .lang {
-    color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem;
-  }
-  table { width: 100%; border-collapse: collapse; margin: 0 0 20px; font-size: 0.92rem; }
-  th, td { border: 1px solid var(--border-soft); padding: 8px 10px; text-align: left; vertical-align: top; }
-  th { background: var(--bg-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-dim); }
   .source { color: var(--fg-faint); font-size: 0.85rem; margin-top: 40px; border-top: 1px solid var(--border-soft); padding-top: 16px; }
   h2.appendix { margin-top: 48px; border-top: 1px solid var(--border-soft); padding-top: 28px; }
 </style>
@@ -29,9 +13,9 @@
 <body>
 <div class="wrap">
 
-<div class="crumb"><a href="index.html">← Docs</a> / Zustand tutorial · TypeScript · React Native</div>
+<div class="crumb"><a href="index.html">← Learning path</a> / Project 06</div>
 
-<h1>Tutorial: Tic-Tac-Toe <span style="color: var(--accent)">in TypeScript &amp; React Native</span></h1>
+<h1>06 · Tic-Tac-Toe <span style="color: var(--accent)">in TypeScript &amp; React Native</span></h1>
 <p class="subtitle">The official Zustand tic-tac-toe tutorial, ported twice over: every JavaScript snippet typed, and every DOM element replaced with a React Native primitive so the code actually runs on device.</p>
 
 <div class="meta-row">
@@ -140,9 +124,9 @@ type BoardProps = {
 
 function Board({ xIsNext, squares, onPlay }: BoardProps) {
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -232,16 +216,16 @@ function calculateWinner(squares: Squares): SquareValue {
   return null
 }
 
-function calculateTurns(squares: Squares): number {
+function countRemainingTurns(squares: Squares): number {
   return squares.filter((square) =&gt; !square).length
 }
 
 function calculateStatus(
   winner: SquareValue,
-  turns: number,
+  remainingTurns: number,
   player: Player,
 ): string {
-  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
   if (winner) return `Winner ${winner}`
   return `Next player: ${player}`
 }
@@ -539,7 +523,7 @@ export default function Board() {
 }</code></pre></div>
 <p><code>const player = xIsNext ? 'X' : 'O'</code> needs no annotation: a conditional over two string literals infers <code>'X' | 'O'</code>, which *is* <code>Player</code>. Resist the urge to annotate what inference already gets right — every unnecessary annotation is a place that can drift out of sync.</p>
 <h3 id="declaring-a-winner-or-draw">Declaring a winner or draw</h3>
-<p>Now that the players can take turns, you'll want to show when the game is won or drawn. Add three helper functions: <code>calculateWinner</code> takes an array of 9 squares and returns <code>'X'</code>, <code>'O'</code>, or <code>null</code>; <code>calculateTurns</code> returns the count of remaining (empty) squares; and <code>calculateStatus</code> builds the status string from the winner, the remaining turns, and the current player.</p>
+<p>Now that the players can take turns, you'll want to show when the game is won or drawn. Add three helper functions: <code>calculateWinner</code> takes an array of 9 squares and returns <code>'X'</code>, <code>'O'</code>, or <code>null</code>; <code>countRemainingTurns</code> returns the number of turns left, which is the count of empty squares; and <code>calculateStatus</code> builds the status string from the winner, the remaining turns, and the current player.</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function calculateWinner(squares: Squares): SquareValue {
   const lines = [
     [0, 1, 2],
@@ -562,16 +546,16 @@ export default function Board() {
   return null
 }
 
-function calculateTurns(squares: Squares): number {
+function countRemainingTurns(squares: Squares): number {
   return squares.filter((square) =&gt; !square).length
 }
 
 function calculateStatus(
   winner: SquareValue,
-  turns: number,
+  remainingTurns: number,
   player: Player,
 ): string {
-  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
   if (winner) return `Winner ${winner}`
   return `Next player: ${player}`
 }</code></pre></div>
@@ -598,9 +582,9 @@ function calculateStatus(
   const squares = useGameStore((state) =&gt; state.squares)
   const setSquares = useGameStore((state) =&gt; state.setSquares)
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -684,9 +668,9 @@ export default function Board() {
   const squares = useGameStore((state) =&gt; state.squares)
   const setSquares = useGameStore((state) =&gt; state.setSquares)
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -734,16 +718,16 @@ function calculateWinner(squares: Squares): SquareValue {
   return null
 }
 
-function calculateTurns(squares: Squares): number {
+function countRemainingTurns(squares: Squares): number {
   return squares.filter((square) =&gt; !square).length
 }
 
 function calculateStatus(
   winner: SquareValue,
-  turns: number,
+  remainingTurns: number,
   player: Player,
 ): string {
-  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
   if (winner) return `Winner ${winner}`
   return `Next player: ${player}`
 }
@@ -796,9 +780,9 @@ const styles = StyleSheet.create({
   const squares = useGameStore((state) =&gt; state.squares)
   const setSquares = useGameStore((state) =&gt; state.setSquares)
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -914,9 +898,9 @@ export default function Game() {
 
 function Board({ xIsNext, squares, onPlay }: BoardProps) {
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -1011,9 +995,9 @@ type BoardProps = {
 
 function Board({ xIsNext, squares, onPlay }: BoardProps) {
   const winner = calculateWinner(squares)
-  const turns = calculateTurns(squares)
+  const remainingTurns = countRemainingTurns(squares)
   const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, turns, player)
+  const status = calculateStatus(winner, remainingTurns, player)
 
   function handleClick(i: number) {
     if (squares[i] || winner) return
@@ -1080,16 +1064,16 @@ function calculateWinner(squares: Squares): SquareValue {
   return null
 }
 
-function calculateTurns(squares: Squares): number {
+function countRemainingTurns(squares: Squares): number {
   return squares.filter((square) =&gt; !square).length
 }
 
 function calculateStatus(
   winner: SquareValue,
-  turns: number,
+  remainingTurns: number,
   player: Player,
 ): string {
-  if (!winner &amp;&amp; !turns) return 'Draw'
+  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
   if (winner) return `Winner ${winner}`
   return `Next player: ${player}`
 }
@@ -1324,6 +1308,10 @@ const styles = StyleSheet.create({
   <strong>Two React Native finishing touches</strong>
   <p>The game is complete, but a real screen needs two more things this tutorial leaves out. Wrap the root in a safe-area view (<code>useSafeAreaInsets</code> or <code>SafeAreaView</code>) so the board is not under the notch or the home indicator, and give the monospace look a real font: <code>fontFamily: 'monospace'</code> resolves on Android but not on iOS, so use <code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code> — which is what the <a href="#what-are-you-building">complete program</a> at the top of this page does.</p>
 </div>
+<div class="tip">
+  <strong>How the repo version differs</strong>
+  <p>The tutorial keeps everything in one file. In this repo the pure helpers (<code>calculateWinner</code>, <code>countRemainingTurns</code>, <code>calculateStatus</code>) live in <code>src/projects/tic-tac-toe/utils/game.ts</code>. A route file can't hold tests or shared code, and moving the helpers out lets <code>__tests__/game.test.ts</code> cover them. The squares and move buttons also carry accessibility props: <code>accessibilityRole="button"</code>, a label like "Row 2, column 3, empty", and <code>accessibilityState</code>. Without them a screen reader reads an empty square as nothing at all.</p>
+</div>
 <h3 id="wrapping-up">Wrapping up</h3>
 <p>Congratulations! You've created a fully typed tic-tac-toe game that:</p>
 <ul>
@@ -1448,6 +1436,13 @@ React Native 0.81, <code>@types/react</code> 19) — the three complete programs
 into its stage context. Zero errors, zero <code>any</code>, no <code>@ts-ignore</code>. The only deliberate exceptions are the
 mid-refactor steps called out in the notes above.
 </p>
+
+<div class="nav-links">
+  <a href="05-podcast-player.html">← Project 05 · Podcast</a>
+  <a href="index.html">Learning path index</a>
+</div>
+
+<footer>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code></footer>
 
 </div>
 </body>

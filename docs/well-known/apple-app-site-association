@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "TEAMID.org.imaginativeworld.whynotreactnative",
+          "TEAMID.org.imaginativeworld.whynotreactnative.preview",
+          "TEAMID.org.imaginativeworld.whynotreactnative.dev"
+        ],
+        "components": [
+          { "/": "/p/*", "comment": "Store · product detail" },
+          { "/": "/order/*", "comment": "Store · order detail (push/deep-link target)" },
+          { "/": "/post/*", "comment": "Camera & Social · post viewer" }
+        ]
+      }
+    ]
+  }
+}

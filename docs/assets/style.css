@@ -325,6 +325,23 @@ td code { white-space: nowrap; }
 }
 .checkpoint b { color: var(--green); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
+/* ---------- code blocks with a filename header ---------- */
+
+.codeblock { margin: 0 0 18px; }
+.codeblock pre { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.codeblock:has(.codehead) pre { border-top: 0; }
+.codehead {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--bg-soft); border: 1px solid var(--border); border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 6px 14px; font-family: var(--mono); font-size: 0.75rem;
+}
+.codehead .fname { color: var(--fg-dim); overflow-x: auto; white-space: nowrap; }
+.codehead .lang {
+  color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem;
+}
+.milestone .codeblock pre { background: var(--bg-soft); }
+
 /* ---------- misc ---------- */
 
 .lead {

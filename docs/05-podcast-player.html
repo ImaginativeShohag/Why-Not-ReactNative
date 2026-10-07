@@ -252,9 +252,10 @@
 │   └── index-api.ts              podcast search API client
 ├── db/                           subscriptions, episodes, progress
 ├── api/                          index-api endpoints, using shared axios
-├── components/
-│   ├── player/                   MiniPlayer, FullPlayer, Scrubber, MiniPlayerHost
-│   └── episode/                  EpisodeRow, DownloadBadge, ProgressBar
+├── components/                   dumb: plain props + callbacks only
+│   ├── player/                   MiniPlayer, FullPlayer, Scrubber
+│   └── episode/                  EpisodeRow, TransferRow, DownloadBadge, ProgressBar
+├── containers/                   connected: MiniPlayerHost, LiveEpisodeRow, LiveTransferRow
 ├── models/
 │   └── Episode.ts                Podcast, Episode, QueueItem, Progress types
 ├── hooks/
@@ -393,7 +394,7 @@ Policies: "appVersion" | "sdkVersion" | "fingerprint" | explicit string.
   <li><strong>Silent</strong> (default) — fine for most fixes.</li>
   <li><strong>Prompt to restart</strong> — for user-visible fixes; show a small banner: "Update ready · Restart".</li>
   <li><strong>Force-apply</strong> — <code>reloadAsync()</code> immediately; jarring, use only for critical fixes.</li>
-  <li>Add a dev-only "channel surfing" screen that overrides the channel header so you can test staging bundles from a production build.</li>
+  <li>Add a dev-only "channel surfing" screen that overrides the channel header so you can test another channel's bundles. It only works between builds of the same variant: <code>app.config.ts</code> changes the bundle id per <code>APP_VARIANT</code>, so each variant has its own fingerprint runtime version, and a production build never accepts a preview update.</li>
 </ul>
 
 <h3>CI pipeline</h3>
@@ -401,7 +402,7 @@ Policies: "appVersion" | "sdkVersion" | "fingerprint" | explicit string.
   → install, typecheck, lint, unit tests, maestro smoke on an emulator
 
 on push to main
-  → eas update --branch staging   (OTA to internal testers)
+  → APP_VARIANT=preview eas update --channel preview   (OTA to internal testers)
 
 on tag v*
   → eas build --profile production --platform all
@@ -488,7 +489,7 @@ nightly
     <li><code>eas submit</code> to TestFlight / Play internal testing.</li>
     <li>Version and build-number strategy (<code>autoIncrement</code>).</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Someone else installs your preview build from a link and it runs against staging.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Someone else installs your preview build from a link and it receives updates from the <code>preview</code> channel.</div>
 </div>
 
 <div class="milestone">
@@ -496,7 +497,7 @@ nightly
   <div class="goal">Goal: ship a fix without a store review.</div>
   <ul>
     <li>Configure <code>expo-updates</code>, channels, and the fingerprint runtime-version policy.</li>
-    <li>Publish an update to staging; verify a build receives it.</li>
+    <li>Publish an update to the <code>preview</code> channel (with <code>APP_VARIANT=preview</code>, so the runtime version matches); verify a preview build receives it.</li>
     <li>Custom update UX: check, download, and prompt to restart.</li>
     <li>Run a staged rollout to production: 10% → 50% → 100%.</li>
     <li><strong>Practise a rollback.</strong> Publish a deliberately broken (but non-crashing) change, roll it back, verify recovery.</li>
@@ -510,7 +511,7 @@ nightly
   <div class="goal">Goal: the pipeline does the work.</div>
   <ul>
     <li>GitHub Actions (or EAS Workflows): typecheck, lint, test, Maestro smoke on PR.</li>
-    <li>Auto OTA to staging on merge; build + submit on tag.</li>
+    <li>Auto OTA to the <code>preview</code> channel on merge; build + submit on tag.</li>
     <li>Source-map upload to the crash reporter.</li>
     <li>iOS privacy manifest and Android data-safety declarations.</li>
     <li>Screenshots (consider generating them from Maestro), store listing, review notes.</li>
@@ -573,7 +574,7 @@ nightly
 
 <div class="nav-links">
   <a href="04-fitness-tracker.html">← Project 04 · Fitness</a>
-  <a href="index.html">Learning path index</a>
+  <a href="06-tic-tac-toe.html">Project 06 · Tic-Tac-Toe →</a>
 </div>
 
 <footer>Project 05 · targets Expo SDK 57 / RN 0.86</footer>

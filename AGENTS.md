@@ -1,255 +1,276 @@
 # AGENTS.md
 
-This file provides detailed guidance for AI agents when working with code in this repository.
+This file gives AI agents detailed guidance for working on the code in this repository.
 
 ## Project Overview
 
-This is a React Native code samples repository demonstrating various patterns, features, and best practices. The project serves as a collection of working examples showcasing modern React Native development techniques including navigation, state management, API integration, animations, and UI patterns.
+This is a React Native learning repo: a **launcher app** that holds six isolated sample projects,
+one for each write-up in `docs/` (see `docs/index.html`). Each project is a vertical slice of
+routes, components, hooks, stores, API calls and models, kept under its own directories.
+
+| # | Project | Slug | Doc |
+| --- | --- | --- | --- |
+| 01 | Offline-first journal (SQLite, FTS, outbox sync, biometric lock) | `offline-journal` | `docs/01-offline-journal.html` |
+| 02 | Camera & social capture (camera, editor, media library, sharing) | `camera-social` | `docs/02-camera-social.html` |
+| 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html`, `docs/audit-03.md` |
+| 04 | Background fitness tracker (location task, sensors, native module, widgets) | `fitness-tracker` | `docs/04-fitness-tracker.html` |
+| 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/release-05.md` |
+| 06 | Tic-tac-toe with Zustand (warm-up) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
 
 **Key Tech Stack:**
-- Expo SDK 57 with React Native 0.86.2
-- React 19.2.3 with React Compiler enabled
-- Expo Router for navigation (file-based routing with typed routes)
-- TanStack Query (React Query) v5 for server state management
-- Zustand v5 for client state management
-- Axios for API calls
-- React Native Reanimated & Gesture Handler for animations
-- FakeStoreAPI for demonstration purposes
+- Expo SDK 57, React Native 0.86.3, React 19.2.3 with the React Compiler, TypeScript 6
+- Expo Router (file-based, typed routes, `Stack.Protected`, `+native-intent`)
+- TanStack Query v5 (one app-wide client) and Zustand v5
+- expo-sqlite (journal, camera, fitness, podcast each have their own DB file)
+- Reanimated 4 + react-native-worklets, Gesture Handler, Skia, FlashList v2
+- Jest (`jest-expo`) for unit tests, Maestro for e2e
 
 ## Development Commands
 
-### Running the App
 ```bash
-npm start              # Start Expo dev server
-npm run android        # Run on Android
-npm run ios            # Run on iOS simulator
-npm run web            # Run on web
+npm start              # Expo dev server
+npm run ios            # expo start --ios
+npm run android        # expo run:android
+npm run web
+npm run typecheck      # tsc --noEmit
+npm run lint           # expo lint — exit code 0 and no output when clean
+npm test               # jest (in this sandbox: npx jest --no-watchman)
+npx expo export --platform ios --output-dir /tmp/out   # bundle check — catches what tsc can't
+node docs/training/validate.mjs   # quiz banks: shape, answers, and that every referenced file exists
 ```
 
-### Code Quality
+Most projects need a **development build**, not Expo Go:
+
 ```bash
-npm run lint           # Run ESLint
+eas build --profile development --platform ios --local
+npx expo run:ios       # needs `cmake` for pod install (Hermes podspec)
 ```
 
-### Build
-```bash
-eas build --platform ios --profile development --local    # Local iOS build
-```
-
-### Utilities
-```bash
-npm run reset-project  # Moves starter code to app-example/ and creates blank app/
-```
+**Installing packages:** use `npx expo install`. Behind the sandbox proxy, prefix it with
+`EXPO_OFFLINE=1`; versions then come from the locally bundled SDK manifest.
 
 ## Architecture & Code Organization
 
 ### Top-Level Shape
 
-This repo is a **launcher plus a set of isolated sample projects**. `src/app/index.tsx` is a
-Home screen listing every exercise; tapping a row pushes into that project's own stack. Each
-project is a vertical slice — its routes, components, hooks, stores, api calls and models all
-live under one project-named directory.
-
 ```
 src/
-├── app/        routes only (expo-router owns this tree)
-├── assets/     images, fonts
-├── projects/   per-project feature code (non-route)
-├── shared/     generic infra used by more than one project or by the launcher
-└── types/      global type declarations
+├── app/            routes only (expo-router owns this tree)
+│   ├── _layout.tsx         root providers + root-level side effects (see below)
+│   ├── +native-intent.tsx  rewrites external URLs onto namespaced routes
+│   ├── index.tsx           launcher list, rendered from the registry
+│   └── projects/<slug>/    each project's routes, with its own _layout.tsx
+├── assets/         images, fonts
+├── projects/<slug>/  per-project code: api/ components/ db/ hooks/ models/
+│                     stores/ utils/ … and __tests__/
+├── shared/         generic infra used by more than one project or the launcher
+└── types/          global type declarations
+
+app.config.ts       dynamic Expo config (replaces app.json)
+modules/live-activity/  local Expo Module, Swift + Kotlin (Project 04)
+plugins/            hand-written config plugins (Project 04)
+.github/workflows/  ci.yml, release.yml, fingerprint.yml (Project 05)
+.maestro/           e2e flows: store-checkout.yaml, podcast-smoke.yaml
+docs/               learning-path write-ups, audit, release runbook, well-known templates
+docs/training/      code-reading quizzes, one bank per project (static page, see its README)
 ```
 
-The project registry lives in `src/shared/config/projects.ts` — a typed array the Home screen
-maps over. Home has no hardcoded knowledge of any individual project. See
-`docs/00-launcher-restructure.html` for the rationale and current open items.
+`modules/` and `plugins/` sit at the repo root because Expo's autolinker and prebuild look for
+them there. App code only touches the thin wrapper in `src/projects/fitness-tracker/liveactivity/`.
 
-### Routing Structure (expo-router)
-Examples of Expo Router patterns with file-based routing in `src/app/`:
-- `src/app/_layout.tsx` - Root layout demonstrating provider setup (QueryProvider, ThemeProvider, SafeAreaProvider, GestureHandlerRootView) and one `Stack.Screen` per route
-- `src/app/index.tsx` - Home / launcher list, rendered from the project registry
-- `src/app/projects/store/splash/index.tsx` - The store's own entry route; redirects to login after a delay
-- `src/app/projects/store/login/index.tsx` - Login form example (React Query mutation)
-- `src/app/projects/store/main/(tab)/` - Route groups example with tab navigation (home, categories, bag)
-- `src/app/projects/store/products/[categoryId].tsx` - Dynamic route example with parameters
-- `src/app/projects/store/product-details/[productId].tsx` - Nested dynamic route example
-- `src/app/projects/store/orders/index.tsx` - Standard screen route
-- `src/app/projects/store/place-order/index.tsx` - Form/checkout flow example
-- `src/app/projects/tic-tac-toe/index.tsx` - Zustand `combine` middleware example (self-contained)
-- `src/app/projects/{offline-journal,camera-social,fitness-tracker,podcast-player}/index.tsx` - "Coming soon" stubs for projects not yet built
+The project registry is `src/shared/config/projects.ts`, a typed array that the launcher maps
+over (each entry has a `slug`; `singleScreen` marks a single-route project). The launcher row
+is `src/shared/components/project-list-item.tsx`. The launcher and the root Stack have no
+hardcoded knowledge of any project.
 
-**Route naming convention:** each screen is a folder containing `index.tsx`, so the route path
-is the folder path — `store/orders/index.tsx` is the route `projects/store/orders`. A
-`Stack.Screen name=` value must match that derived path exactly; verify against the file tree
-when adding screens rather than trusting typed routes alone to catch a mismatch.
+### Routing
 
-**Routes come from the file tree, not from `Stack.Screen` declarations.** Any file under
-`src/app/` is a reachable route whether or not you declare it — omitting a declaration only
-leaves it with a path-derived header title. So a non-route component (a sheet body, a list row)
-must live *outside* `src/app/` entirely. This is why `ProfileSheet` sits in the store's slice at
-`src/projects/store/components/sheet/ProfileSheet.tsx`: as a route it crashed, because
-`useBottomSheetModal()` throws when rendered outside the `BottomSheetModalProvider` that only
-the tab layout mounts.
+- The root `src/app/_layout.tsx` declares **one** `Stack.Screen` per project
+  (`projects/<slug>`, `headerShown: false`, generated from `PROJECTS`). Each project's own
+  `_layout.tsx` owns its inner Stack: tabs, modals, `SQLiteProvider`, mini-player host, and so on.
+- `projects/tic-tac-toe/index.tsx` is the one single-route project (`singleScreen: true`, declared
+  as `projects/tic-tac-toe/index` with the registry `title` as its header). Its `combine` store and
+  components stay in the route file. The pure game helpers live in
+  `src/projects/tic-tac-toe/utils/game.ts` so they can be unit-tested.
+- **Routes come from the file tree, not from `Stack.Screen` declarations.** Any file under
+  `src/app/` is a reachable route. Non-route components must live in a slice, never under
+  `src/app/`.
+- Expo Router has **no route-level `options` export**. Set options from the parent layout's
+  `Stack.Screen`, an inline `<Stack.Screen options={...} />`, or `navigation.setOptions()`.
+- **Never import `@react-navigation/*`.** Since SDK 56, expo-router fails the *bundle* (not tsc)
+  on it. Use `expo-router/react-navigation` (for example `useHeaderHeight`, themes) or
+  `expo-router` (`useIsFocused`, `useFocusEffect`).
+- Deep links are namespaced, because the launcher owns the root:
+  `whynotreactnative://projects/<slug>/…`. Universal links (`https://<linkDomain>/p/<id>`,
+  `/order/<id>`, `/post/<id>`) and the share-extension callback are rewritten in
+  `+native-intent.tsx` by pure, unit-tested rewriters that live in each slice.
+
+Store route groups (Project 03): `(auth)/{sign-in,sign-up,forgot}`, `onboarding`, and
+`(app)/{(tab)/{index,categories,search,bag,account}, product/[id], products/[categoryId],
+checkout/{address,shipping,payment,review}, order/[id], orders, wishlist}`. These are guarded
+by `Stack.Protected` in `src/app/projects/store/_layout.tsx`. The group segments don't appear
+in URLs, so the store tabs live at `/projects/store`.
+
+### Root-level side effects (important)
+
+A project layout only loads once the user opens that project. Anything that must exist on a
+**headless or cold launch** is therefore started from `src/app/_layout.tsx`:
+
+- `TaskManager.defineTask` modules: `offline-journal/sync/task`, `fitness-tracker/tracking/task`,
+  `podcast-player/downloads/task`. Each one is guarded with `TaskManager.isTaskDefined`.
+- Notification-tap routing: `startNotificationResponseListener()` (store) and
+  `startJournalNotificationRouting()` (journal). These only listen and route. Push permission is
+  requested from the store's signed-in session, never at the root.
+- `startPendingActionReplay()` (fitness): replays a Live Activity / notification action that was
+  parked while JS was dead, on launch and whenever the app becomes active. The replay only calls
+  `pause/resume/stopWorkout`, so it's safe with no UI mounted.
+- `ShareIntentProvider` plus `useInboundShareRouting()` (camera-social inbound share).
+
+`expo-notifications` is process-global. Every push or local-notification payload carries a
+project discriminator (`project: "store"`, or `url` starting with `/projects/offline-journal/`),
+and each router ignores payloads that aren't its own.
 
 ### State Management
 
-**Zustand (Client State Example):**
-- `src/projects/store/stores/cartStore.ts` - Shopping cart state example demonstrating Zustand patterns with add/remove/update/clear actions
-- `src/projects/store/stores/cartSelectors.ts` - Derived selectors example for computed state (total price, item count, etc.)
-- `src/app/projects/tic-tac-toe/index.tsx` - Zustand `combine` middleware example, store declared inline
-
-**TanStack Query (Server State Example):**
-- All API data fetching examples use React Query hooks in `src/projects/store/hooks/` (`useProduct.ts`, `useAuth.ts`, `useUser.ts`)
-- Query keys are centralized per project in `src/projects/store/utils/queryKeys.ts` to demonstrate best practices
-- A single `QueryProvider` wraps the whole app in `src/app/_layout.tsx`; the provider itself lives at `src/shared/providers/QueryProvider.tsx`. Mount it **once** — nesting a second instance creates a second independent cache.
+- **TanStack Query:** a single `QueryClient` in `src/shared/providers/QueryProvider.tsx`,
+  mounted once at the root. That module also wires the process-global `focusManager` (AppState)
+  and `onlineManager` (expo-network) once for every project. The client is exported so a
+  project can attach a persister or query defaults from its own slice. Never mount a second
+  provider. Each project owns its
+  query keys in `src/projects/<slug>/utils/queryKeys.ts`, prefixed with its own root
+  (`["store", …]`, `["podcast", …]`). The store persists only keys that start with `"store"`.
+- **Zustand:** per-project stores in `src/projects/<slug>/stores/`. Persisted stores use
+  AsyncStorage through `zustand/middleware`. Tic-tac-toe uses `combine`, declared inline.
+- **SQLite:** each project opens its own database file and runs its own `PRAGMA user_version`
+  migrations in WAL mode. The journal and camera use `SQLiteProvider onInit` in their layouts
+  (the journal's sync task uses a lazy `getDb()`; both paths go through `migrateOnce`, because
+  expo-sqlite shares one native connection for the same name and options). Fitness and podcast open the
+  database lazily from a module-scope `db/client.ts`, because their background tasks write
+  with no screen mounted.
 
 ### API Layer
 
-**Structure (Example Patterns):**
-- `src/shared/api/axios.ts` - Shared axios instance with base URL, timeout, and interceptors; every project's endpoint files import it
-- `src/projects/store/api/product.api.ts` - Product/cart API functions demonstrating REST endpoint patterns
-- `src/projects/store/api/auth.api.ts` - Login endpoint
-- `src/projects/store/api/user.api.ts` - User profile endpoint
+- `src/shared/api/axios.ts` holds **project-agnostic defaults only**: timeout and headers, no
+  base URL and no interceptors. Projects derive their own instances with
+  `axiosInstance.create({ baseURL })`.
+- The store's instances are in `src/projects/store/api/client.ts`. Auth handling
+  (`api/interceptors.ts`: refresh once on a 401, replay once, sign out on failure) and the
+  single-flight `api/refreshCoordinator.ts` are installed onto those instances only.
+- When `EXPO_PUBLIC_STORE_BACKEND_URL` is unset, `api/mockServer.ts` is a persisted on-device
+  backend with idempotency keys and server-owned order status.
+- Naming: GET → `fetchX`, POST → `createX` or an action verb (`loginUser`), PUT/PATCH →
+  `updateX`, DELETE → `deleteX`.
 
-**Naming Convention (Used in Examples):**
-- GET → `fetchX` (e.g., `fetchProducts`, `fetchProductDetails`)
-- POST (create) → `createX` or action verb (e.g., `loginUser`)
-- PUT/PATCH → `updateX`
-- DELETE → `deleteX`
+### Components
 
-### Data Models
-TypeScript types/interfaces examples in `src/projects/store/models/`:
-- `Product.ts` - Product and Category types
-- `Auth.ts` - Authentication payload examples
-- `CartItem.ts` - Cart item type examples
-- `User.ts` - User profile type
+- **Components are dumb and reusable.** They take plain data and callbacks, never a store or
+  view model. Screens own state through hooks and stores. When a list row must subscribe on
+  its own for performance (FlashList rows reading a download store), the connected wrapper
+  lives in `src/projects/<slug>/containers/` and renders a dumb row from `components/`
+  (podcast: `MiniPlayerHost`, `LiveEpisodeRow`, `LiveTransferRow`).
+- Shared primitives: `src/shared/components/` (`themed-text`, `themed-view`) and `ui/`
+  (`icon-symbol` + `.ios`, and `content-unavailable-view`, which is theme-aware and takes
+  optional `titleColor` / `descriptionColor` overrides and an `action` button).
+- Platform-specific files use `.ios.tsx` / `.android.tsx` / `.web.ts`.
+- `ColorSchemeName` includes `"unspecified"`, so narrow it before indexing:
+  `colorScheme === "dark" ? "dark" : "light"`.
 
-### Components Structure
-- `src/shared/components/` - Generic primitives (`themed-text`, `themed-view`)
-- `src/shared/components/ui/` - Generic UI primitives (`icon-symbol` with its `.ios` variant, `content-unavailable-view`, `ComingSoonView`)
-- `src/projects/store/components/` - Store-only components (`SlideItem`)
-- `src/projects/store/components/sheet/` - Store-only bottom-sheet bodies (`ProfileSheet`)
-- `src/projects/store/components/ui/` - Store-only UI (`cart-footer`, `cart-item`, `product-image`, `product-item`, `background-view`)
+### React Compiler rules that bite
 
-**Component Philosophy (Demonstrated):**
-- Components are "dummy" and reusable (no ViewModels passed to components)
-- Platform-specific components use `.ios.tsx` or `.android.tsx` extensions (see icon-symbol examples)
-- Theme-aware components use `useThemeColor` hook
-- Nothing under `src/app/` is a component home — that tree is routes only
+- Don't mutate a value returned from a hook (`player.currentTime = x`). Call a method instead
+  (`player.seekBy(...)`).
+- Don't read refs off an object during render (`refs.a`). Use one `const aRef = useRef()` each.
+- Don't call `setState` synchronously in a `useEffect` body. Derive the value during render, or
+  refresh it in `useFocusEffect`.
+- `StyleSheet.absoluteFillObject` no longer exists in RN 0.86. Use `StyleSheet.absoluteFill`.
 
-### Hooks
-Example hooks demonstrating various patterns:
-- `src/projects/store/hooks/useProduct.ts` - React Query hooks examples for product/cart/order operations
-- `src/projects/store/hooks/useAuth.ts` - Login mutation + error-message mapping (login is a side effect, so a mutation — not a query)
-- `src/projects/store/hooks/useUser.ts` - User profile query
-- `src/projects/store/hooks/useComponentHeight.ts` - Component dimension tracking example
-- `src/shared/hooks/use-theme-color.ts` - Theme color utilities example
-- `src/shared/hooks/use-color-scheme.ts` - Color scheme detection (with `.web.ts` platform variant)
+## Expo Configuration (`app.config.ts`)
 
-### Theme & Styling
-Examples of theming patterns:
-- `src/shared/constants/theme.ts` - Theme definitions and colors
-- Dark/Light mode support demonstrated through React Navigation themes
-- `ColorSchemeName` includes `"unspecified"`, so narrow before indexing: `colorScheme === "dark" ? "dark" : "light"`
+- **Variants:** `APP_VARIANT` = `development` | `preview` | `production`, set per EAS profile.
+  These give the bundle ids `org.imaginativeworld.whynotreactnative.dev` / `.preview` / base,
+  installable side by side.
+- **Runtime version:** `{ policy: "fingerprint" }`. EAS Updates use
+  `https://u.expo.dev/<projectId>`. The channels are `development`, `preview` and
+  `production` (see `eas.json`). `eas.json` `env` applies to **builds only**, and the bundle id
+  feeds the fingerprint, so every `eas update` / `eas fingerprint:*` must set the matching
+  `APP_VARIANT` or it computes the development runtime version. Publish with
+  `eas update --channel <name>`, never a hand-picked `--branch`.
+- **`extra`** is read through `src/shared/constants/env.ts`: `storeApiUrl`, `podcastIndexUrl`,
+  `linkDomain`, `appGroup`, `stripePublishableKey`, `journalSyncUrl` (empty means the local dev
+  server: `localhost` on iOS, `10.0.2.2` on the Android emulator).
+- **Environment variables:** `APP_VARIANT`, `STORE_API_URL`, `LINK_DOMAIN`,
+  `GOOGLE_MAPS_API_KEY`, `JOURNAL_SYNC_URL`, `EXPO_PUBLIC_STRIPE_KEY`,
+  `EXPO_PUBLIC_STORE_BACKEND_URL`, `EXPO_PUBLIC_GOOGLE_{IOS,ANDROID,WEB}_CLIENT_ID`.
+  Secrets go in EAS environment variables, never in the config.
+- **iOS:** associated domains, the App Group `group.org.imaginativeworld.whynotreactnative`,
+  Sign in with Apple, and `privacyManifests`.
+- **Plugins:** expo-router, splash, sqlite, secure-store, notifications, local-authentication,
+  image-picker, camera, media-library, video, audio (background playback), location
+  (background + foreground service), sensors, maps, Stripe, HealthKit, Health Connect,
+  `./plugins/withWorkoutCapabilities`, expo-share-intent.
+- **Plugin order matters:** mods of *later* plugins run *first*. `withWorkoutCapabilities` is
+  listed before `expo-share-intent` so that it runs after it and dedupes the shared App Group.
+- New Architecture is on by default, React Compiler and typed routes are enabled, and there is
+  no `newArchEnabled` flag.
 
-### SVG Configuration
-Metro bundler is configured to transform SVG files as React components:
-- SVG files are imported as components using `react-native-svg-transformer`
-- Regular images go through standard asset pipeline
+### Continuous Native Generation
 
-### Path Aliases
-TypeScript path alias `@/*` maps to project root, so imports use:
-```typescript
-import { useCartStore } from "@/src/projects/store/stores/cartStore";
-```
+`/ios` and `/android` are gitignored build output. Every native change must be expressible in
+`app.config.ts`, a config plugin or a local module. To verify a plugin:
+`npx expo prebuild --platform ios --no-install --clean`, then inspect the generated project.
+Two cautions:
+- `prebuild` rewrites the `ios` script in package.json to `expo run:ios`. Restore that one line
+  with a targeted edit. **Never `git checkout package.json`**, which also throws away
+  uncommitted dependency changes.
+- Back up a local `android/` folder before running `prebuild --clean` on it.
 
-## Important Patterns
+## Testing
 
-### Query Keys Pattern
-React Query keys are centralized and follow a hierarchical structure (see `src/projects/store/utils/queryKeys.ts`):
-```typescript
-queryKeys.products              // All products
-queryKeys.product(id)           // Single product
-queryKeys.productsByCategory(cat) // Filtered products
-queryKeys.orders(userId)        // User orders
-```
-
-### Cart Management Example
-Cart state demonstrates Zustand patterns with local state management:
-- `addToCart(product)` - Adds or increments quantity
-- `removeFromCart(id)` - Removes item completely
-- `updateQuantity(id, delta)` - Increments/decrements (filters out zero quantities)
-- `clearCart()` - Empties cart
-
-### Async Data Flow Pattern
-Demonstrates a clean separation of concerns:
-1. API functions in `src/projects/store/api/product.api.ts` make raw HTTP calls
-2. React Query hooks in `src/projects/store/hooks/useProduct.ts` wrap API functions with caching/loading states
-3. Components consume hooks and render UI based on `data`, `isLoading`, `error`
-
-### Orders Implementation Example
-The `useOrders` hook demonstrates a complex data fetching pattern: fetches cart data, then enriches it with full product details by fetching each product individually, creating a "DetailedCartItem" with complete information.
-
-## Expo Configuration
-
-**New Architecture:** On by default in SDK 57 — there is no `newArchEnabled` flag in app.json.
-
-**React Compiler:** Enabled via `experiments.reactCompiler: true`
-
-**Typed Routes:** Enabled via `experiments.typedRoutes: true` for type-safe navigation examples
-
-**Plugins:**
-- expo-router (file-based navigation)
-- expo-splash-screen (custom splash configuration)
-- expo-web-browser (in-app browser support)
-- expo-font, expo-image, expo-status-bar
-
-## Development Notes
-
-- Uses React 19.2.3 with React Native 0.86.2 (cutting edge versions for demonstration)
-- React Native Reanimated v4 configured for advanced animation examples
-- @shopify/flash-list v2 demonstrated for performant list rendering
-- @gorhom/bottom-sheet v5 available for bottom sheet modal examples
-- Expo Symbols (SF Symbols on iOS) used for icon examples
-- Expo Router has **no route-level `options` export**. Set screen options from the parent
-  layout's `Stack.Screen`, an inline `<Stack.Screen options={...} />`, or
-  `navigation.setOptions()`. An `export const options = {...}` in a route file is silently ignored.
-
-## Testing & Linting
-
-- ESLint is configured with `expo lint` command
-- ESLint uses `eslint-config-expo` with Prettier integration
-- React Compiler plugin is included for lint checks
+- Unit tests live in `src/projects/<slug>/__tests__/*.test.ts`, never under `src/app/` (that
+  would make them routes).
+- Test pure modules: metrics/filters, queue and download policy, checkout machine, cart merge,
+  link rewriters, operation-list editor math, and so on. The store's refresh test drives the
+  real interceptors through a custom axios `adapter` (six concurrent 401s → one refresh).
+- Config plugins are tested in memory with `compileModsAsync(config, { introspect: true })`
+  under `@jest-environment node`. Import `ExpoConfig` from `expo/config`. Test the inner
+  plugin, not the `createRunOncePlugin` wrapper, when checking that mods are idempotent.
+- SQL (migrations, triggers, the journal sync engine) is tested against real SQLite through
+  Node's built-in `node:sqlite` (Node 22.5+). See `src/projects/offline-journal/testing/nodeDatabase.ts`.
+- TypeScript 6 doesn't auto-load `@types/*`, so `tsconfig.json` sets `"types": ["jest"]`.
+- E2E: the Maestro flows in `.maestro/` use `appId: ${APP_ID}`. Pass
+  `-e APP_ID=org.imaginativeworld.whynotreactnative.dev` (or `.preview`, as CI does).
+- A milestone is done when typecheck, lint, test and both `expo export` platforms all pass.
 
 ## Path Configuration
 
-All source code is in `src/`. There are only two homes for non-route code — a
-project slice or `shared` — and no "misc" folder:
+The path alias `@/*` maps to the project root:
+`import { env } from "@/src/shared/constants/env";`
 
 | Path | Holds |
 | --- | --- |
 | `src/app/` | Routes only (expo-router) |
 | `src/assets/` | Images, fonts |
-| `src/projects/<slug>/` | One project's feature code: `api/`, `components/`, `constants/`, `hooks/`, `models/`, `stores/`, `utils/` |
+| `src/projects/<slug>/` | One project's code |
 | `src/shared/` | Generic infra: `api/`, `components/`, `config/`, `constants/`, `hooks/`, `providers/` |
 | `src/types/` | Global type declarations |
-
-Only `store` has a populated slice today; the other projects get one when they are built.
 
 ### Isolation Rules
 
 1. **No cross-project imports.** Nothing in `src/projects/camera-social/` may import from
-   `src/projects/store/`, ever. If two projects need the same thing, promote it to
-   `src/shared/` deliberately — don't copy-paste and don't reach across.
-2. **Shared stays small.** Only promote a file to `src/shared/` when a *second* project
-   actually needs it.
-3. **Each project owns its own query keys, Zustand stores, and API endpoint files.** There is
-   no shared `queryKeys.ts`.
-4. **Components stay dumb.** A component never assumes it is running inside a specific
-   project's provider tree unless it lives in that project.
+   `src/projects/store/`. If two projects need the same thing, promote it to `src/shared/`
+   deliberately. (`src/app/_layout.tsx` and `+native-intent.tsx` are the composition root and
+   may import one entry point from each project.) `eslint.config.js` enforces this with
+   `no-restricted-imports`, one block per slug, generated from the folders in `src/projects/`.
+   It also stops `src/shared/` from importing any project.
+2. **Shared stays small.** Promote a file only when a *second* project actually needs it.
+3. **Each project owns its own query keys, stores, database and API endpoint files.**
+4. **Components stay dumb.** A component never assumes a specific project's provider tree
+   unless it lives in that project.
 
 ## Environment
 
-- Bundle identifier (iOS): `org.imaginativeworld.whynotreactnative`
-- Package name (Android): `org.imaginativeworld.whynotreactnative`
+- Bundle identifier / package (production): `org.imaginativeworld.whynotreactnative`. Dev and
+  preview add `.dev` / `.preview`.
 - URL scheme: `whynotreactnative://`
 - EAS Project ID: `14c49066-d1a8-4fd8-a15b-4d290153a787`
+- Lessons from building each project: `.agents/lessons/_learned.md`
