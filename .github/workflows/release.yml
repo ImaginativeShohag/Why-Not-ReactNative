@@ -1,0 +1,76 @@
+# Project 05 · M7/M8 — release pipeline.
+#   push to main   → OTA update to the `preview` channel (internal testers on preview builds)
+#   tag v*         → production build for both platforms + store submission
+#
+# Secrets: EXPO_TOKEN (eas login token). Store credentials live in EAS, not here.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ota-preview:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      # Only reaches builds whose fingerprint runtime version matches — an OTA
+      # can never deliver JS that needs a native module the binary lacks.
+      #
+      # `--channel preview` publishes to whichever branch the `preview` channel
+      # (baked into every `preview` build by eas.json) points at — `preview` by
+      # default, created on first use — so the update can't land on a branch no
+      # build reads.
+      # APP_VARIANT must match the build profile: eas.json `env` applies to
+      # builds only, and app.config.ts (bundle id, name) feeds the fingerprint,
+      # so without it the update gets the development runtime version.
+      # The commit message goes through an env var, never `${{ }}` inside the
+      # script: interpolated text is pasted into the shell before it runs, so a
+      # message with quotes breaks the step (or runs as code).
+      - name: Publish OTA to the preview channel
+        env:
+          APP_VARIANT: preview
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: >
+          eas update --channel preview --environment preview
+          --message "$COMMIT_MESSAGE" --non-interactive
+
+  build-and-submit:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Production build + submit (iOS & Android)
+        run: >
+          eas build --profile production --platform all
+          --auto-submit --non-interactive --wait
+      - name: GitHub release with changelog
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

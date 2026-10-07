@@ -1,0 +1,41 @@
+# Project 05 · smoke flow: launcher → Podcast → search → subscribe → play.
+# Runs against a real build. Each variant installs under its own id
+# (app.config.ts), so the id is a parameter, never hardcoded:
+#   maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/podcast-smoke.yaml
+#   (….preview for a preview build; CI passes it in ci.yml's maestro-smoke job)
+# Needs network: search uses the iTunes index, playback streams the enclosure.
+appId: ${APP_ID}
+name: Podcast · search → subscribe → play
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- tapOn: "Podcast Player"
+- tapOn: "Discover"
+- tapOn:
+    id: "podcast-search-input"
+- inputText: "Syntax"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Syntax.*"
+    timeout: 15000
+- tapOn:
+    text: "Syntax.*"
+    index: 0
+- tapOn:
+    id: "podcast-subscribe"
+- extendedWaitUntil:
+    visible: "Play"
+    timeout: 20000
+- tapOn:
+    text: "Play"
+    index: 0
+# The mini-player is the proof the singleton service is driving playback.
+- extendedWaitUntil:
+    visible:
+      id: "mini-player"
+    timeout: 15000
+- tapOn:
+    id: "mini-player-toggle"
+- takeScreenshot: podcast-smoke-playing

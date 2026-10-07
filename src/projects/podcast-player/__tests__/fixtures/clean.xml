@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>The React Native Show</title>
+    <link>https://rn.show</link>
+    <description>Weekly &amp; nerdy.</description>
+    <itunes:author>RN Folks</itunes:author>
+    <itunes:image href="https://rn.show/art.jpg"/>
+    <itunes:category text="Technology"><itunes:category text="Software How-To"/></itunes:category>
+    <item>
+      <title>Ep. 142 — Shipping OTA</title>
+      <guid isPermaLink="false">rn-142</guid>
+      <pubDate>Tue, 10 Sep 2024 10:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.rn.show/142.mp3" type="audio/mpeg" length="84000000"/>
+      <itunes:duration>00:45:51</itunes:duration>
+      <itunes:episode>142</itunes:episode>
+      <itunes:season>3</itunes:season>
+      <content:encoded><![CDATA[<p>We talk <b>EAS Update</b>.</p><ul><li>Channels</li><li>Rollbacks</li></ul><p><a href="https://docs.expo.dev">Docs</a> <a href="javascript:alert(1)">bad</a></p><script>alert("x")</script>]]></content:encoded>
+      <podcast:chapters url="https://rn.show/142/chapters.json" type="application/json+chapters"/>
+    </item>
+    <item>
+      <title>Ep. 141 — Config plugins</title>
+      <guid>rn-141</guid>
+      <pubDate>Tue, 03 Sep 2024 10:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.rn.show/141.mp3" type="audio/mpeg" length="0"/>
+      <itunes:duration>2280</itunes:duration>
+      <description>Plain description.</description>
+    </item>
+  </channel>
+</rss>

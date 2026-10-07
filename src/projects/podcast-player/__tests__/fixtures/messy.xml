@@ -1,0 +1,39 @@
+﻿   <?xml version="1.0"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title><![CDATA[Tom &amp; Jerry's "Pod"]]></title>
+  <image><url>https://messy.fm/cover.png</url></image>
+  <item>
+    <title>No duration, no type, query-string URL</title>
+    <enclosure url="https://messy.fm/audio/ep3.m4a?source=rss&amp;id=3"/>
+    <pubDate>Mon, 5 Aug 2024 09:00:00 PDT</pubDate>
+    <itunes:episode>0042</itunes:episode>
+    <description>&lt;p&gt;Escaped &amp;amp; HTML&lt;/p&gt;</description>
+  </item>
+  <item>
+    <title>Duplicate guid — should be dropped</title>
+    <enclosure url="https://messy.fm/audio/ep3-dupe.mp3" type="audio/mpeg"/>
+    <guid>https://messy.fm/audio/ep3.m4a?source=rss&amp;id=3</guid>
+  </item>
+  <item>
+    <title>Text-only blog post (no audio)</title>
+    <link>https://messy.fm/blog/1</link>
+    <description>Just words.</description>
+  </item>
+  <item>
+    <title>Video first, then audio</title>
+    <guid>vid-audio</guid>
+    <enclosure url="https://messy.fm/v.mp4" type="video/mp4" length="999"/>
+    <enclosure url="https://messy.fm/a.mp3" type="audio/mpeg" length="12345678"/>
+    <itunes:duration>1:15</itunes:duration>
+    <pubDate>not a date</pubDate>
+  </item>
+  <item>
+    <title>media:content only</title>
+    <guid>media-only</guid>
+    <media:content url="//cdn.messy.fm/m.mp3" type="audio/mpeg" fileSize="5000000"/>
+    <itunes:duration>garbage</itunes:duration>
+    <itunes:image href="https://messy.fm/ep-art.png"/>
+  </item>
+</channel>
+</rss>

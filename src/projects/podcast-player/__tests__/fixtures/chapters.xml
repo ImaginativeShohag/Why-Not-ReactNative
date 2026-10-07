@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:psc="http://podlove.org/simple-chapters">
+<channel>
+  <title>Chapters FM</title>
+  <item>
+    <title>Inline chapters</title>
+    <guid>inline</guid>
+    <enclosure url="https://ch.fm/1.mp3" type="audio/mpeg"/>
+    <psc:chapters version="1.2">
+      <psc:chapter start="00:09:30" title="Update channels"/>
+      <psc:chapter start="00:00:00.000" title="Intro"/>
+      <psc:chapter start="00:24:10" title="Rollbacks" href="https://ch.fm/rb"/>
+    </psc:chapters>
+  </item>
+  <item>
+    <title>Chapters in notes</title>
+    <guid>notes</guid>
+    <enclosure url="https://ch.fm/2.mp3" type="audio/mpeg"/>
+    <description><![CDATA[<p>00:00 Intro<br/>09:30 - Update channels<br>1:24:10 Rollbacks</p>]]></description>
+  </item>
+</channel>
+</rss>

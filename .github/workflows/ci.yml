@@ -1,0 +1,78 @@
+# Project 05 · M8 — every pull request: typecheck, lint, unit tests.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npx jest --ci --no-watchman
+
+      # Catches what tsc/eslint can't: Metro resolution, expo-router's
+      # react-navigation import check, platform-specific files.
+      - name: Bundle (iOS + Android)
+        run: |
+          npx expo export --platform ios --output-dir dist/ios
+          npx expo export --platform android --output-dir dist/android
+
+  maestro-smoke:
+    # E2E against a real build is slow and needs an EAS account, so it runs
+    # only when the PR is labelled `e2e`.
+    if: contains(github.event.pull_request.labels.*.name, 'e2e')
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      # The APK is built on EAS servers, not on this runner — fetch the artifact.
+      - name: Build preview APK on EAS and download it
+        run: |
+          URL=$(eas build --profile preview --platform android \
+            --non-interactive --wait --json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s)[0].artifacts.buildUrl))')
+          curl -fsSL "$URL" -o build.apk
+      # Runs every flow in .maestro/ (podcast smoke + store checkout). The flows
+      # read `appId: ${APP_ID}`; this must be the id of the profile built above
+      # (app.config.ts: APP_VARIANT=preview → `.preview` suffix).
+      - name: Maestro flows on Maestro Cloud
+        uses: mobile-dev-inc/action-maestro-cloud@v1
+        with:
+          api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+          app-file: build.apk
+          workspace: .maestro
+          env: |
+            APP_ID=org.imaginativeworld.whynotreactnative.preview

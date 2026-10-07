@@ -1,0 +1,68 @@
+# Project 05 · nightly — has the native contract drifted from the last build?
+# A changed fingerprint means the next OTA would need a NEW runtime version,
+# i.e. a store build first. Surfacing it nightly beats discovering it mid-release.
+#
+# Outcomes:
+#   drift        → `::warning::` annotation, job stays green. Drift is expected
+#                  whenever native work has merged; it's information, not a failure.
+#   real errors  → job fails (auth, `eas build:list`, `fingerprint:compare`,
+#                  unparseable output). `set -euo pipefail` makes sure of it.
+#   no build yet → `::notice::`, nothing to compare against.
+name: Fingerprint drift
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  fingerprint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      # `eas fingerprint:compare` exits 0 whether or not the hashes match, so
+      # drift is detected from its --json output, never from the exit code.
+      # The local fingerprint must be computed with the same app config the
+      # production build saw: APP_VARIANT comes from eas.json's build `env`
+      # (not applied here), and `--environment production` pulls the EAS
+      # server-side variables (LINK_DOMAIN, GOOGLE_MAPS_API_KEY, …).
+      - name: Compare local fingerprint with the latest production build
+        env:
+          APP_VARIANT: production
+        run: |
+          set -euo pipefail
+          # Buffers ALL of stdin before parsing: `data` arrives in chunks, and
+          # a large JSON document split across chunks isn't valid on its own.
+          json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(String(eval(process.argv[1])??""))})' "$1"; }
+          for platform in ios android; do
+            echo "::group::$platform"
+            build_id=$(eas build:list --platform "$platform" --profile production \
+              --status finished --limit 1 --json --non-interactive | json 'j[0]?.id')
+            if [ -z "$build_id" ]; then
+              echo "::notice::No finished $platform production build yet; nothing to compare against"
+              echo "::endgroup::"
+              continue
+            fi
+            drifted=$(eas fingerprint:compare --build-id "$build_id" \
+              --environment production --json --non-interactive \
+              | json 'j.fingerprint1.hash !== j.fingerprint2.hash')
+            if [ "$drifted" = "true" ]; then
+              # Re-run without --json just to print the human-readable diff.
+              eas fingerprint:compare --build-id "$build_id" \
+                --environment production --non-interactive
+              echo "::warning::$platform native fingerprint drifted from production build $build_id; the next release needs a store build, not an OTA"
+            else
+              echo "$platform fingerprint matches production build $build_id"
+            fi
+            echo "::endgroup::"
+          done

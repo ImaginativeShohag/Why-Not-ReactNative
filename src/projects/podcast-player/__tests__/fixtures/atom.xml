@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Audio</title>
+  <author><name>Jane</name></author>
+  <link href="https://atom.example/"/>
+  <entry>
+    <title>Atom ep</title>
+    <id>urn:uuid:1</id>
+    <updated>2024-07-01T12:00:00Z</updated>
+    <link rel="alternate" href="https://atom.example/1"/>
+    <link rel="enclosure" type="audio/mpeg" length="1000000" href="https://atom.example/1.mp3"/>
+    <summary>Hello &lt;b&gt;world&lt;/b&gt;</summary>
+  </entry>
+</feed>
