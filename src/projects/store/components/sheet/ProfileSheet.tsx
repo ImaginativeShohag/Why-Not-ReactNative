@@ -1,24 +1,29 @@
-import { useUserProfile } from "@/src/projects/store/hooks/useUser";
-import { useBottomSheetModal } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetScrollView,
+  useBottomSheetModal,
+} from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
-  Button,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 
-const CURRENT_USER_ID = 1;
+import { getErrorMessage } from "@/src/projects/store/api/errors";
+import { useSession } from "@/src/projects/store/auth/useSession";
+import ErrorStateView from "@/src/projects/store/components/ui/ErrorStateView";
+import { storeColors } from "@/src/projects/store/constants/theme";
+import { useUserProfile } from "@/src/projects/store/hooks/useUser";
 
 export default function ProfileSheet() {
   const router = useRouter();
   const { dismiss } = useBottomSheetModal();
+  const session = useSession();
 
   const {
     data: user,
@@ -26,7 +31,7 @@ export default function ProfileSheet() {
     error,
     refetch,
     isRefetching,
-  } = useUserProfile(CURRENT_USER_ID);
+  } = useUserProfile(session.user?.id);
 
   const handleSignOut = () => {
     Alert.alert("Sign out", "Sign out from Store?", [
@@ -38,17 +43,15 @@ export default function ProfileSheet() {
         text: "Sign Out",
         style: "destructive",
         onPress: () => {
-          // Clear auth and redirect
-          // router.reset({
-          //   index: 0,
-          //   routes: [{ name: "Login" as never }],
-          // });
+          dismiss();
+          // Stack.Protected moves the user to /sign-in once the session clears.
+          session.signOut();
         },
       },
     ]);
   };
 
-  if (isPending) {
+  if (isPending && session.user) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
@@ -58,15 +61,15 @@ export default function ProfileSheet() {
 
   if (error && !user) {
     return (
-      <View style={styles.center}>
-        <Text>{error.message}</Text>
-        <Button title="Retry" onPress={() => refetch()} />
-      </View>
+      <ErrorStateView
+        message={getErrorMessage(error) ?? "Couldn't load your profile."}
+        onRetry={() => refetch()}
+      />
     );
   }
 
   return (
-    <ScrollView
+    <BottomSheetScrollView
       contentContainerStyle={styles.container}
       refreshControl={
         <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
@@ -78,6 +81,8 @@ export default function ProfileSheet() {
             <Image
               source={{ uri: `https://picsum.photos/seed/${user.id}/200/200` }}
               style={styles.avatar}
+              accessibilityIgnoresInvertColors
+              accessibilityLabel="Profile photo"
             />
           </View>
 
@@ -102,6 +107,7 @@ export default function ProfileSheet() {
 
           <TouchableOpacity
             style={styles.button}
+            accessibilityRole="button"
             onPress={() => {
               dismiss();
               router.push("/projects/store/orders");
@@ -112,13 +118,14 @@ export default function ProfileSheet() {
 
           <TouchableOpacity
             style={[styles.button, styles.signOut]}
+            accessibilityRole="button"
             onPress={handleSignOut}
           >
             <Text style={styles.buttonText}>Sign Out</Text>
           </TouchableOpacity>
         </>
       )}
-    </ScrollView>
+    </BottomSheetScrollView>
   );
 }
 
@@ -159,7 +166,7 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 12,
-    backgroundColor: "#007bff",
+    backgroundColor: storeColors.accent,
     borderRadius: 6,
     marginVertical: 8,
     alignItems: "center",

@@ -1,33 +1,42 @@
-import React, { useState } from "react";
-import { View, Image, ActivityIndicator, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StyleProp } from "react-native/Libraries/StyleSheet/StyleSheet";
-import { ViewStyle } from "react-native/Libraries/StyleSheet/StyleSheetTypes";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  type StyleProp,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
 
 export default function ProductImage({
   image,
-  style = undefined,
+  style,
+  accessibilityLabel,
 }: {
   image: string;
-  style?: StyleProp<ViewStyle> | undefined;
+  style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   return (
-    <View style={[styles.imageWrapper, style]}>
+    <View
+      style={[styles.imageWrapper, style]}
+      accessible={!!accessibilityLabel}
+      accessibilityRole={accessibilityLabel ? "image" : undefined}
+      accessibilityLabel={accessibilityLabel}
+    >
       {error ? (
-        <Ionicons name="image-outline" size={48} color="gray" />
+        <Ionicons name="image-outline" size={32} color="gray" />
       ) : (
         <>
           <Image
             source={{ uri: image }}
             style={styles.image}
             resizeMode="contain"
-            onLoadEnd={() => {
-              setLoading(false);
-              console.log("Image loading finished 1");
-            }}
+            onLoadEnd={() => setLoading(false)}
             onError={() => {
               setError(true);
               setLoading(false);
@@ -54,8 +63,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  image: {
-    width: "90%",
-    height: "90%",
-  },
+  image: { width: "90%", height: "90%" },
 });

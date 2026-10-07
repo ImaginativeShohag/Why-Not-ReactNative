@@ -1,11 +1,7 @@
-import axiosInstance from "@/src/shared/api/axios";
-import { User } from "../models/User";
+import type { User } from "../models/User";
+import { storeApi } from "./client";
 
-/**
- * Real FakeStoreAPI version — note `address` is an object there, so the
- * `User` model needs updating before switching over:
- */
 export const fetchUserProfile = async (id: number): Promise<User> => {
-  const { data } = await axiosInstance.get(`/users/${id}`);
+  const { data } = await storeApi.get<User>(`/users/${id}`);
   return data;
 };

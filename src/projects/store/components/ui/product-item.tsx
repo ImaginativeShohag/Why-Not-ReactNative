@@ -1,17 +1,24 @@
-import ProductImage from "@/src/projects/store/components/ui/product-image";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import ProductImage from "@/src/projects/store/components/ui/product-image";
+
+import WishlistButton from "./WishlistButton";
+import { storeColors } from "../../constants/theme";
+
 type ProductViewProps = {
   title: string;
-  price: number;
+  /** Pre-formatted through `formatPrice` — components never format money. */
+  price: string;
   image: string;
   rating: number;
   ratingCount: number;
   quantity: number | undefined;
   onPlusClick: () => void;
   onMinusClick: () => void;
+  wishlisted?: boolean;
+  onToggleWishlist?: () => void;
 };
 
 export default function ProductView({
@@ -23,66 +30,78 @@ export default function ProductView({
   quantity,
   onPlusClick,
   onMinusClick,
+  wishlisted,
+  onToggleWishlist,
 }: ProductViewProps) {
+  const qty = quantity ?? 0;
   return (
     <View style={styles.card}>
-      {/* Image Section */}
       <View style={styles.imageWrapper}>
         <ProductImage image={image} />
         <LinearGradient
-          colors={["rgba(0,0,0,0.15)", "transparent"]} // gray → transparent
-          start={{ x: 0.5, y: 1 }} // bottom center
-          end={{ x: 0.5, y: 0 }} // top center
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 32,
-          }}
+          colors={["rgba(0,0,0,0.15)", "transparent"]}
+          start={{ x: 0.5, y: 1 }}
+          end={{ x: 0.5, y: 0 }}
+          style={styles.gradient}
         />
+        {onToggleWishlist ? (
+          <View style={styles.wishlist}>
+            <WishlistButton
+              active={!!wishlisted}
+              onPress={onToggleWishlist}
+              size={20}
+            />
+          </View>
+        ) : null}
       </View>
 
-      {/* Info Section */}
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        <Text style={styles.price}>${price.toFixed(2)}</Text>
-        <View style={styles.ratingRow}>
+        <Text style={styles.price}>{price}</Text>
+        <View
+          style={styles.ratingRow}
+          accessible
+          accessibilityLabel={`Rated ${rating.toFixed(1)} out of 5 from ${ratingCount} reviews`}
+        >
           <AntDesign name="star" size={12} color="gold" />
           <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
           <Text style={styles.ratingCount}>({ratingCount})</Text>
         </View>
       </View>
 
-      {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Quantity Section */}
       <View style={styles.actions}>
         <Pressable
-          style={({ pressed }) => [
-            {
-              opacity: pressed ? 0.2 : 1.0,
-            },
-          ]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.2 : 1.0 }]}
           onPress={onPlusClick}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Add one ${title} to bag`}
         >
           <Ionicons name="add-circle" size={24} color="black" />
         </Pressable>
 
-        <Text style={styles.quantity}>{quantity ?? 0}</Text>
+        <Text style={styles.quantity} accessibilityLabel={`${qty} in bag`}>
+          {qty}
+        </Text>
 
         <Pressable
-          style={({ pressed }) => [
-            {
-              opacity: pressed ? 0.2 : 1.0,
-            },
-          ]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.2 : 1.0 }]}
           onPress={onMinusClick}
+          disabled={qty === 0}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove one ${title} from bag`}
+          accessibilityState={{ disabled: qty === 0 }}
         >
-          <Ionicons name="remove-circle" size={24} color="black" />
+          <Ionicons
+            name="remove-circle"
+            size={24}
+            color={qty === 0 ? storeColors.tertiary : "black"}
+          />
         </Pressable>
       </View>
     </View>
@@ -91,7 +110,7 @@ export default function ProductView({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFF", // like .tertiarySystemBackground
+    backgroundColor: "#FFF",
     borderRadius: 16,
     overflow: "hidden",
     margin: 8,
@@ -106,59 +125,26 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
   },
-  image: {
-    width: "90%",
-    height: "90%",
-  },
-  gradientOverlay: {
+  gradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: 32 },
+  wishlist: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 16,
-    backgroundColor: "rgba(0,0,0,0.15)",
+    top: 6,
+    right: 6,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
   },
-  info: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "red",
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    color: "gray",
-    marginLeft: 4,
-  },
-  ratingCount: {
-    fontSize: 12,
-    color: "gray",
-    marginLeft: 2,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#C6C6C8",
-  },
+  info: { padding: 8 },
+  title: { fontSize: 14, fontWeight: "600" },
+  price: { fontSize: 16, fontWeight: "bold", color: storeColors.label },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  ratingText: { fontSize: 12, color: "gray", marginLeft: 4 },
+  ratingCount: { fontSize: 12, color: "gray", marginLeft: 2 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: "#C6C6C8" },
   actions: {
     flexDirection: "row",
     alignItems: "center",
     padding: 8,
     justifyContent: "space-between",
   },
-  quantity: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  quantity: { flex: 1, textAlign: "center", fontSize: 14, fontWeight: "500" },
 });

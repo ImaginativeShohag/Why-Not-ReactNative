@@ -1,0 +1,62 @@
+# Project 03 · M8 smoke flow: sign in → add to bag → checkout (simulated payment).
+# Run against a dev or preview build; the id differs per variant (app.config.ts):
+#   maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/store-checkout.yaml
+# Uses FakeStoreAPI's public demo user via the dev-only "fill" button and the
+# simulated processor (no Stripe key needed).
+appId: ${APP_ID}
+name: Store · sign in → checkout
+---
+- launchApp:
+    clearState: true
+- tapOn: "Store"
+- runFlow:
+    when:
+      visible:
+        id: "onboarding-start"
+    commands:
+      - tapOn:
+          id: "onboarding-start"
+- tapOn:
+    id: "sign-in-fill-demo"
+- tapOn:
+    id: "sign-in-submit"
+- extendedWaitUntil:
+    visible:
+      id: "product-1"
+    timeout: 15000
+- tapOn:
+    id: "product-1"
+- tapOn:
+    id: "add-to-bag"
+- tapOn: "Bag"
+- tapOn:
+    id: "bag-checkout"
+- tapOn:
+    id: "address-name"
+- inputText: "Ada Lovelace"
+- tapOn:
+    id: "address-line1"
+- inputText: "12 Analytical St"
+- tapOn:
+    id: "address-city"
+- inputText: "Austin"
+- tapOn:
+    id: "address-postal"
+- inputText: "73301"
+- hideKeyboard
+- tapOn:
+    id: "checkout-address-continue"
+- tapOn:
+    id: "shipping-standard"
+- tapOn:
+    id: "checkout-shipping-continue"
+- tapOn:
+    id: "payment-simulated"
+- tapOn:
+    id: "checkout-payment-continue"
+- tapOn:
+    id: "checkout-place-order"
+- extendedWaitUntil:
+    visible: "Order #.*"
+    timeout: 20000
+- takeScreenshot: store-order-placed

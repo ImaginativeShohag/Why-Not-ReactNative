@@ -1,6 +1,5 @@
+import { itemCount } from "./cartMath";
 import { useCartStore } from "./cartStore";
 
-export const useTotalPrice = () =>
-  useCartStore((state) =>
-    state.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-  );
+export const useItemCount = () =>
+  useCartStore((state) => itemCount(state.items));

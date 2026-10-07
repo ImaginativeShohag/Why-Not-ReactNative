@@ -1,41 +1,55 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import type { Product } from "../models/Product";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-export type CartItem = Product & { quantity: number };
+import type { Product } from "../models/Product";
+import {
+  addItem,
+  type CartItem,
+  changeQuantity,
+  mergeCarts,
+  type ServerCartLine,
+} from "./cartMath";
+
+export type { CartItem } from "./cartMath";
 
 interface CartState {
   items: CartItem[];
   addToCart: (product: Product) => void;
-  removeFromCart: (id: number) => void;
   updateQuantity: (id: number, delta: number) => void;
   clearCart: () => void;
+  /** Applies the documented merge rule (see `mergeCarts`) after sign-in. */
+  mergeWithServer: (
+    lines: ServerCartLine[],
+    resolveProduct: (id: number) => Product | undefined,
+  ) => CartItem[];
 }
 
-export const useCartStore = create<CartState>((set) => ({
-  items: [],
-  addToCart: (product) =>
-    set((state) => {
-      const existing = state.items.find((i) => i.id === product.id);
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
-          ),
-        };
-      }
-      return { items: [...state.items, { ...product, quantity: 1 }] };
+/**
+ * Persisted locally so the bag survives a relaunch (and a force-quit mid
+ * checkout); reconciled with the server cart on sign-in so it also survives
+ * a reinstall or a second device.
+ */
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      addToCart: (product) =>
+        set((state) => ({ items: addItem(state.items, product) })),
+      updateQuantity: (id, delta) =>
+        set((state) => ({ items: changeQuantity(state.items, id, delta) })),
+      clearCart: () => set({ items: [] }),
+      mergeWithServer: (lines, resolveProduct) => {
+        const merged = mergeCarts(get().items, lines, resolveProduct);
+        set({ items: merged });
+        return merged;
+      },
     }),
-  removeFromCart: (id) =>
-    set((state) => ({
-      items: state.items.filter((i) => i.id !== id),
-    })),
-  updateQuantity: (id, delta) =>
-    set((state) => ({
-      items: state.items
-        .map((i) =>
-          i.id === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i,
-        )
-        .filter((i) => i.quantity > 0),
-    })),
-  clearCart: () => set({ items: [] }),
-}));
+    {
+      name: "store.cart",
+      version: 1,
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ items: state.items }),
+    },
+  ),
+);
