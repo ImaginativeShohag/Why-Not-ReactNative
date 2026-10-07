@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>React Native Training — Why-Not-ReactNative</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+<main class="wrap" id="app">
+  <noscript>The training quiz needs JavaScript.</noscript>
+</main>
+<div id="saved" class="qz-saved" aria-live="polite"></div>
+<div id="toast" class="qz-toast" role="status"></div>
+
+<script src="quiz.js"></script>
+<!-- One script per bank. Adding a bank? Add its tag here; validate.mjs checks they match. -->
+<script src="banks/00-launcher.js"></script>
+<script src="banks/01-offline-journal.js"></script>
+<script src="banks/02-camera-social.js"></script>
+<script src="banks/03-store.js"></script>
+<script src="banks/04-fitness-tracker.js"></script>
+<script src="banks/05-podcast-player.js"></script>
+<script src="banks/06-tic-tac-toe.js"></script>
+<script>QUIZ.start();</script>
+</body>
+</html>
