@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/workout_widget_background"
+  android:orientation="vertical"
+  android:padding="12dp">
+
+  <TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="TODAY"
+    android:textColor="#9CA3AF"
+    android:textSize="11sp"
+    android:textStyle="bold" />
+
+  <TextView
+    android:id="@+id/widget_steps"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="0"
+    android:textColor="#FFFFFF"
+    android:textSize="28sp"
+    android:textStyle="bold" />
+
+  <ProgressBar
+    android:id="@+id/widget_progress"
+    style="@android:style/Widget.ProgressBar.Horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="6dp"
+    android:layout_marginTop="4dp"
+    android:max="8000"
+    android:progress="0" />
+
+  <TextView
+    android:id="@+id/widget_distance"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:text="0.00 km"
+    android:textColor="#FFFFFF"
+    android:textSize="14sp" />
+
+  <TextView
+    android:id="@+id/widget_streak"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text=""
+    android:textColor="#F97316"
+    android:textSize="12sp" />
+</LinearLayout>
