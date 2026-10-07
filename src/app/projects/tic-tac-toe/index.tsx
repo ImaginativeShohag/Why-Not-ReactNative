@@ -1,10 +1,15 @@
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import {
+  calculateStatus,
+  calculateWinner,
+  countRemainingTurns,
+  squareLabel,
+  SquareValue,
+  Squares,
+} from "@/src/projects/tic-tac-toe/utils/game";
 
-type Player = "X" | "O";
-type SquareValue = Player | null;
-type Squares = SquareValue[];
 type Updater<T> = T | ((prev: T) => T);
 
 const useGameStore = create(
@@ -38,12 +43,20 @@ const useGameStore = create(
 
 type SquareProps = {
   value: SquareValue;
+  label: string;
+  disabled: boolean;
   onSquareClick: () => void;
 };
 
-function Square({ value, onSquareClick }: SquareProps) {
+function Square({ value, label, disabled, onSquareClick }: SquareProps) {
   return (
-    <Pressable style={styles.square} onPress={onSquareClick}>
+    <Pressable
+      style={styles.square}
+      onPress={onSquareClick}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+    >
       <Text style={styles.squareText}>{value}</Text>
     </Pressable>
   );
@@ -57,9 +70,9 @@ type BoardProps = {
 
 function Board({ xIsNext, squares, onPlay }: BoardProps) {
   const winner = calculateWinner(squares);
-  const turns = calculateTurns(squares);
+  const remainingTurns = countRemainingTurns(squares);
   const player = xIsNext ? "X" : "O";
-  const status = calculateStatus(winner, turns, player);
+  const status = calculateStatus(winner, remainingTurns, player);
 
   function handleClick(i: number) {
     if (squares[i] || winner) return;
@@ -70,12 +83,17 @@ function Board({ xIsNext, squares, onPlay }: BoardProps) {
 
   return (
     <View>
-      <Text style={styles.status}>{status}</Text>
+      {/* Announces each new status ("Next player: O", "Winner X") on Android. */}
+      <Text style={styles.status} accessibilityLiveRegion="polite">
+        {status}
+      </Text>
       <View style={styles.board}>
         {squares.map((square, squareIndex) => (
           <Square
             key={`square-${squareIndex}`}
             value={square}
+            label={squareLabel(squareIndex, square)}
+            disabled={square !== null || winner !== null}
             onSquareClick={() => handleClick(squareIndex)}
           />
         ))}
@@ -116,6 +134,8 @@ export default function Game() {
             <Pressable
               key={historyIndex}
               style={styles.moveButton}
+              accessibilityRole="button"
+              accessibilityState={{ selected: historyIndex === currentMove }}
               onPress={() => jumpTo(historyIndex)}
             >
               <Text style={styles.moveText}>{description}</Text>
@@ -125,42 +145,6 @@ export default function Game() {
       </View>
     </View>
   );
-}
-
-function calculateWinner(squares: Squares): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
-    }
-  }
-
-  return null;
-}
-
-function calculateTurns(squares: Squares): number {
-  return squares.filter((square) => !square).length;
-}
-
-function calculateStatus(
-  winner: SquareValue,
-  turns: number,
-  player: Player,
-): string {
-  if (!winner && !turns) return "Draw";
-  if (winner) return `Winner ${winner}`;
-  return `Next player: ${player}`;
 }
 
 const SQUARE_SIZE = 40;
