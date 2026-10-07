@@ -1,22 +1,16 @@
 import { create } from "axios";
 
+/**
+ * Project-agnostic HTTP defaults. There is deliberately no base URL and no
+ * interceptors here: each project derives its own instance with
+ * `axiosInstance.create({ baseURL })` and installs its own interceptors from
+ * its slice, so one project's auth logic never touches another's requests.
+ */
 const axiosInstance = create({
-  baseURL: "https://fakestoreapi.com", // Replace with your API base URL
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-// Optional: interceptors for auth tokens or error handling
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Example: attach token
-    // const token = await SecureStore.getItemAsync("token");
-    // if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
 
 export default axiosInstance;

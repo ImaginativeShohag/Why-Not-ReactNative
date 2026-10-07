@@ -4,28 +4,29 @@
   },
   "build": {
     "development": {
-      "ios": {
-        "simulator": true
-      }
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": { "APP_VARIANT": "development" },
+      "ios": { "simulator": true }
+    },
+    "development-device": {
+      "extends": "development",
+      "ios": { "simulator": false }
     },
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease"
-      }
-    },
-    "preview3": {
-      "developmentClient": true
-    },
-    "preview4": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview",
+      "env": { "APP_VARIANT": "preview" },
+      "android": { "buildType": "apk" }
     },
     "production": {
-      "autoIncrement": true
+      "channel": "production",
+      "autoIncrement": true,
+      "env": { "APP_VARIANT": "production" }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }
