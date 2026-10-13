@@ -9,6 +9,10 @@ out the answer from the real code, then the explanation tells you why.
   type. The dashboard has **Export / Import** for backups or moving browsers.
 - **Spaced repetition:** Leitner boxes 1–5, due again after 0 / 1 / 3 / 7 / 16 days. A miss
   drops a question to box 1. "Mastered" means box 4 or higher.
+- **Look:** `quiz.css` is a standalone design system (it no longer loads `../assets/style.css`):
+  dark and light themes (top-bar toggle, or "Match system" in settings), per-module colours and
+  icons from `LOOKS` in `quiz.js`, and motion that respects `prefers-reduced-motion`. No external
+  fonts or libraries, so `file://` still works offline.
 - **Editor links:** when the page is opened from disk, "Open in VS Code" links point at the repo
   automatically. When it's served over http, set the repo root on the dashboard.
 
