@@ -895,3 +895,10 @@ a.qz-badge:hover { color: var(--brand); border-color: var(--brand); }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .rv:not(.in) { opacity: 1; }
 }
+
+.qz-docs { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line, rgba(128,128,128,0.25)); }
+.qz-docs h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--fg-faint); }
+.qz-docs h4 .ic { color: var(--brand); font-size: 14px; }
+.qz-docs ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.qz-docs a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line, rgba(128,128,128,0.3)); font-size: 0.82rem; color: var(--brand); text-decoration: none; }
+.qz-docs a:hover { text-decoration: underline; }

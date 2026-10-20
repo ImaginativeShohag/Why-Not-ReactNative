@@ -34,8 +34,8 @@
 </div>
 
 <div class="tip">
-  <strong>Step 00 is done — <a href="00-launcher-restructure.html">Launcher &amp; Multi-Project Restructure</a></strong>
-  <p>The repo is no longer "the store app." Home is a launcher list driven by a registry, and every exercise — the store included — is an isolated slice. Each numbered project below already has a clean slot to grow into. Read Step 00 before adding a project, because the isolation rules it establishes are the ones you'll be held to.</p>
+  <strong>Start here — <a href="00-launcher-restructure.html">Step 00 · Build the Launcher &amp; Multi-Project Structure</a></strong>
+  <p>Build the skeleton every project sits in: a Home launcher list driven by a registry, and one isolated slice per exercise. Step 00 teaches the folder layout, the routing strategy and the isolation rules (enforced by lint) that every numbered project below depends on. Do it first, then pick a project.</p>
 </div>
 
 <h2>Where the repo is right now</h2>
@@ -219,12 +219,12 @@ eas build --profile development --platform ios --local
 
 <h2>Starting a new project — the mechanical part</h2>
 
-<p>Same steps every time, so none of the docs above repeat them. All six slots are now filled; this is the recipe for a seventh.</p>
+<p>Same steps every time, so none of the docs above repeat them. This is the recipe for adding another project to the launcher.</p>
 
 <ol>
-  <li>Add an entry to <code>src/shared/config/projects.ts</code> and a stub route rendering <code>ComingSoonView</code> while it's planned. The launcher reads the registry; it has no hardcoded knowledge of any project.</li>
+  <li>Add an entry to <code>src/shared/config/projects.ts</code> and a first route for it. The launcher reads the registry; it has no hardcoded knowledge of any project.</li>
   <li>Create the slice: <code>src/projects/&lt;slug&gt;/</code> with only the subfolders you actually need. Don't scaffold empty ones.</li>
-  <li>Give the project its own <code>src/app/projects/&lt;slug&gt;/_layout.tsx</code> owning its inner <code>Stack</code>, and add <code>&lt;slug&gt;</code> to <code>PROJECT_SLUGS</code> in <code>src/app/_layout.tsx</code> — the root declares one <code>projects/&lt;slug&gt;</code> screen per project, not one per route.</li>
+  <li>Give the project its own <code>src/app/projects/&lt;slug&gt;/_layout.tsx</code> owning its inner <code>Stack</code>, — the root layout generates one <code>projects/&lt;slug&gt;</code> <code>Stack.Screen</code> per registry entry, so no root edit is needed.</li>
   <li>Anything that must exist on a <strong>headless or cold launch</strong> — a <code>TaskManager.defineTask</code>, a notification-tap listener, a share-intent router — is imported from the <strong>root</strong> layout. A project layout only loads when the user opens that project; four projects in this repo hit this exact bug.</li>
   <li>External URL shapes (universal links, share callbacks) get a pure rewriter in your slice, registered in <code>src/app/+native-intent.tsx</code>.</li>
   <li>Before calling a milestone done: <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npm test</code>, and <code>npx expo export --platform ios</code> (the bundle catches what tsc can't — e.g. a stray <code>@react-navigation/*</code> import fails expo-router's check only at bundle time).</li>
@@ -260,7 +260,7 @@ eas build --profile development --platform ios --local
   <li><a href="https://docs.expo.dev/eas-update/introduction/">EAS Update</a> — required before Project 05.</li>
   <li><a href="https://docs.swmansion.com/react-native-reanimated/">Reanimated 4</a> and <a href="https://docs.swmansion.com/react-native-gesture-handler/">Gesture Handler</a> — Project 02 onward.</li>
   <li><a href="https://tanstack.com/query/latest/docs/framework/react/react-native">TanStack Query for React Native</a> — offline persistence + focus manager.</li>
-  <li><a href="00-launcher-restructure.html">Step 00 · Launcher &amp; restructure</a> — how the repo became a launcher, and the isolation rules.</li>
+  <li><a href="00-launcher-restructure.html">Step 00 · Launcher &amp; restructure</a> — build the launcher, the project slices and the isolation rules.</li>
   <li>Project write-ups produced while building: <a href="audit-03.md">03 · store audit</a>, <a href="release-05.md">05 · release runbook</a>, <a href="well-known/README.md">universal-link files</a>.</li>
   <li><code>AGENTS.md</code> at the repo root — the same structure rules in the form the tooling reads. If it and this page ever disagree, <code>AGENTS.md</code> is the one that gets checked against disk.</li>
 </ul>

@@ -511,7 +511,9 @@
     const rows = files
       .map((f) => {
         const open =
-          root && editor !== "none"
+          /\.html?$/i.test(f)
+            ? `<a class="qz-mini" href="../../${esc(f.split("/").map(encodeURIComponent).join("/"))}" target="_blank" rel="noopener noreferrer">${ic("external")} Open</a>`
+            : root && editor !== "none"
             ? `<a class="qz-mini" href="${editor}://file${encodeURI(`${root}/${f}`)}">${ic("external")} ${EDITORS[editor]}</a>`
             : "";
         return `<li>${ic("file")}<code>${esc(f)}</code><span class="acts"><button class="qz-mini" data-act="copy" data-path="${esc(f)}">${ic("copy")} Copy</button>${open}</span></li>`;
@@ -972,8 +974,18 @@
       ${filesHtml(q.files)}
       ${q.hint && ph !== "done" ? (session.hints.has(q.id) ? `<div class="qz-hint">${ic("bulb")}<div>${md(q.hint)}</div></div>` : `<button class="qz-link" data-act="hint">${ic("bulb")} Show hint <kbd>H</kbd></button>`) : ""}
       <div class="qz-body">${bodyHtml(q, ph, res)}</div>
-      ${res ? `<div class="qz-result ${res.result}"><span class="badge">${ic(RESULT_ICON[res.result] || "x")}</span><div>${RESULT_LABEL[res.result] || ""}<small>${RESULT_SUB[res.result] || ""}</small></div></div><div class="qz-explain"><h4>${ic("bulb")} Why</h4>${md(q.explain)}</div>` : ""}
+      ${res ? `<div class="qz-result ${res.result}"><span class="badge">${ic(RESULT_ICON[res.result] || "x")}</span><div>${RESULT_LABEL[res.result] || ""}<small>${RESULT_SUB[res.result] || ""}</small></div></div><div class="qz-explain"><h4>${ic("bulb")} Why</h4>${md(q.explain)}${linksHtml(q.links)}</div>` : ""}
       <div class="qz-actions">${actionsHtml(q, ph, res)}</div>`;
+  }
+
+  // Official documentation for the question, shown with the explanation.
+  function linksHtml(links) {
+    if (!Array.isArray(links) || !links.length) return "";
+    const items = links
+      .filter((l) => l && /^https:\/\//.test(l.url))
+      .map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${ic("external")} ${esc(l.title)}</a></li>`)
+      .join("");
+    return items ? `<div class="qz-docs"><h4>${ic("book")} Official docs</h4><ul>${items}</ul></div>` : "";
   }
 
   const words = (s) => (String(s).trim().match(/\S+/g) || []).length;

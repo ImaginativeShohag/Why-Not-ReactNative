@@ -12,7 +12,7 @@
 <div class="crumb"><a href="index.html">← Learning path</a> / Project 05</div>
 
 <h1>05 · Podcast Player &amp; Release Pipeline</h1>
-<p class="subtitle">Background audio with lock-screen controls and offline downloads — plus the half of app development nobody teaches: EAS Build, EAS Update channels, staged rollouts, rollback, e2e tests, and CI/CD.</p>
+<p class="subtitle">Build a podcast app with background audio, lock-screen controls and resumable offline downloads, then ship it the way a real team would: EAS Build profiles, EAS Update channels, fingerprint runtime versions, staged rollouts, rollback, Maestro e2e tests and CI/CD.</p>
 
 <div class="meta-row">
   <span class="chip pink">Ship-it tier</span>
@@ -22,7 +22,12 @@
 </div>
 
 <div class="note">
-  <strong>Why this one last</strong>
+  <strong>How to use this brief</strong>
+  <p>This page is a tutorial: read a section, build the matching milestone yourself in <code>src/projects/podcast-player/</code> and <code>src/app/projects/podcast-player/</code>, then compare with the working code. Every milestone ends with a <em>checkpoint</em> (what you should observe) and a <em>verify</em> line (a command or a file to open). Pair it with the quiz bank in <code>docs/training/</code> to practise finding the answers in the real code, and with <a href="release-05.md">the release runbook</a> for the exact commands.</p>
+</div>
+
+<div class="note">
+  <strong>Why this one is the capstone of the release tier</strong>
   <p>Two reasons. First, audio is the hardest media type to get right — interruptions, route changes, remote commands, and background sessions all have to work or the app is unusable. Second, by now you have four apps and zero release experience. This project is where you learn to ship: build profiles, over-the-air updates, percentage rollouts, rollback, and the runtime-version rules that decide whether an OTA update is even legal.</p>
 </div>
 
@@ -36,25 +41,28 @@
   <li><a href="#milestones">Build order (milestones)</a></li>
   <li><a href="#libraries">Library hints</a></li>
   <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
+  <li><a href="#restructuring">Restructuring notes</a></li>
+  <li><a href="#stretch">Next steps &amp; stretch goals</a></li>
 </ul>
 
 <h2 id="objectives">Learning objectives</h2>
+
+<p>By the end of this project you can: keep audio playing across navigation, backgrounding and interruptions; persist listening position and a queue without hammering the database; download large files resumably and survive a killed app; parse messy real-world RSS defensively; and take a JS fix from a pull request to a tester's phone without a store review, knowing exactly when an OTA is and isn't legal.</p>
 
 <table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>Audio session</td><td>Background playback, silent-mode behaviour, interruption handling, ducking, audio-route changes, and mixing policy.</td></tr>
-<tr><td>Now-playing surfaces</td><td>Lock-screen controls, Control Center, Android media notification, CarPlay/Android Auto basics.</td></tr>
-<tr><td>Playback engine design</td><td>A single global player owned outside React, with a queue, playback rate, sleep timer, skip-silence, and resume position.</td></tr>
+<tr><td>Now-playing surfaces</td><td>Lock-screen controls, Control Center and the Android media notification, driven by <code>setActiveForLockScreen</code>. (CarPlay / Android Auto is a stretch goal.)</td></tr>
+<tr><td>Playback engine design</td><td>A single global player owned outside React, with a queue, playback rate, sleep timer, and resume position.</td></tr>
 <tr><td>Persistent mini-player</td><td>A player that survives navigation, expands into a full screen with a gesture, and never remounts.</td></tr>
 <tr><td>Downloads</td><td>Resumable background downloads with progress, retries, storage quotas, and cleanup policies.</td></tr>
-<tr><td>Feed parsing</td><td>RSS/XML parsing off the main thread, incremental sync, and dedupe.</td></tr>
-<tr><td>EAS Build</td><td>Build profiles, credentials, local vs cloud builds, internal distribution, app-store submission.</td></tr>
-<tr><td>EAS Update</td><td>Channels vs branches, runtime versions, staged rollouts, rollback, and update-check strategies.</td></tr>
-<tr><td>CI/CD</td><td>Lint + typecheck + test on PR; build and submit on tag; publish an OTA update on merge to a release branch.</td></tr>
-<tr><td>E2E testing</td><td>Maestro flows running against a real build, in CI.</td></tr>
-<tr><td>Store readiness</td><td>Privacy manifests, data-safety forms, screenshots, review notes, phased release.</td></tr>
+<tr><td>Feed parsing</td><td>A pure, fixture-tested RSS parser (<code>fast-xml-parser</code>), conditional GET, and content-hash dedupe so a refresh only writes what changed.</td></tr>
+<tr><td>EAS Build</td><td>Build profiles, app variants that install side by side, credentials, local vs cloud builds, internal distribution, app-store submission.</td></tr>
+<tr><td>EAS Update</td><td>Channels vs branches, fingerprint runtime versions, staged rollouts, rollback, and update-check UX.</td></tr>
+<tr><td>CI/CD</td><td>Typecheck, lint, Jest and a two-platform bundle on every PR; an OTA to the <code>preview</code> channel on merge to <code>main</code>; build and submit on a <code>v*</code> tag; a nightly fingerprint-drift check.</td></tr>
+<tr><td>E2E testing</td><td>Maestro flows that take the app id as a parameter and run against a real build on Maestro Cloud.</td></tr>
+<tr><td>Store readiness</td><td>Privacy manifest required-reason APIs, data-safety answers, screenshots from Maestro, review notes, phased release.</td></tr>
 </tbody>
 </table>
 
@@ -62,9 +70,9 @@
 
 <h3>Design language</h3>
 <ul>
-  <li><strong>Tone:</strong> dark, artwork-driven. The episode art defines the accent colour of the now-playing screen (extract a dominant colour and animate the gradient when the track changes).</li>
+  <li><strong>Tone:</strong> dark, artwork-driven. The episode art defines the accent colour of the now-playing screen. The built app derives the accent deterministically from the artwork URL (<code>utils/color.ts</code> <code>accentFromSeed</code>, no image-colour library) and animates the gradient when the track changes. Same artwork, same colour, every launch.</li>
   <li><strong>The mini-player is permanent.</strong> It docks above the tab bar, is always visible when something is loaded, and expands with a drag or tap.</li>
-  <li><strong>Playback controls must be reachable one-handed</strong> and forgiving — skip buttons at least 56pt, scrubber with a large hit slop.</li>
+  <li><strong>Playback controls must be reachable one-handed</strong> and forgiving — large skip buttons with a <code>hitSlop</code>, and a scrubber with a generous vertical hit slop.</li>
   <li><strong>Download state is visible everywhere</strong> an episode appears: not-downloaded, queued, downloading (with progress), downloaded, failed.</li>
 </ul>
 
@@ -82,7 +90,7 @@
 <tr><td><code>/podcast/[id]</code></td><td>Podcast detail</td><td>Show info, episode list, subscribe toggle, per-show settings.</td></tr>
 <tr><td><code>/episode/[id]</code></td><td>Episode detail</td><td>Show notes with links and chapters, play/download actions.</td></tr>
 <tr><td><code>/player</code></td><td>Now playing</td><td>Full-screen player, presented as a modal over everything.</td></tr>
-<tr><td><code>/settings</code></td><td>Settings</td><td>Playback defaults, download rules, storage, update channel (dev only).</td></tr>
+<tr><td><code>/settings</code></td><td>Settings</td><td>Playback defaults, download rules, storage, build info (channel, runtime version, update id) and channel surfing (non-production variants only). Opened from the Home header.</td></tr>
 </tbody>
 </table>
 
@@ -183,11 +191,11 @@
 
 <h3>Interaction details worth building properly</h3>
 <ul>
-  <li><strong>Mini → full transition:</strong> drag up on the mini-player and the artwork grows, the tab bar slides away, and the background gradient fades in — all interpolated from one shared value tied to the drag.</li>
-  <li><strong>Scrubber:</strong> dragging must not fight the player's own position updates. Track a "seeking" flag; while seeking, the UI owns the position.</li>
+  <li><strong>Mini → full transition:</strong> drag up on the mini-player and the artwork scales, the sheet translates and the gradient fades in, all interpolated from one Reanimated shared value (<code>expand</code>, 0 to 1) tied to the drag. When the spring settles at 1, the router pushes <code>/player</code>, presented as a <code>transparentModal</code> with no animation for <code>from=drag</code>, so the handover is invisible.</li>
+  <li><strong>Scrubber:</strong> dragging must not fight the player's own position updates. Keep two pieces of local state: <code>scrub</code> while the finger is down and <code>settling</code> after release until the player confirms the seek. Display <code>scrub ?? settling ?? position</code>.</li>
   <li><strong>Skip buttons</strong> show the configured interval (15/30/45 s) inside the icon.</li>
   <li><strong>Sleep timer</strong> with an "end of episode" option and a fade-out over the last 10 seconds.</li>
-  <li><strong>Queue reordering</strong> with a drag handle and haptic feedback on pickup and drop.</li>
+  <li><strong>Queue reordering</strong> with a drag handle, swipe-to-remove, and haptic feedback on pickup and drop (<code>expo-haptics</code>).</li>
   <li><strong>Chapter markers</strong> rendered as ticks on the scrubber; tapping one seeks.</li>
 </ul>
 
@@ -219,145 +227,189 @@
                 (lock screen)   (throttled 5s)</code></pre>
 
 <h3>Folder layout</h3>
-<p>Routes under <code>src/app/projects/podcast-player/</code>, code in the slice at <code>src/projects/podcast-player/</code>.</p>
+<p>Routes live under <code>src/app/projects/podcast-player/</code> (routes only), everything else in the slice at <code>src/projects/podcast-player/</code>. Nothing here imports from another project; shared infrastructure comes from <code>src/shared/</code> (the axios defaults, the one <code>QueryClient</code>, <code>content-unavailable-view</code>, <code>env</code>).</p>
 
 <pre><code>src/app/projects/podcast-player/
-├── _layout.tsx                   project stack + &lt;MiniPlayerHost&gt;
+├── _layout.tsx                   project stack, wrapped in &lt;MiniPlayerHost&gt;; starts the singletons
 ├── (tab)/
-│   ├── _layout.tsx
+│   ├── _layout.tsx               JS tabs, fixed height = TAB_BAR_HEIGHT + bottom inset
 │   ├── index.tsx                 home
 │   ├── discover.tsx
 │   ├── queue.tsx
 │   └── downloads.tsx
 ├── podcast/[id].tsx
 ├── episode/[id].tsx
-├── player.tsx                    modal, transparent presentation
+├── player.tsx                    transparentModal
 └── settings.tsx</code></pre>
 
 <pre><code>src/projects/podcast-player/
 ├── playback/
-│   ├── service.ts                the singleton
-│   ├── queue.ts                  pure queue operations
+│   ├── service.ts                the singleton (PlaybackService → playbackService)
+│   ├── queue.ts                  pure queue operations + drag math (worklets)
 │   ├── nowPlaying.ts             lock-screen metadata
-│   ├── interruptions.ts          calls, other apps, route changes
-│   ├── sleepTimer.ts
-│   └── progress.ts               throttled position persistence
+│   ├── interruptions.ts          classifies unexplained status transitions
+│   ├── sleepTimer.ts             timer, fade-out, auto-advance rule
+│   └── progress.ts               throttled position writer, resume + played rules
 ├── downloads/
-│   ├── manager.ts                concurrency, retries, priority
-│   ├── storage.ts                paths, quotas, eviction
-│   └── task.ts                   background task for resuming
+│   ├── manager.ts                I/O: concurrency, retries, snapshots, rehydrate
+│   ├── policy.ts                 pure: backoff, network rule, eviction, auto-delete
+│   ├── paths.ts                  pure: relative-path rules (the container-UUID trap)
+│   ├── storage.ts                File / Directory / Paths helpers
+│   └── task.ts                   expo-background-task definition + registration
 ├── feeds/
-│   ├── parse.ts                  RSS → typed episodes (pure)
-│   ├── sync.ts                   incremental refresh
-│   └── index-api.ts              podcast search API client
-├── db/                           subscriptions, episodes, progress
-├── api/                          index-api endpoints, using shared axios
+│   ├── parse.ts                  RSS / Atom → typed episodes (pure)
+│   ├── sync.ts                   conditional GET, upsert, auto-download
+│   └── index-api.ts              iTunes search / top charts mapping
+├── db/
+│   ├── client.ts                 lazy module-scope getDb() (no SQLiteProvider)
+│   ├── schema.ts                 PRAGMA user_version migrations
+│   └── queries.ts
+├── api/index.api.ts              axios instance derived from the shared defaults
 ├── components/                   dumb: plain props + callbacks only
-│   ├── player/                   MiniPlayer, FullPlayer, Scrubber
-│   └── episode/                  EpisodeRow, TransferRow, DownloadBadge, ProgressBar
+│   ├── player/                   MiniPlayer, FullPlayerView, Scrubber, SkipButton, ChapterList, ArtworkGradient
+│   ├── episode/                  EpisodeRow, TransferRow, DownloadBadge, ProgressBar
+│   ├── queue/                    ReorderableList, QueueRow
+│   ├── podcast/                  Artwork, PodcastTile, PodcastRow
+│   └── common/                   StorageBar, UpdateBanner, ShowNotes, OptionChips, SectionHeader
 ├── containers/                   connected: MiniPlayerHost, LiveEpisodeRow, LiveTransferRow
-├── models/
-│   └── Episode.ts                Podcast, Episode, QueueItem, Progress types
-├── hooks/
-├── stores/
-│   └── playerStore.ts            zustand; fed by the singleton's events
-├── utils/
-│   └── queryKeys.ts              this project's own keys
-└── lib/
-    └── updates.ts                EAS Update check/apply UX</code></pre>
+├── hooks/                        usePodcastQueries, useEpisodeActions
+├── models/Episode.ts             Podcast, Episode, QueueItem, DownloadRecord, Chapter …
+├── stores/                       playerStore, downloadStore (live progress), settingsStore (persisted)
+├── utils/                        queryKeys, invalidate, downloadView, format, html, color
+├── constants/layout.ts
+├── lib/updates.ts                EAS Update check / banner / channel surfing
+└── __tests__/                    queue, downloads, parse (+ XML fixtures), sleepTimer, format, settingsStore</code></pre>
 
 <div class="warn">
   <strong><code>MiniPlayerHost</code> mounts in <em>your</em> layout, not the root</strong>
-  <p>The mini-player should persist across this project's screens — and stop existing the moment the user backs out to the launcher. Mounting it in <code>src/app/_layout.tsx</code> would leave a podcast player floating over the store's checkout. Wrap your project's <code>&lt;Stack /&gt;</code> instead. The <em>service</em> singleton is module-scope and survives regardless; that's the point of separating them.</p>
+  <p>The mini-player should persist across this project's screens and stop existing the moment the user backs out to the launcher. Mounting it in <code>src/app/_layout.tsx</code> would leave a podcast player floating over the store's checkout. Wrap your project's <code>&lt;Stack /&gt;</code> instead. The <em>service</em> singleton is module-scope and survives regardless; that is the point of separating them.</p>
 </div>
+
+<h3>Data model (SQLite, one migration)</h3>
+<p>The podcast database is its own file, opened lazily by <code>db/client.ts</code> because the playback service, the download manager and the background task all run with no React tree. <code>migrate()</code> enables WAL and foreign keys, then applies forward-only steps keyed on <code>PRAGMA user_version</code>, each inside a transaction. Append new steps; never edit one that has shipped.</p>
+<table>
+<thead><tr><th>Table</th><th>Holds</th><th>Detail worth copying</th></tr></thead>
+<tbody>
+<tr><td><code>podcasts</code></td><td>Feed, subscription flag, auto-download flag</td><td><code>etag</code> / <code>last_modified</code> validators for conditional GET; partial index on subscribed rows.</td></tr>
+<tr><td><code>episodes</code></td><td>Parsed items, chapters (JSON)</td><td><code>UNIQUE (podcast_id, guid)</code> and a <code>content_hash</code> so an unchanged row is never rewritten.</td></tr>
+<tr><td><code>progress</code></td><td>Position, duration, played</td><td>Separate from <code>episodes</code>, so a feed refresh can never reset listening state.</td></tr>
+<tr><td><code>downloads</code></td><td>State machine, attempts, <code>next_attempt_at</code>, <code>snapshot</code> (JSON)</td><td><code>relative_path</code> only, "NEVER an absolute URI".</td></tr>
+<tr><td><code>queue</code>, <code>kv</code></td><td>Up-next order; the resumable session</td><td>The playing episode is never in the queue.</td></tr>
+</tbody>
+</table>
+<p>User preferences are the exception: they live in a persisted Zustand store (<code>stores/settingsStore.ts</code>, AsyncStorage key <code>podcast-player/settings</code>) because they are tiny and the singletons need a <em>synchronous</em> <code>getSettings()</code>. The price is that it returns defaults until hydration finishes, so the headless background task awaits <code>ensureSettingsHydrated()</code> first.</p>
+
+<h3>Query keys and live state</h3>
+<p>Every TanStack Query key starts with <code>"podcast"</code> (<code>utils/queryKeys.ts</code>) because the app has exactly one <code>QueryClient</code>. Keys nest (<code>["podcast","show",id,"episodes"]</code>), so invalidating <code>podcastKeys.shows()</code> refreshes the show, its episodes and its flags in one call. High-frequency data does <em>not</em> go through the query cache: download progress goes to <code>downloadStore.live</code>, merged with the persisted row by <code>mergeDownload()</code> in <code>utils/downloadView.ts</code>, and rendered through a connected <code>LiveEpisodeRow</code> so only the row that is downloading re-renders.</p>
 
 <h2 id="audio">Audio session model</h2>
 
-<p>Configure the session once, early, and understand each flag rather than copying a snippet:</p>
+<p>Configure the session once, early (<code>PlaybackService.init()</code>, started from the project layout and idempotent), and understand each flag rather than copying a snippet:</p>
 
 <table>
 <thead><tr><th>Concern</th><th>Setting</th><th>What it decides</th></tr></thead>
 <tbody>
-<tr><td>Silent switch</td><td><code>playsInSilentMode</code></td><td>Whether iOS's mute switch silences you. A podcast app must be <code>true</code>.</td></tr>
-<tr><td>Background</td><td><code>shouldPlayInBackground</code> + the <code>expo-audio</code> plugin's <code>enableBackgroundPlayback</code></td><td>Playback continues when the app is backgrounded. Needs the audio background mode in Info.plist — the plugin adds it.</td></tr>
-<tr><td>Mixing</td><td><code>interruptionMode</code>: <code>doNotMix</code> / <code>duckOthers</code> / <code>mixWithOthers</code></td><td>Whether you stop the user's music or share the output. Podcasts use <code>doNotMix</code>.</td></tr>
-<tr><td>Lock screen</td><td><code>player.setActiveForLockScreen(true, metadata)</code></td><td>Shows artwork, title, artist and wires the remote controls.</td></tr>
-<tr><td>Recording</td><td><code>allowsRecording</code></td><td>Not needed here, but note that enabling it changes output routing on iOS.</td></tr>
+<tr><td>Silent switch</td><td><code>playsInSilentMode: true</code></td><td>Whether iOS's mute switch silences you. A podcast app must be <code>true</code>.</td></tr>
+<tr><td>Background</td><td><code>shouldPlayInBackground: true</code> + the <code>expo-audio</code> config plugin's <code>enableBackgroundPlayback: true</code></td><td>Playback continues when the app is backgrounded. The plugin adds the audio background mode (iOS) and the foreground-service pieces (Android) at prebuild, so changing it needs a new build and changes the fingerprint.</td></tr>
+<tr><td>Mixing</td><td><code>interruptionMode</code>: <code>doNotMix</code> / <code>duckOthers</code> / <code>mixWithOthers</code></td><td>Whether you stop the user's music or share the output. Podcasts use <code>doNotMix</code>, and <code>setActiveForLockScreen</code> requires it.</td></tr>
+<tr><td>Lock screen</td><td><code>player.setActiveForLockScreen(true, metadata, { showSeekForward, showSeekBackward })</code></td><td>Shows artwork, title, artist and wires the remote controls. On Android it is also what keeps audio alive past roughly 3 minutes in the background. The skip interval on these surfaces is fixed natively; the in-app 15/30/45 s setting does not reach them, and next/previous are disabled, so auto-advance happens on <code>didJustFinish</code>.</td></tr>
+<tr><td>Recording</td><td><code>allowsRecording: false</code></td><td>Not needed here, and the plugin is configured with <code>microphonePermission: false</code>. Enabling recording changes output routing on iOS.</td></tr>
 </tbody>
 </table>
 
-<h3>Events you must handle</h3>
+<h3>Events you must handle (and who handles them)</h3>
 <pre><code>INTERRUPTION BEGAN     (phone call, Siri, alarm, another app)
-   → pause, remember that it was system-initiated
+   → expo-audio pauses natively and remembers which players it paused
 
 INTERRUPTION ENDED     (with a "should resume" hint)
-   → resume ONLY if you paused it, and only if the hint says so
+   → expo-audio resumes only those players, and only if the OS hint says so
 
 AUDIO ROUTE CHANGED    (headphones unplugged, Bluetooth disconnect)
-   → pause immediately. Never blast audio out of the speaker.
-
-BECAME NOISY (Android)
-   → same rule
+   → iOS: expo-audio pauses natively
+   → Android "becoming noisy": NOT handled by expo-audio 57 (known gap)
 
 REMOTE COMMAND         (lock screen / car / headphone button)
-   → play, pause, next, previous, seek, skip forward/back
+   → play, pause, seek, skip: act on the player natively
 
 APP TERMINATED
-   → progress must already be persisted; nothing to save here</code></pre>
+   → progress must already be persisted; nothing runs on termination</code></pre>
 
-<p>Test each of these physically. Call yourself mid-episode. Yank the headphones out. Get in a car. These are not edge cases for an audio app — they're the main path.</p>
+<p>None of these fire a JavaScript event. What JS can see is the <em>status stream</em>: the player stops or starts without you having asked. <code>playback/interruptions.ts</code> solves this with an intent tracker: the service calls <code>command()</code> every time it plays or pauses on the user's behalf, and <code>observe()</code> labels any unexplained transition as <code>externalPause</code> or <code>externalPlay</code> (ignoring buffering flips and a 1.2 s window after your own command; <code>didJustFinish</code> always gets through). On <code>externalPause</code> the service flushes progress and sets <code>pausedExternally</code> so the UI can say "Paused by the system". This keeps your model of what the user wants in sync, and means you never auto-resume after a pause made from the lock screen.</p>
+
+<p>Test each of these physically. Call yourself mid-episode. Yank the headphones out. Get in a car. These are not edge cases for an audio app, they are the main path.</p>
+
+<h3>Progress, resume and the sleep timer</h3>
+<ul>
+  <li><strong>Throttled position writes.</strong> Status ticks arrive every 500 ms (<code>updateInterval: 500</code>). <code>createProgressWriter()</code> saves at most every 5 s while playing and <code>flush()</code>es immediately on pause, seek, track change, app backgrounding and external pause (it skips a write within 0.5 s of the last saved value).</li>
+  <li><strong>Resume rule.</strong> <code>resolveResumePosition()</code> starts over if the episode is played or under 5 s in; otherwise it returns <code>position - 2</code>. An episode counts as played within <code>min(30, duration × 5% + 5)</code> seconds of the end.</li>
+  <li><strong>Sleep timer.</strong> Options include "end of episode", with a 10 s volume fade. The finish handler captures the timer option <em>before</em> awaiting the progress save and consults <code>sleepFired</code>, so a timer that expires just before the finish event cannot start the next queued episode.</li>
+</ul>
 
 <h2 id="downloads">Download manager</h2>
 
 <pre><code>QUEUE MODEL
-  episodes[] with state: idle | queued | downloading | paused | done | failed
-  max N concurrent (2–3), FIFO with a user-priority bump
-  each item: resumable handle + bytes written + total bytes
+  downloads.state: queued | downloading | paused | done | failed
+  max N concurrent (default 2), priority then FIFO
+  each row: attempts, next_attempt_at, snapshot (JSON), relative_path
 
-RESUMABILITY
-  createDownloadResumable(url, fileUri, options, onProgress)
-    .downloadAsync()   start
-    .pauseAsync()      → returns a resumable snapshot — PERSIST IT
-    .resumeAsync()
-  On app relaunch: rehydrate snapshots from storage and resume.
+RESUMABILITY  (expo-file-system, SDK 57 object API)
+  const task = new DownloadTask(url, new File(resolveUri(relativePath)), { onProgress })
+  await task.downloadAsync()     → File when finished, null if paused first
+  await task.pauseAsync()        → task is now paused
+  const snap = task.savable()    → only valid while paused; PERSIST IT as JSON
+  DownloadTask.fromSavable({ ...snap, fileUri }, { onProgress }).resumeAsync()
+  On relaunch: rehydrate rows, rebuild tasks from snapshots, continue from the same byte.
 
-POLICY (make these user settings)
-  · Wi-Fi only        → check network type before starting
-  · Auto-download new episodes for subscribed shows
-  · Storage cap       → evict oldest played episodes when exceeded
-  · Auto-delete after N days / after played
-  · Retry with exponential backoff, cap attempts, then mark failed
+POLICY  (pure functions in downloads/policy.ts, tested without a network)
+  · Wi-Fi only        → networkDecision(): ok | offline | waitingForWifi
+  · Auto-download     → at most 2 new episodes per show per refresh, never on the first sync
+  · Storage cap       → default 2 GiB; evict PLAYED episodes only, oldest first
+  · Auto-delete       → after N days, or when played
+  · Retry             → equal-jitter backoff: 2 s × 2^(n-1), capped at 5 min; 5 attempts, then failed
 
 STORAGE
   documents/podcasts/&lt;showId&gt;/&lt;episodeId&gt;.mp3
   DB row holds the relative path, not an absolute uri
     ← absolute container paths CHANGE between app launches on iOS</code></pre>
 
+<h3>Lifecycle you must get right</h3>
+<ol>
+  <li><strong>Pause is not failure.</strong> A paused <code>downloadAsync()</code> resolves with <code>null</code>. The manager keeps a <code>stopReason</code> to tell a user pause (row stays <code>paused</code>) from a Wi-Fi drop (row returns to <code>queued</code> and resumes by itself).</li>
+  <li><strong>Checkpoint on background.</strong> When the app goes to background or inactive, <code>checkpointAll()</code> pauses each active task, saves <code>savable()</code> with the file URI turned into a relative path, then resumes it. A deferred (<code>checkpoint</code>) tells <code>start()</code> this was not a real pause.</li>
+  <li><strong>Rehydrate on launch.</strong> <code>rehydrate()</code> turns <code>downloading</code> rows back into <code>queued</code>, requeues <code>done</code> rows whose file vanished, applies auto-delete, and registers the network listener (<code>expo-network</code>). <code>failed</code> and <code>paused</code> rows wait for an explicit retry or resume.</li>
+  <li><strong>Throttle the noise.</strong> Progress is pushed to the live store only when the whole percent changes and written to SQLite at most every 3 s.</li>
+  <li><strong>Capacity before bytes.</strong> <code>ensureCapacity()</code> checks free space and the cap before starting. If everything stored is unplayed, the download fails with a clear message instead of deleting something the user has not heard.</li>
+</ol>
+
 <div class="warn">
   <strong>The iOS absolute-path trap</strong>
-  <p>The app container UUID changes across reinstalls and some updates. If you store <code>file:///var/mobile/Containers/Data/Application/&lt;UUID&gt;/…</code> in your database, every downloaded file appears missing after an update. Store paths relative to the documents directory and resolve them at read time. This bug is extremely common and extremely confusing when it hits.</p>
+  <p>The app container UUID changes across reinstalls and some updates. If you store <code>file:///var/mobile/Containers/Data/Application/&lt;UUID&gt;/…</code> in your database, every downloaded file appears missing after an update. Store paths relative to the documents directory and resolve them at read time (<code>resolveRelativePath()</code> refuses a scheme, a leading <code>/</code> or <code>..</code>; <code>toRelativePath()</code> can recover a path from an old container's URI). The same rule applies to the pause snapshot's <code>fileUri</code>. This bug is extremely common and extremely confusing when it hits.</p>
 </div>
+
+<h3>Background refresh (not background transfer)</h3>
+<p><code>downloads/task.ts</code> defines a periodic task with <code>expo-task-manager</code> and registers it with <code>expo-background-task</code> (BGTaskScheduler on iOS, WorkManager on Android, <code>minimumInterval: 60</code> minutes as a hint). It refreshes subscriptions, then asks the download manager to start whatever is queued. The OS grants a short window and decides when to run it. It is <em>not</em> a background-transfer service: if the process dies, the snapshot and rehydrate path picks the download up on the next launch.</p>
 
 <h2 id="release">Release engineering</h2>
 
-<p>This half of the project has no UI. It's the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday."</p>
+<p>This half of the project has no UI. It is the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday." The exact commands are in <code>docs/release-05.md</code>; this section is the mental model.</p>
 
-<h3>Build profiles</h3>
+<h3>Build profiles and app variants</h3>
+<p><code>eas.json</code> defines four profiles; each sets <code>APP_VARIANT</code> in its build <code>env</code>, and <code>app.config.ts</code> turns the variant into a distinct bundle id and name so all three install side by side.</p>
 <table>
-<thead><tr><th>Profile</th><th>Distribution</th><th>Channel</th><th>Purpose</th></tr></thead>
+<thead><tr><th>Profile</th><th>Distribution</th><th>Channel</th><th>Variant / id</th><th>Purpose</th></tr></thead>
 <tbody>
-<tr><td><code>development</code></td><td>internal, dev client</td><td>—</td><td>Daily work with hot reload.</td></tr>
-<tr><td><code>preview</code></td><td>internal (ad-hoc / APK)</td><td><code>preview</code></td><td>Release-mode build for testers; catches things dev mode hides.</td></tr>
-<tr><td><code>production</code></td><td>store</td><td><code>production</code></td><td>What users get.</td></tr>
+<tr><td><code>development</code></td><td>internal, dev client, iOS simulator</td><td><code>development</code></td><td><code>development</code> / <code>….dev</code></td><td>Daily work with hot reload. <code>development-device</code> extends it for a physical iOS device.</td></tr>
+<tr><td><code>preview</code></td><td>internal (ad-hoc / APK)</td><td><code>preview</code></td><td><code>preview</code> / <code>….preview</code></td><td>Release-mode build for testers; catches things dev mode hides. CI's Maestro job builds this as an APK.</td></tr>
+<tr><td><code>production</code></td><td>store, <code>autoIncrement</code></td><td><code>production</code></td><td><code>production</code> / base id</td><td>What users get. <code>cli.appVersionSource</code> is <code>remote</code>.</td></tr>
 </tbody>
 </table>
 
-<h3>Channels, branches, and runtime versions — the mental model</h3>
+<h3>Channels, branches, and runtime versions: the mental model</h3>
 <pre><code>BUILD  ──has──►  channel  (baked into the binary at build time: "production")
                     │
                     │ mapped by EAS (mutable, server-side)
                     ▼
-                 branch    ("release-1.4")
+                 branch    (same name by default; "release-1.4" if you repoint it)
                     │
                     │ contains ordered updates
                     ▼
@@ -365,53 +417,69 @@ STORAGE
 
 An update is only delivered to a build whose RUNTIME VERSION matches.
   runtimeVersion = the native contract.
-  Change native code / add a native module / bump the SDK
+  Change native code / add a native module / bump the SDK / edit app config
        → runtime version MUST change
        → old builds stop receiving new updates (correctly!)
 
 Policies: "appVersion" | "sdkVersion" | "fingerprint" | explicit string.
-  fingerprint is the smartest: it hashes your actual native inputs.</code></pre>
+  This repo uses runtimeVersion: { policy: "fingerprint" } in app.config.ts:
+  a hash of your actual native inputs (native deps, config plugins, app config).</code></pre>
 
 <div class="note">
   <strong>The one rule that prevents disaster</strong>
-  <p>An OTA update may only contain JS and assets. If your update expects a native module that isn't in the installed binary, the app crashes on launch for everyone who receives it. Runtime versioning exists precisely to make that impossible — respect it, and use the fingerprint policy so it's computed rather than remembered.</p>
+  <p>An OTA update may only contain JS and assets. If your update expects a native module that isn't in the installed binary, the app crashes on launch for everyone who receives it. Runtime versioning exists precisely to make that impossible. Respect it, and use the fingerprint policy so it is computed rather than remembered.</p>
+</div>
+
+<div class="warn">
+  <strong>Publishing needs the same <code>APP_VARIANT</code> as the builds</strong>
+  <p><code>eas.json</code>'s <code>env</code> applies to builds only. Because the app config (bundle id, name) feeds the fingerprint, an <code>eas update</code> run without the matching <code>APP_VARIANT</code> is stamped with the <em>development</em> runtime version and reaches nobody. <code>release.yml</code> sets <code>APP_VARIANT: preview</code> on the publish step for exactly this reason, and publishes with <code>--channel preview</code> rather than a hardcoded <code>--branch</code>, so the update always lands on the branch the channel reads.</p>
 </div>
 
 <h3>Rollout and rollback drill</h3>
-<pre><code>1. eas update --branch release-1.4 --message "fix scrubber jump"
-2. Start a rollout at 10%   → observe crash-free rate + errors
-3. Bump to 50%              → observe again
-4. Bump to 100%             → done
+<pre><code>1. APP_VARIANT=production eas update --branch release-1.4 --environment production \
+     --message "fix scrubber jump" --rollout-percentage 10
+2. Observe crash-free rate + errors
+3. eas update:edit &lt;GROUP_ID&gt; --rollout-percentage 50   → observe again
+4. eas update:edit &lt;GROUP_ID&gt; --rollout-percentage 100  → done
    ── or ──
    Something's wrong:
-   · eas update:rollback / republish the previous known-good update
-   · users get the good bundle on their next launch check
+   · eas update:rollback &lt;BAD_GROUP_ID&gt;   (must be the latest group on its branch + runtime;
+                                          republishes the previous group, or the embedded bundle)
+   · mid-rollout: eas update:revert-update-rollout
+   · whole-branch canary: eas channel:rollout production
 5. Verify on a device: relaunch twice (once to download, once to apply)</code></pre>
+<p>Users outside the rollout keep getting the previous latest update on the branch. Check which branch a channel reads with <code>eas channel:view &lt;channel&gt;</code> before every manual publish.</p>
 
 <h3>Update-check UX</h3>
-<p>Default behaviour downloads on launch and applies on the <em>next</em> launch. Decide deliberately:</p>
+<p><code>app.config.ts</code> sets <code>updates.checkAutomatically: "ON_LOAD"</code> and <code>fallbackToCacheTimeout: 0</code>, so launch never waits for the network: the update downloads after launch and applies on the <em>next</em> cold start. Decide deliberately:</p>
 <ul>
   <li><strong>Silent</strong> (default) — fine for most fixes.</li>
-  <li><strong>Prompt to restart</strong> — for user-visible fixes; show a small banner: "Update ready · Restart".</li>
-  <li><strong>Force-apply</strong> — <code>reloadAsync()</code> immediately; jarring, use only for critical fixes.</li>
-  <li>Add a dev-only "channel surfing" screen that overrides the channel header so you can test another channel's bundles. It only works between builds of the same variant: <code>app.config.ts</code> changes the bundle id per <code>APP_VARIANT</code>, so each variant has its own fingerprint runtime version, and a production build never accepts a preview update.</li>
+  <li><strong>Prompt to restart</strong> — what this app adds in <code>lib/updates.ts</code>: it also checks when the app returns to the foreground (rate-limited to once per 10 minutes), and the Home tab shows <code>UpdateBanner</code> ("Update ready · Restart", <code>reloadAsync()</code>) when <code>useUpdates().isUpdatePending</code> is true.</li>
+  <li><strong>Force-apply</strong> — <code>reloadAsync()</code> immediately. Deliberately <em>not</em> used: reloading mid-episode would interrupt playback.</li>
+  <li><strong>Channel surfing</strong> — in Settings, non-production variants can call <code>Updates.setUpdateRequestHeadersOverride({ "expo-channel-name": … })</code> to test another channel's bundles. It only works between builds with the same runtime version: <code>app.config.ts</code> changes the bundle id per <code>APP_VARIANT</code>, so each variant has its own fingerprint, and a production build never accepts a preview update. Settings also shows the build's channel, runtime version and whether it launched the embedded bundle or an update id.</li>
 </ul>
 
-<h3>CI pipeline</h3>
-<pre><code>on pull_request
-  → install, typecheck, lint, unit tests, maestro smoke on an emulator
+<h3>CI pipeline (<code>.github/workflows/</code>)</h3>
+<pre><code>ci.yml            on pull_request, and push to main / dev
+  checks:         npm ci → typecheck → lint → jest --ci --no-watchman
+                  → expo export for iOS and Android (catches what tsc can't)
+  maestro-smoke:  only on PRs labelled `e2e`, needs: checks
+                  → eas build --profile preview --platform android (APK), download it
+                  → action-maestro-cloud runs every flow in .maestro/ with
+                    APP_ID=org.imaginativeworld.whynotreactnative.preview
 
-on push to main
-  → APP_VARIANT=preview eas update --channel preview   (OTA to internal testers)
+release.yml       on push to main / tags v*   (concurrency: cancel-in-progress false)
+  ota-preview:    APP_VARIANT=preview eas update --channel preview --environment preview
+  build-and-submit (tag v*): eas build --profile production --platform all --auto-submit
+                  → softprops/action-gh-release with generated notes
 
-on tag v*
-  → eas build --profile production --platform all
-  → eas submit --profile production
-  → upload source maps to the crash reporter
-  → create a GitHub release with the changelog
+fingerprint.yml   nightly + manual
+  → eas fingerprint:compare vs the latest finished production build, per platform
+  → drift is a ::warning:: and the job stays green; real errors fail it</code></pre>
+<p>Secrets: <code>EXPO_TOKEN</code> and <code>MAESTRO_CLOUD_API_KEY</code>. Store credentials stay in EAS. Uploading source maps to a crash reporter is not wired up yet (see next steps). Two details worth copying: the commit message reaches the shell through an <em>environment variable</em>, never <code>${{ }}</code> interpolation inside the script, and the fingerprint job parses <code>--json</code> output because <code>fingerprint:compare</code> exits 0 whether or not the hashes match.</p>
 
-nightly
-  → fingerprint check: has the native contract drifted from the last build?</code></pre>
+<h3>Maestro flows</h3>
+<p><code>.maestro/podcast-smoke.yaml</code> drives launcher → Podcast Player → Discover → search "Syntax" → subscribe → play → mini-player, using the <code>testID</code>s the screens expose (<code>podcast-search-input</code>, <code>podcast-subscribe</code>, <code>mini-player</code>, <code>mini-player-toggle</code>). It starts with <code>appId: ${APP_ID}</code>, because each variant installs under its own id. Run locally with <code>maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/podcast-smoke.yaml</code>. The flow needs network (iTunes search, enclosure streaming) and ends in <code>takeScreenshot</code>, which doubles as store-screenshot generation.</p>
 
 <h2 id="milestones">Build order</h2>
 
@@ -419,77 +487,84 @@ nightly
   <h3><span class="tag">M1</span> Feeds &amp; catalog</h3>
   <div class="goal">Goal: real content in the app.</div>
   <ul>
-    <li>Claim the slot: replace the stub at <code>src/app/projects/podcast-player/index.tsx</code>, create the slice, flip <code>available</code> in the registry.</li>
-    <li>Podcast search via an index API; subscribe/unsubscribe.</li>
-    <li>RSS parsing into typed episodes; handle the messy real world (missing durations, weird enclosures, HTML in show notes).</li>
-    <li>SQLite for shows, episodes, and progress.</li>
-    <li>Incremental refresh that doesn't re-insert everything.</li>
+    <li>Register the project in <code>src/shared/config/projects.ts</code>, create the route layout and the slice. The launcher and root Stack need no other change.</li>
+    <li>Podcast search via an index API (iTunes search and top charts here); subscribe/unsubscribe.</li>
+    <li>RSS parsing into typed episodes with <code>fast-xml-parser</code>: keep every value a string (<code>parseTagValue: false</code>) and parse numbers and durations yourself. Handle the messy real world (BOMs, missing durations, video enclosures, duplicate guids, HTML in show notes).</li>
+    <li>SQLite for shows, episodes, and progress with <code>PRAGMA user_version</code> migrations.</li>
+    <li>Incremental refresh: conditional GET (<code>If-None-Match</code> / <code>If-Modified-Since</code>, accept 304) plus an upsert that skips rows whose <code>content_hash</code> is unchanged.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Subscribe to five real podcasts with different feed quirks. All parse without crashing.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Subscribe to five real podcasts with different feed quirks. All parse without crashing, and refreshing twice in a row writes nothing.</div>
+  <p><strong>Verify:</strong> <code>npx jest --no-watchman src/projects/podcast-player/__tests__/parse.test.ts</code> against the XML fixtures; add one fixture per quirk you meet.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M2</span> Playback core</h3>
   <div class="goal">Goal: audio plays, correctly, from anywhere in the app.</div>
   <ul>
-    <li>Singleton playback service; Zustand store fed by its events.</li>
-    <li>Play, pause, seek, skip ±15 s, playback rate.</li>
-    <li>Position persistence throttled to ~5 s; resume where you left off.</li>
-    <li>Queue with add-next / add-last, reorder, and auto-advance.</li>
+    <li>Singleton playback service created with <code>createAudioPlayer()</code>; a Zustand store fed by its <code>playbackStatusUpdate</code> events.</li>
+    <li>Play, pause, seek, skip back/forward, playback rate.</li>
+    <li>Position persistence throttled to ~5 s with flushes at the moments that matter; resume where you left off.</li>
+    <li>Queue as pure functions (add-next, add-last, move, take-next), with auto-advance on <code>didJustFinish</code>.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Start an episode, navigate across every tab and into three detail screens. Audio never stutters and the player never remounts.</div>
+  <p><strong>Verify:</strong> <code>queue.test.ts</code> passes with no player; open <code>playback/service.ts</code> and confirm nothing outside it holds an <code>AudioPlayer</code>.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M3</span> Background &amp; lock screen</h3>
   <div class="goal">Goal: the app disappears and the audio doesn't.</div>
   <ul>
-    <li>Audio mode configured; <code>expo-audio</code> plugin with background playback enabled.</li>
-    <li>Lock-screen metadata and remote commands.</li>
-    <li>Interruption handling: calls, Siri, alarms, other apps.</li>
-    <li>Route-change handling: headphones out → pause.</li>
-    <li>Android media notification with the right actions.</li>
+    <li><code>setAudioModeAsync</code> configured; <code>expo-audio</code> plugin with <code>enableBackgroundPlayback: true</code> (new build required).</li>
+    <li>Lock-screen metadata and remote commands via <code>setActiveForLockScreen</code>.</li>
+    <li>Interruption handling through the intent tracker: calls, Siri, alarms, other apps.</li>
+    <li>Route-change behaviour: headphones out → pause (native on iOS; note the Android gap).</li>
+    <li>Android media notification driven by the same lock-screen call.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Play, lock the phone, take a phone call, hang up. Playback resumes. Unplug the headphones — it pauses. Both behaviours correct, no manual intervention.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Play, lock the phone, take a phone call, hang up. Playback resumes only if the OS says it should. Unplug the headphones on iOS and it pauses. No manual intervention.</div>
+  <p><strong>Verify:</strong> on a real device build (not Expo Go); read the header comment of <code>playback/interruptions.ts</code> for what is native and what is yours.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M4</span> Player UI</h3>
   <div class="goal">Goal: the interaction polish.</div>
   <ul>
-    <li>Mini-player docked above the tabs, present across all routes.</li>
-    <li>Drag-to-expand into the full player with an interpolated transition.</li>
-    <li>Scrubber with seek-lock, chapter ticks, and buffered range.</li>
+    <li><code>MiniPlayerHost</code> in the project layout, docked above the tabs, present across all routes, hidden while <code>/player</code> is on top.</li>
+    <li>Drag-to-expand into the full player with one shared value driving every animated style.</li>
+    <li>Scrubber with <code>scrub</code> / <code>settling</code> seek-lock and chapter ticks (tap a tick to seek).</li>
     <li>Artwork-derived gradient that animates on track change.</li>
     <li>Sleep timer with fade-out; speed picker; skip-interval settings.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Drag the mini-player halfway up and release. It settles naturally in both directions, and audio is unaffected throughout.</div>
+  <p><strong>Verify:</strong> <code>sleepTimer.test.ts</code> passes; with React DevTools or a render log, confirm a position tick re-renders only the progress bar.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M5</span> Downloads</h3>
   <div class="goal">Goal: full offline listening.</div>
   <ul>
-    <li>Resumable downloads with persisted snapshots; resume after relaunch.</li>
-    <li>Concurrency limit, queue, retries with backoff.</li>
-    <li>Wi-Fi-only rule, storage cap with eviction, auto-delete policies.</li>
+    <li>Resumable <code>DownloadTask</code> downloads with persisted snapshots; resume after relaunch.</li>
+    <li>Concurrency limit, queue, retries with equal-jitter backoff.</li>
+    <li>Wi-Fi-only rule, storage cap with played-only eviction, auto-delete policies.</li>
     <li>Relative-path storage (avoid the container-UUID trap).</li>
-    <li>Playback prefers the local file when present.</li>
+    <li>Playback prefers the local file when the row is <code>done</code> and the file exists.</li>
+    <li>Live progress through a separate store and a connected row wrapper.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Download three episodes, kill the app at 50%, relaunch, and they resume from where they stopped. Then go into airplane mode and play all three.</div>
+  <p><strong>Verify:</strong> <code>downloads.test.ts</code> (policy, paths, "the container-UUID trap").</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M6</span> EAS Build</h3>
   <div class="goal">Goal: you can produce every kind of build on demand.</div>
   <ul>
-    <li>Three profiles configured; credentials managed by EAS.</li>
-    <li>A local production build and a cloud production build — compare timing and output.</li>
-    <li>Internal distribution to a second device via a QR code.</li>
+    <li>Profiles in <code>eas.json</code> and a variant-aware <code>app.config.ts</code>; credentials managed by EAS.</li>
+    <li>A local production build (<code>--local</code>) and a cloud production build; compare timing and output.</li>
+    <li>Internal distribution to a second device via a link or QR code.</li>
     <li><code>eas submit</code> to TestFlight / Play internal testing.</li>
-    <li>Version and build-number strategy (<code>autoIncrement</code>).</li>
+    <li>Version and build-number strategy (<code>autoIncrement</code> with <code>appVersionSource: remote</code>).</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Someone else installs your preview build from a link and it receives updates from the <code>preview</code> channel.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Someone else installs your preview build from a link, and it shows <code>preview</code> as its channel in Settings.</div>
+  <p><strong>Verify:</strong> install the <code>.dev</code> and <code>.preview</code> builds side by side on one device.</p>
 </div>
 
 <div class="milestone">
@@ -498,78 +573,109 @@ nightly
   <ul>
     <li>Configure <code>expo-updates</code>, channels, and the fingerprint runtime-version policy.</li>
     <li>Publish an update to the <code>preview</code> channel (with <code>APP_VARIANT=preview</code>, so the runtime version matches); verify a preview build receives it.</li>
-    <li>Custom update UX: check, download, and prompt to restart.</li>
+    <li>Custom update UX: check on foreground, download, and prompt to restart.</li>
     <li>Run a staged rollout to production: 10% → 50% → 100%.</li>
     <li><strong>Practise a rollback.</strong> Publish a deliberately broken (but non-crashing) change, roll it back, verify recovery.</li>
     <li>Prove the safety rail: change the native contract, confirm the runtime version changes and old builds correctly stop receiving updates.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Fix a typo in production without touching the app stores, watch it roll out to a fraction of devices, then roll it back. If you can do this, you can operate a real app.</div>
+  <p><strong>Verify:</strong> <code>eas channel:view preview</code> shows the branch and latest update; Settings on the device shows the same update id.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M8</span> CI/CD &amp; store readiness</h3>
   <div class="goal">Goal: the pipeline does the work.</div>
   <ul>
-    <li>GitHub Actions (or EAS Workflows): typecheck, lint, test, Maestro smoke on PR.</li>
-    <li>Auto OTA to the <code>preview</code> channel on merge; build + submit on tag.</li>
-    <li>Source-map upload to the crash reporter.</li>
-    <li>iOS privacy manifest and Android data-safety declarations.</li>
-    <li>Screenshots (consider generating them from Maestro), store listing, review notes.</li>
-    <li>Phased release configuration.</li>
+    <li>GitHub Actions (or EAS Workflows): typecheck, lint, test and a two-platform bundle on PR; Maestro on Maestro Cloud for PRs labelled <code>e2e</code>.</li>
+    <li>Auto OTA to the <code>preview</code> channel on merge to <code>main</code>; build + submit on a <code>v*</code> tag; a nightly fingerprint-drift check.</li>
+    <li>iOS privacy manifest required-reason APIs (<code>ios.privacyManifests</code> in <code>app.config.ts</code>) and Android data-safety answers.</li>
+    <li>Screenshots (generated from Maestro's <code>takeScreenshot</code>), store listing, review notes.</li>
+    <li>Phased release configuration (App Store phased release, Play staged rollout).</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Push a tag. Walk away. A build appears in TestFlight with symbolicated crash reporting wired up, and you touched nothing manually.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Push a tag. Walk away. A build is submitted to TestFlight and you touched nothing manually.</div>
+  <p><strong>Verify:</strong> open a PR and watch <code>ci.yml</code>; run <code>npx expo export --platform ios --output-dir /tmp/out</code> locally to reproduce the bundle step.</p>
 </div>
 
 <h2 id="libraries">Library hints</h2>
 
+<p>Check the current API before copying: the SDK 57 <code>expo-file-system</code> download API, for example, is the object-based <code>DownloadTask</code>, not the legacy <code>createDownloadResumable</code>.</p>
+
 <table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
-<tr><td>Audio</td><td><code>expo-audio</code></td><td><code>useAudioPlayer</code>, <code>useAudioPlayerStatus</code>, <code>createAudioPlayer</code> (for the singleton), <code>setAudioModeAsync({playsInSilentMode, shouldPlayInBackground, interruptionMode})</code>, <code>player.setActiveForLockScreen(true, {title, artist, albumTitle, artworkUrl})</code>, <code>player.seekTo</code>, <code>player.setPlaybackRate</code>. Plugin option: <code>enableBackgroundPlayback</code>.</td></tr>
-<tr><td>Alternative player</td><td><code>react-native-track-player</code></td><td>Worth evaluating for a queue-native model and richer remote-command support. Needs a config plugin. Compare the two — the comparison is educational.</td></tr>
-<tr><td>Downloads</td><td><code>expo-file-system</code></td><td><code>createDownloadResumable</code>, <code>pauseAsync</code>/<code>resumeAsync</code>, <code>savable()</code> snapshot; new <code>File</code>/<code>Directory</code>/<code>Paths</code> API for storage management and <code>Paths.document</code></td></tr>
-<tr><td>Background resume</td><td><code>expo-background-task</code> + <code>expo-task-manager</code></td><td><code>defineTask</code> at module scope; use it to nudge stalled downloads</td></tr>
-<tr><td>Network policy</td><td><code>expo-network</code></td><td><code>getNetworkStateAsync()</code> → <code>type</code> for the Wi-Fi-only rule</td></tr>
-<tr><td>Feed parsing</td><td><code>fast-xml-parser</code></td><td>Parse off the main path; sanitize HTML show notes before rendering</td></tr>
-<tr><td>Show notes</td><td><code>react-native-render-html</code> or a WebView</td><td>Handle links, timestamps-as-chapter-links, and images</td></tr>
-<tr><td>Artwork colours</td><td><code>react-native-image-colors</code></td><td>Dominant/average colour for the gradient</td></tr>
-<tr><td>Drag &amp; drop</td><td><code>react-native-draggable-flatlist</code> or Reanimated + Gesture Handler</td><td>Queue reordering — try building it yourself first</td></tr>
-<tr><td>Updates</td><td><code>expo-updates</code></td><td><code>checkForUpdateAsync</code>, <code>fetchUpdateAsync</code>, <code>reloadAsync</code>, <code>useUpdates()</code>, <code>Updates.channel</code>, <code>Updates.runtimeVersion</code>, <code>setUpdateRequestHeadersOverride</code> (channel surfing)</td></tr>
-<tr><td>EAS CLI</td><td><code>eas-cli</code></td><td><code>eas build</code>, <code>eas submit</code>, <code>eas update</code>, <code>eas channel:edit</code>, <code>eas update:rollback</code>, <code>eas update:revert-update-rollout</code>, <code>eas env</code>, <code>eas fingerprint:compare</code></td></tr>
-<tr><td>E2E</td><td><code>maestro</code></td><td>YAML flows; runs against a real build; can drive CI and produce screenshots</td></tr>
-<tr><td>CI</td><td>GitHub Actions or EAS Workflows</td><td><code>expo-github-action</code>, or <code>.eas/workflows/*.yml</code> for EAS-native pipelines</td></tr>
+<tr><td>Audio</td><td><code>expo-audio</code></td><td><code>createAudioPlayer(source, { updateInterval })</code> for the singleton (<code>useAudioPlayer</code> is for component-owned players), <code>player.addListener("playbackStatusUpdate", …)</code>, <code>setAudioModeAsync({playsInSilentMode, shouldPlayInBackground, interruptionMode, allowsRecording})</code>, <code>player.setActiveForLockScreen(true, {title, artist, albumTitle, artworkUrl}, {showSeekForward, showSeekBackward})</code>, <code>player.replace</code>, <code>player.seekTo</code>, <code>player.setPlaybackRate</code>. Plugin option: <code>enableBackgroundPlayback</code>.</td></tr>
+<tr><td>Alternative player</td><td><code>react-native-track-player</code></td><td>Not used here. Worth evaluating for a queue-native model and richer remote-command support (it needs a config plugin). Comparing the two is educational.</td></tr>
+<tr><td>Downloads</td><td><code>expo-file-system</code></td><td><code>DownloadTask</code> (<code>downloadAsync</code>, <code>pauseAsync</code>, <code>resumeAsync</code>, <code>savable()</code>, <code>DownloadTask.fromSavable</code>, <code>state</code>); <code>File</code>, <code>Directory</code>, <code>Paths.document</code> for storage management.</td></tr>
+<tr><td>Background refresh</td><td><code>expo-background-task</code> + <code>expo-task-manager</code></td><td><code>TaskManager.defineTask</code> at module scope (and imported from the root layout), guarded with <code>isTaskDefined</code>; <code>BackgroundTask.getStatusAsync</code>, <code>registerTaskAsync(name, { minimumInterval })</code>, <code>BackgroundTaskResult.Success/Failed</code>.</td></tr>
+<tr><td>Network policy</td><td><code>expo-network</code></td><td><code>getNetworkStateAsync()</code> and <code>addNetworkStateListener</code> for the Wi-Fi-only rule.</td></tr>
+<tr><td>Feed parsing</td><td><code>fast-xml-parser</code></td><td>Strings in, typed values out; <code>isArray</code> for tags that may repeat; sanitise show notes before rendering (<code>utils/html.ts</code>).</td></tr>
+<tr><td>Show notes</td><td>plain text renderer (built here)</td><td><code>ShowNotes</code> renders sanitised text with tappable timestamps and extracted http(s) links, so publisher markup can't inject anything. <code>react-native-render-html</code> or a WebView are alternatives if you need rich HTML.</td></tr>
+<tr><td>Artwork colours</td><td><code>utils/color.ts</code></td><td>Deterministic palette from a seed. <code>react-native-image-colors</code> would extract real dominant colours but is not installed.</td></tr>
+<tr><td>Lists &amp; images</td><td><code>@shopify/flash-list</code> v2, <code>expo-image</code>, <code>expo-linear-gradient</code></td><td>FlashList v2 measures items itself (no <code>estimatedItemSize</code>); keep rows free of per-item state because cells are recycled.</td></tr>
+<tr><td>Drag &amp; drop</td><td>Reanimated + Gesture Handler + <code>react-native-worklets</code>, <code>expo-haptics</code></td><td>The reorderable queue is built directly on these; math functions carry <code>"worklet"</code> and use <code>scheduleOnRN</code> to reach React.</td></tr>
+<tr><td>Server state</td><td><code>@tanstack/react-query</code></td><td>Hierarchical keys prefixed <code>"podcast"</code>, <code>invalidateQueries</code> prefix matching, <code>staleTime</code>.</td></tr>
+<tr><td>Updates</td><td><code>expo-updates</code></td><td><code>checkForUpdateAsync</code>, <code>fetchUpdateAsync</code>, <code>reloadAsync</code>, <code>useUpdates()</code>, <code>Updates.channel</code>, <code>Updates.runtimeVersion</code>, <code>setUpdateRequestHeadersOverride</code> (channel surfing).</td></tr>
+<tr><td>EAS CLI</td><td><code>eas-cli</code></td><td><code>eas build</code>, <code>eas submit</code>, <code>eas update --channel / --branch / --environment / --rollout-percentage</code>, <code>eas update:edit</code>, <code>eas update:rollback</code>, <code>eas update:revert-update-rollout</code>, <code>eas channel:view / channel:edit / channel:rollout</code>, <code>eas fingerprint:compare</code>.</td></tr>
+<tr><td>E2E</td><td>Maestro</td><td>YAML flows, <code>appId: ${APP_ID}</code> parameter, <code>testID</code> selectors, <code>takeScreenshot</code>; Maestro Cloud via <code>mobile-dev-inc/action-maestro-cloud</code>.</td></tr>
+<tr><td>CI</td><td>GitHub Actions or EAS Workflows</td><td>This repo uses GitHub Actions with <code>expo/expo-github-action@v8</code>; EAS Workflows (<code>.eas/workflows/*.yml</code>) is the EAS-native alternative.</td></tr>
 </tbody>
 </table>
 
+<h3>Official documentation</h3>
+<ul>
+  <li><a href="https://docs.expo.dev/versions/latest/sdk/audio">expo-audio</a> · <a href="https://docs.expo.dev/versions/latest/sdk/filesystem">expo-file-system</a> · <a href="https://docs.expo.dev/versions/latest/sdk/background-task">expo-background-task</a> · <a href="https://docs.expo.dev/versions/latest/sdk/task-manager">expo-task-manager</a> · <a href="https://docs.expo.dev/versions/latest/sdk/updates">expo-updates</a></li>
+  <li><a href="https://docs.expo.dev/eas-update/getting-started">Publish an update</a> · <a href="https://docs.expo.dev/eas-update/how-it-works">How EAS Update works</a> · <a href="https://docs.expo.dev/eas-update/runtime-versions">Runtime versions</a> · <a href="https://docs.expo.dev/eas-update/channel-surfing">Channel surfing</a> · <a href="https://docs.expo.dev/eas/cli">EAS CLI reference</a></li>
+  <li><a href="https://docs.maestro.dev/">Maestro</a> · <a href="https://github.com/mobile-dev-inc/action-maestro-cloud">Maestro Cloud GitHub Action</a> · <a href="https://docs.github.com/en/actions">GitHub Actions</a></li>
+</ul>
+
 <h2 id="pitfalls">Failure modes to experience deliberately</h2>
 
+<p>Each one has a symptom you can reproduce and a place in the finished code that prevents it.</p>
+
 <ol>
-  <li><strong>Player owned by a component.</strong> Navigate away and audio stops. The lesson that forces the singleton design.</li>
-  <li><strong>Silent-mode surprise.</strong> Ship without <code>playsInSilentMode</code> and get "no sound" bug reports from users whose mute switch is on.</li>
-  <li><strong>Resuming after every interruption.</strong> Resume when the interruption hint says not to, and your podcast starts playing during someone's next phone call.</li>
-  <li><strong>Speaker blast.</strong> Don't handle route change; headphones come out and the episode plays out loud on a train.</li>
-  <li><strong>Scrubber fight.</strong> The player's position updates overwrite the user's drag every 200 ms. Track a seeking flag.</li>
-  <li><strong>Absolute paths in the DB.</strong> Described above. Reinstall and watch every download "vanish".</li>
-  <li><strong>Update with a missing native module.</strong> Add a native dependency, publish a JS-only OTA to old builds, and crash them all on launch. Do this <em>on a test channel</em> to understand exactly why runtime versions exist.</li>
-  <li><strong>Channel/branch confusion.</strong> Publish to a branch no channel points at, then wonder why nobody got the update. Learn to read <code>eas channel:view</code>.</li>
-  <li><strong>Forgotten source maps.</strong> A production crash report you can't read.</li>
-  <li><strong>Unbounded storage.</strong> Auto-download 200 episodes and fill the user's device.</li>
+  <li><strong>Player owned by a component.</strong> <em>Shows up as:</em> audio stops when you navigate. <em>Handled by:</em> the module-scope <code>playbackService</code>; UI only sends commands and reads <code>usePlayerStore</code>.</li>
+  <li><strong>Silent-mode surprise.</strong> <em>Shows up as:</em> "no sound" reports from users whose mute switch is on. <em>Handled by:</em> <code>playsInSilentMode: true</code> in <code>PlaybackService.doInit()</code>.</li>
+  <li><strong>Resuming after every interruption.</strong> <em>Shows up as:</em> the podcast starts during someone's next phone call, or after a lock-screen pause. <em>Handled by:</em> native resume only with the OS hint, plus the intent tracker so the service never auto-resumes on its own.</li>
+  <li><strong>Speaker blast.</strong> <em>Shows up as:</em> headphones out and the episode plays out loud on a train. <em>Handled by:</em> native pause on iOS; Android "becoming noisy" is a known gap in expo-audio 57 (see the runbook), so test it and decide whether you need a native listener.</li>
+  <li><strong>Scrubber fight.</strong> <em>Shows up as:</em> the thumb jumps back to the old position right after you release. <em>Handled by:</em> <code>scrub</code> while dragging and <code>settling</code> until <code>position</code> is within 1.5 s of the target (with a timeout fallback).</li>
+  <li><strong>Absolute paths in the DB.</strong> <em>Shows up as:</em> after a reinstall every download "vanishes". <em>Handled by:</em> relative paths only, <code>resolveRelativePath()</code>, tested in <code>downloads.test.ts</code>.</li>
+  <li><strong>Update with a missing native module.</strong> <em>Shows up as:</em> a crash on launch for everyone who got the OTA. <em>Handled by:</em> the fingerprint runtime version. Prove it <em>on a test channel</em>: add a native dependency, publish, and watch old builds not receive it.</li>
+  <li><strong>Channel/branch confusion.</strong> <em>Shows up as:</em> "nobody got the update". <em>Handled by:</em> publishing with <code>--channel</code> in CI and reading <code>eas channel:view</code> before any manual <code>--branch</code> publish.</li>
+  <li><strong>Publishing with the wrong <code>APP_VARIANT</code>.</strong> <em>Shows up as:</em> the update succeeds but no build receives it. <em>Handled by:</em> setting the variant on the publish step.</li>
+  <li><strong>Settings read before hydration.</strong> <em>Shows up as:</em> a headless background run ignoring Wi-Fi-only and the storage cap. <em>Handled by:</em> <code>await ensureSettingsHydrated()</code> at the top of the task.</li>
+  <li><strong>Sleep timer racing the finish event.</strong> <em>Shows up as:</em> the next episode starts after the user asked to sleep. <em>Handled by:</em> capturing the option before the awaited save, plus <code>sleepFired</code>.</li>
+  <li><strong>Forgotten source maps.</strong> <em>Shows up as:</em> a production crash report you can't read. <em>Not handled yet:</em> add the upload step once you choose a crash reporter.</li>
+  <li><strong>Unbounded storage.</strong> <em>Shows up as:</em> a full device after subscribing to a 500-episode show. <em>Handled by:</em> at most 2 auto-downloads per show per refresh, none on the first sync, and a cap that evicts only played episodes.</li>
 </ol>
 
-<h2 id="stretch">Stretch goals</h2>
+<h2 id="restructuring">Restructuring notes</h2>
+<p>These are the decisions that changed the shape of the code as the project grew. Make them early and the milestones stay small.</p>
 <ul>
+  <li><strong>Containers vs components.</strong> Components receive plain data and callbacks. The few files that must subscribe on their own live in <code>containers/</code>: <code>MiniPlayerHost</code> (player store + service), <code>LiveEpisodeRow</code> and <code>LiveTransferRow</code> (per-row download subscription). The folder makes the rule checkable: nothing in <code>components/</code> imports a store or a service. High-frequency values (playback position) are passed as a slot (<code>progressBar</code> holding <code>NowPlayingProgress</code>) so only the bar re-renders.</li>
+  <li><strong>Mini-player host in the project layout.</strong> Scopes it to the project and hides it under the launcher. Because it sits outside the tab layout, the tab bar height is a shared constant (<code>constants/layout.ts</code>) and the host uses <code>useSegments()</code> to dock above the tabs or above the safe area.</li>
+  <li><strong>Pure core, thin I/O shell.</strong> <code>queue.ts</code>, <code>progress.ts</code>, <code>sleepTimer.ts</code>, <code>interruptions.ts</code>, <code>downloads/policy.ts</code>, <code>downloads/paths.ts</code> and <code>feeds/parse.ts</code> have no native imports, so Jest covers them. <code>service.ts</code> and <code>manager.ts</code> only execute their decisions.</li>
+  <li><strong>Lazy database instead of a provider.</strong> The playback service, download manager and background task have no React tree, so <code>db/client.ts</code> exposes <code>getDb()</code> (cached promise, cleared on failure so the next call retries) instead of <code>SQLiteProvider</code>.</li>
+  <li><strong>Root-level download task.</strong> A project layout only loads when the user opens the project, but the OS can launch the app headless to run a background task. So <code>src/app/_layout.tsx</code> imports <code>downloads/task.ts</code>, whose module-scope <code>defineTask</code> must exist on every JS load. Registration, which persists across launches, stays in the project layout so people who never open the podcast project are never woken for it.</li>
+  <li><strong>Query keys and cache hygiene.</strong> One shared <code>QueryClient</code>, so the <code>"podcast"</code> prefix is what stops a blanket invalidation touching another project.</li>
+</ul>
+
+<h2 id="stretch">Next steps &amp; stretch goals</h2>
+<ul>
+  <li><strong>Source maps and crash reporting</strong> — wire an upload step into <code>release.yml</code> after <code>eas update</code> / <code>eas build</code>.</li>
+  <li><strong>Android "becoming noisy"</strong> — headphones unplugged is not handled by expo-audio 57; a small native listener closes the gap.</li>
+  <li><strong>Real artwork colours</strong> — replace the seeded palette with extracted dominant colours.</li>
   <li><strong>CarPlay / Android Auto</strong> — a genuinely native surface requiring your own module and entitlements. Combines everything from Project 04 with this one.</li>
   <li><strong>Transcripts &amp; search</strong> — on-device speech-to-text over downloaded audio, then FTS search across transcripts (reuses Project 01's search skills).</li>
   <li><strong>Skip silence / volume boost</strong> via audio processing — real DSP work.</li>
   <li><strong>Cross-device sync</strong> of playback position and queue.</li>
   <li><strong>Watch app</strong> for playback control.</li>
-  <li><strong>Chapter support</strong> from podcast namespace tags plus embedded ID3 chapters.</li>
+  <li><strong>Embedded ID3 chapters</strong> in addition to the podcast-namespace chapter tags already parsed.</li>
 </ul>
 
 <h2>Finishing the path</h2>
 <div class="tip">
-  <strong>When all five are done</strong>
-  <p>You'll have hit every layer: local-first data, hardware and permissions, production auth and payments, the native boundary with config plugins and your own Swift/Kotlin module, and the full release pipeline. Write one final document — what surprised you, what you'd architect differently, and which five bugs cost you the most time. That document is worth more than any of the apps.</p>
+  <strong>Where to go next</strong>
+  <p>This project touches every layer of the path: local-first data, hardware and permissions, production auth and payments, the native boundary with config plugins and your own Swift/Kotlin module, and the full release pipeline. Write one retrospective of your own: what surprised you, what you would architect differently, and which five bugs cost you the most time. That document is worth more than any of the apps. Project 06 is a short Zustand warm-up to finish on.</p>
 </div>
 
 <div class="nav-links">

@@ -12,7 +12,7 @@
 <div class="crumb"><a href="index.html">← Learning path</a> / Project 03</div>
 
 <h1>03 · Production Commerce App</h1>
-<p class="subtitle">Take the store already in this repo and make it production-shaped: real auth with token refresh, secure storage, push notifications, payments, universal links, environments, analytics, crash reporting, and tests.</p>
+<p class="subtitle">Take a demo-grade store (splash, login, product list, bag) and make it production-shaped: real auth with token refresh, secure storage, push notifications, payments, universal links, environments, analytics, crash reporting, and tests. The finished result is in <code>src/projects/store/</code> and <code>src/app/projects/store/</code>; build your own version milestone by milestone, then compare.</p>
 
 <div class="meta-row">
   <span class="chip purple">Production tier</span>
@@ -23,12 +23,13 @@
 
 <div class="note">
   <strong>Why this one third</strong>
-  <p>You already have the fun part — screens, a cart, product lists. What's missing is everything that makes an app <em>shippable</em>: what happens when the token expires mid-checkout, when a push arrives during a cold start, when the API returns 500, when a user has two devices, when you need a staging build alongside production. This project is entirely about that layer.</p>
+  <p>Screens, a cart and product lists are the fun part, and the easy part. What makes an app <em>shippable</em> is everything around them: what happens when the token expires mid-checkout, when a push arrives during a cold start, when the API returns 500, when a user has two devices, when you need a staging build alongside production. This project is entirely about that layer.</p>
+  <p>Work through the milestones in order. After each one, open the matching files in the finished code, and use the quiz bank (<code>docs/training/</code>, project 03) to test whether you can find and explain what you built.</p>
 </div>
 
 <ul class="toc">
   <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#audit">Start with an audit of what exists</a></li>
+  <li><a href="#audit">Start with an audit</a></li>
   <li><a href="#ui">UI design &amp; screens</a></li>
   <li><a href="#architecture">Architecture</a></li>
   <li><a href="#auth">Auth &amp; token refresh</a></li>
@@ -36,52 +37,65 @@
   <li><a href="#milestones">Build order (milestones)</a></li>
   <li><a href="#libraries">Library hints</a></li>
   <li><a href="#pitfalls">Failure modes to experience</a></li>
+  <li><a href="#restructure">Restructuring notes</a></li>
   <li><a href="#stretch">Stretch goals</a></li>
 </ul>
 
 <h2 id="objectives">Learning objectives</h2>
 
+<p>By the end you can build, explain and test each of the following. Each row names where the finished implementation lives, so you can check your work against it.</p>
+
 <table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
-<tr><td>Auth architecture</td><td>Session context, secure token storage, silent refresh with a single-flight coordinator, logout-on-refresh-failure, biometric re-auth.</td></tr>
-<tr><td>Protected routing</td><td><code>Stack.Protected</code> guards, redirect-after-login (preserving the intended destination), onboarding vs authenticated vs guest trees.</td></tr>
-<tr><td>TanStack Query, properly</td><td>Query key factories, optimistic updates with rollback, infinite queries, prefetching, cache persistence, <code>focusManager</code> and <code>onlineManager</code> wired to RN.</td></tr>
-<tr><td>Push notifications</td><td>Token registration, backend association, foreground vs background handling, notification categories with actions, badge counts, routing from a tapped push.</td></tr>
-<tr><td>Payments</td><td>Payment sheet integration, 3DS handling, and the Apple/Google rules about what must use in-app purchase.</td></tr>
-<tr><td>Universal links</td><td>Real https links with AASA / assetlinks.json, so <code>https://shop.example/p/42</code> opens the app.</td></tr>
-<tr><td>Environments</td><td>Dynamic <code>app.config.ts</code>, three variants installable side-by-side, EAS build profiles, secrets that don't land in git.</td></tr>
-<tr><td>Observability</td><td>Crash reporting with source maps, structured analytics events, performance traces.</td></tr>
-<tr><td>Forms &amp; validation</td><td>A multi-step checkout with per-step validation, address autocomplete, and correct keyboard/autofill hints.</td></tr>
-<tr><td>Testing</td><td>Unit tests for logic, MSW-mocked integration tests for hooks, and a smoke e2e run.</td></tr>
-<tr><td>Accessibility &amp; i18n</td><td>Screen-reader labels, dynamic type, RTL layout, and localized currency/date formatting.</td></tr>
+<tr><td>Auth architecture</td><td>Session context, secure token storage, silent refresh with a single-flight coordinator, logout-on-refresh-failure, biometric re-auth. (<code>auth/</code>, <code>api/interceptors.ts</code>, <code>api/refreshCoordinator.ts</code>)</td></tr>
+<tr><td>Protected routing</td><td><code>Stack.Protected</code> guards, redirect-after-login through an intent buffer (preserving the intended destination), onboarding vs authenticated vs guest trees. (<code>src/app/projects/store/_layout.tsx</code>, <code>navigation/</code>)</td></tr>
+<tr><td>TanStack Query, properly</td><td>Query key factories under a project prefix, optimistic updates with rollback, infinite queries, prefetching, scoped cache persistence, <code>focusManager</code> and <code>onlineManager</code> wired to RN. (<code>utils/queryKeys.ts</code>, <code>query/storeQuery.ts</code>, <code>src/shared/providers/QueryProvider.tsx</code>)</td></tr>
+<tr><td>Push notifications</td><td>Token registration, backend association, foreground vs background handling, notification categories with actions, badge counts, routing from a tapped push in all three delivery states. (<code>notifications/</code>)</td></tr>
+<tr><td>Payments</td><td>Server-created payment intents, the Stripe payment sheet, 3DS return URLs, a simulated processor for development, server-owned order status, and the Apple/Google rules about what must use in-app purchase. (<code>hooks/usePayment.ts</code>, <code>api/payment.api.ts</code>)</td></tr>
+<tr><td>Universal links</td><td>Real https links with AASA / assetlinks.json, so <code>https://shop.example/p/42</code> opens the app, rewritten onto a namespaced route by a pure, tested function. (<code>navigation/linkRoutes.ts</code>, <code>src/app/+native-intent.tsx</code>, <code>docs/well-known/</code>)</td></tr>
+<tr><td>Environments</td><td>Dynamic <code>app.config.ts</code>, three variants installable side-by-side, EAS build profiles, secrets that don't land in git. (<code>app.config.ts</code>, <code>src/shared/constants/env.ts</code>)</td></tr>
+<tr><td>Observability</td><td>A typed analytics event catalogue and a crash/performance facade you can point at any vendor (Sentry, Bugsnag), with source maps as a release concern. (<code>utils/analytics.ts</code>, <code>utils/monitoring.ts</code>)</td></tr>
+<tr><td>Forms &amp; validation</td><td>A persisted checkout state machine with per-step validation, integer-cent pricing, idempotent order placement, and correct keyboard/autofill hints. (<code>checkout/</code>)</td></tr>
+<tr><td>Testing</td><td>Unit tests for pure logic, interceptor tests through a custom axios <code>adapter</code>, a real <code>QueryClient</code> for cache behaviour, and a Maestro smoke flow. (<code>__tests__/</code>, <code>.maestro/store-checkout.yaml</code>)</td></tr>
+<tr><td>Accessibility &amp; i18n</td><td>Screen-reader labels and roles, dynamic type, and locale-aware currency formatting through <code>Intl.NumberFormat</code>; RTL and a real VoiceOver/TalkBack pass are device checks.</td></tr>
 </tbody>
 </table>
 
 <h2 id="audit">Start with an audit</h2>
 
-<p>Before writing anything, read the existing code and write down honest answers. This is the first exercise. The store slice already exists — <code>src/projects/store/</code> for code, <code>src/app/projects/store/</code> for routes — so every path below is real and you can open it right now.</p>
+<p>Before writing anything, read the code you are about to change and write down honest answers. This is the first exercise, and it is a method you will reuse on every codebase you inherit: turn "is this production-ready?" into a list of concrete questions, find the evidence for each in the code, then rank the gaps.</p>
+
+<h3>The method</h3>
+<ol>
+  <li><strong>Pick the failure, not the file.</strong> Start from an event that will happen in production (token expires, user deep-links while signed out, app is killed mid-payment) and ask what the code does.</li>
+  <li><strong>Find the evidence.</strong> Open the file that would handle it, or grep for it (<code>grep -rn "interceptors" src/</code>, <code>grep -rn "AsyncStorage" src/ | grep -i token</code>). If nothing handles it, that is the finding.</li>
+  <li><strong>Write the gap down</strong> with what production requires, a priority (P0 not shippable, P1 you lose users or data, P2 polish), and the milestone that closes it.</li>
+  <li><strong>Check ownership.</strong> In a repo that holds several projects, ask whether each fix belongs to the slice or to <code>src/shared/</code>.</li>
+</ol>
+
+<p>The starting point is a demo-grade store on FakeStoreAPI: a timed splash, a login screen, a flat route list (<code>splash/</code>, <code>login/</code>, <code>main/(tab)/</code>, <code>orders/</code>, <code>place-order/</code>, <code>product-details/[productId]</code>, <code>products/[categoryId]</code>), a few hooks, an in-memory cart and a shared axios instance. Run the audit against whatever you start from; this is what the questions find in an app of that shape, and where the finished code answers each one.</p>
 
 <table>
-<thead><tr><th>Question</th><th>Where to look</th><th>What "production" would require</th></tr></thead>
+<thead><tr><th>Question</th><th>How to find out</th><th>What a demo-grade app shows</th><th>Where the finished code answers it</th></tr></thead>
 <tbody>
-<tr><td>What happens on a 401?</td><td><code>src/shared/api/axios.ts</code></td><td>Currently the request interceptor is a commented-out stub and there is no response interceptor at all. You need one that refreshes once and replays queued requests.</td></tr>
-<tr><td>Where would a token live?</td><td>nowhere yet — <code>useLogin</code> in <code>src/projects/store/hooks/useAuth.ts</code> returns a token and drops it</td><td>Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td></tr>
-<tr><td>Is the login screen actually gated?</td><td><code>src/app/projects/store/splash/index.tsx</code>, <code>login/index.tsx</code></td><td>Splash redirects on a timer and login <code>router.replace</code>s to main on success — nothing stops you deep-linking straight past both. Real protected routes.</td></tr>
-<tr><td>Are credentials hardcoded?</td><td><code>src/projects/store/constants/credentials.ts</code></td><td>Yes, and deliberately — it's a FakeStoreAPI demo. Deleting this file is part of M2.</td></tr>
-<tr><td>Is the cart durable?</td><td><code>src/projects/store/stores/cartStore.ts</code></td><td>Plain in-memory Zustand — it empties on relaunch. Persist locally and reconcile with a server cart on login.</td></tr>
-<tr><td>Are query keys collision-safe?</td><td><code>src/projects/store/utils/queryKeys.ts</code></td><td>Flat strings like <code>["products"]</code> and <code>["product", id]</code> — you can't invalidate "everything product-shaped" in one call. Needs a hierarchical factory with typed params.</td></tr>
-<tr><td>Is a credentials object in a query key?</td><td><code>queryKeys.loginUser(credentials)</code></td><td>It exists but nothing uses it — a leftover from when login was a query. A password must never be part of a cache key. Delete it.</td></tr>
-<tr><td>How is the base URL chosen?</td><td><code>src/shared/api/axios.ts</code>, <code>app.json</code></td><td>Hardcoded to <code>https://fakestoreapi.com</code>. Should come from <code>expo-constants</code> extra, driven by a dynamic config per environment.</td></tr>
-<tr><td>What does the orders screen do offline?</td><td><code>src/app/projects/store/orders/index.tsx</code></td><td>Serve cached data with a stale indicator, not a spinner.</td></tr>
-<tr><td>Is <code>useOrders</code> N+1?</td><td><code>src/projects/store/hooks/useProduct.ts</code></td><td>It fetches the cart, then fetches each product individually — fine as a demo, wrong at scale. Note the fix even if the fake API forces it.</td></tr>
-<tr><td>Does <code>axios.ts</code> belong to this project?</td><td><code>src/shared/api/axios.ts</code></td><td>No — it's shared infra. Anything you add there must stay project-agnostic; store-specific interceptor logic belongs in the slice, injected. This is the first real test of the isolation rule.</td></tr>
+<tr><td>What happens on a 401?</td><td>Read <code>src/shared/api/axios.ts</code>; search for <code>interceptors.response</code>.</td><td>A commented-out request-interceptor stub and no response interceptor: the first expired token is a dead session. Production needs refresh once, replay once.</td><td><code>api/interceptors.ts</code>, <code>api/refreshCoordinator.ts</code>, installed on store-owned instances from <code>api/client.ts</code>. Test: <code>__tests__/refresh.test.ts</code>.</td></tr>
+<tr><td>Where does a token live?</td><td>Follow the login hook's return value; grep for <code>AsyncStorage</code> and <code>SecureStore</code>.</td><td>The login mutation returns a token and drops it. Anything you add must go to Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td><td><code>auth/tokenStorage.ts</code> (secure-store with <code>WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, access token mirrored in memory).</td></tr>
+<tr><td>Is the login screen actually gated?</td><td>Open the splash and login routes; then try a deep link straight to an inner route.</td><td>The splash redirects on a timer and login <code>router.replace</code>s on success, so nothing stops a deep link going past both. Production needs protected routes.</td><td><code>src/app/projects/store/_layout.tsx</code> (<code>Stack.Protected</code>), <code>navigation/pendingIntent.ts</code>, <code>navigation/useIntentReplay.ts</code>.</td></tr>
+<tr><td>Are credentials hardcoded?</td><td><code>grep -rni "password" src/projects/</code></td><td>A constants file with the demo user's credentials (acceptable for a demo, a leak in production). Delete it and give development a dev-only fill button.</td><td>No credentials file; <code>(auth)/sign-in.tsx</code> shows a "fill demo user" button only when <code>env.variant !== "production"</code>.</td></tr>
+<tr><td>Is the cart durable?</td><td>Open the cart store; look for <code>persist</code>.</td><td>Plain in-memory Zustand, so the bag empties on relaunch. Persist locally, then reconcile with a server cart on sign-in.</td><td><code>stores/cartStore.ts</code> (persist + <code>partialize</code>), <code>stores/cartMath.ts</code> (<code>mergeCarts</code>), <code>stores/cartSync.ts</code>.</td></tr>
+<tr><td>Are query keys collision-safe?</td><td>Open the key file; ask whether one <code>invalidateQueries</code> call can reach "everything product-shaped" and nothing else.</td><td>Flat keys like <code>["products"]</code> and <code>["product", id]</code>, with no shared prefix. Worse, this app shares <em>one</em> <code>QueryClient</code> with five other projects.</td><td><code>utils/queryKeys.ts</code>: a nested factory rooted at <code>"store"</code>.</td></tr>
+<tr><td>Is a credentials object in a query key?</td><td>Grep the key file for <code>login</code>.</td><td>A leftover key factory that takes the credentials object. A password must never be part of a cache key (keys are logged, persisted and shown in devtools). Login is a mutation.</td><td>No login key exists; <code>SessionProvider.signIn</code> calls the API directly.</td></tr>
+<tr><td>How is the base URL chosen?</td><td>Grep for <code>https://</code> in <code>src/</code> and <code>app.json</code>.</td><td>A hardcoded host in the shared axios file. It should come from <code>expo-constants</code> <code>extra</code>, driven by a dynamic config per environment.</td><td><code>app.config.ts</code> sets <code>extra.storeApiUrl</code>; <code>src/shared/constants/env.ts</code> reads it; the shared axios has no base URL.</td></tr>
+<tr><td>What does the orders screen do offline?</td><td>Turn on airplane mode and cold-start.</td><td>A spinner or an error screen. Production serves cached data with an offline indicator.</td><td><code>query/storeQuery.ts</code> (scoped persistence, <code>useIsOnline</code>), <code>components/ui/OfflineBanner.tsx</code>.</td></tr>
+<tr><td>Is the orders hook N+1?</td><td>Count requests in the network log for one screen.</td><td>It fetches the cart, then each product individually. Fine as a demo, wrong at scale; note the fix even if the fake API forces the workaround.</td><td><code>hooks/useOrders.ts</code> resolves lines from the cached catalogue with <code>ensureQueryData</code>: one request instead of N.</td></tr>
+<tr><td>Does the shared axios belong to this project?</td><td>Read it, then ask who else imports it.</td><td>It is shared infra that carried store-shaped comments and a base URL. Anything added there must stay project-agnostic; store logic is injected from the slice. This is the first real test of the isolation rule in <code>AGENTS.md</code>.</td><td><code>src/shared/api/axios.ts</code> holds timeout and headers only; <code>api/client.ts</code> derives four instances with <code>create({ baseURL })</code>.</td></tr>
 </tbody>
 </table>
 
 <div class="tip">
   <strong>Deliverable for this step</strong>
-  <p>Write <code>docs/audit-03.md</code> with a table of gaps and a priority. You'll close them one by one. Doing this before coding is itself the senior-engineer habit being taught.</p>
+  <p>Write <code>docs/audit-03.md</code>: a table of gaps with a priority and the milestone that closes each one. Do it before coding. Then compare yours with the repo's <code>docs/audit-03.md</code>, and note any gap you missed and why you missed it. Writing the audit before the code is itself the senior-engineer habit being taught.</p>
 </div>
 
 <h2 id="ui">UI design &amp; screens</h2>
@@ -96,27 +110,29 @@
 
 <h3>Screen inventory</h3>
 
-<p>All routes are relative to <code>/projects/store</code>, and the group segments <code>(auth)</code> / <code>(app)</code> / <code>(tab)</code> don't appear in the URL. So <code>/(app)/(tab)/bag</code> resolves to <code>/projects/store/bag</code>.</p>
+<p>All routes are relative to <code>/projects/store</code>, and the group segments <code>(auth)</code> / <code>(app)</code> / <code>(tab)</code> don't appear in the URL. So <code>/(app)/(tab)/bag</code> resolves to <code>/projects/store/bag</code>. The last column says what each screen is there to teach, so you know where to spend effort.</p>
 
 <table>
-<thead><tr><th>Route</th><th>Screen</th><th>New vs existing</th></tr></thead>
+<thead><tr><th>Route</th><th>Screen</th><th>What it demonstrates</th></tr></thead>
 <tbody>
-<tr><td><code>/(auth)/sign-in</code></td><td>Sign in</td><td>new — email/password + social + guest</td></tr>
-<tr><td><code>/(auth)/sign-up</code></td><td>Sign up</td><td>new</td></tr>
-<tr><td><code>/(auth)/forgot</code></td><td>Password reset</td><td>new — email link handling</td></tr>
-<tr><td><code>/(app)/(tab)/</code></td><td>Home</td><td>exists — add sections, banners, prefetch</td></tr>
-<tr><td><code>/(app)/(tab)/categories</code></td><td>Categories</td><td>exists</td></tr>
-<tr><td><code>/(app)/(tab)/search</code></td><td>Search</td><td>new — debounced, with recents and suggestions</td></tr>
-<tr><td><code>/(app)/(tab)/bag</code></td><td>Bag</td><td>exists — add server reconciliation, promo codes</td></tr>
-<tr><td><code>/(app)/(tab)/account</code></td><td>Account</td><td>extend the profile screen</td></tr>
-<tr><td><code>/(app)/product/[id]</code></td><td>Product detail</td><td>exists — add variants, reviews, related, share</td></tr>
-<tr><td><code>/(app)/checkout/address</code></td><td>Checkout · address</td><td>new</td></tr>
-<tr><td><code>/(app)/checkout/shipping</code></td><td>Checkout · shipping</td><td>new</td></tr>
-<tr><td><code>/(app)/checkout/payment</code></td><td>Checkout · payment</td><td>new — payment sheet</td></tr>
-<tr><td><code>/(app)/checkout/review</code></td><td>Checkout · review</td><td>new — the only place the order is placed</td></tr>
-<tr><td><code>/(app)/order/[id]</code></td><td>Order detail</td><td>new — push/deep-link target, live status</td></tr>
-<tr><td><code>/(app)/orders</code></td><td>Order history</td><td>exists — add infinite scroll, filters</td></tr>
-<tr><td><code>/(app)/wishlist</code></td><td>Wishlist</td><td>new — optimistic toggles</td></tr>
+<tr><td><code>/onboarding</code></td><td>Onboarding</td><td>First branch of the guard tree: shown only until the per-device <code>onboarded</code> flag is set</td></tr>
+<tr><td><code>/(auth)/sign-in</code></td><td>Sign in</td><td>Email/password, Apple and Google sign-in, continue as guest, dev-only demo fill</td></tr>
+<tr><td><code>/(auth)/sign-up</code></td><td>Sign up</td><td>Form validation, <code>textContentType</code> / <code>autoComplete</code> hints</td></tr>
+<tr><td><code>/(auth)/forgot</code></td><td>Password reset</td><td>A public auth route that deep links may open while signed out</td></tr>
+<tr><td><code>/(app)/(tab)/</code></td><td>Home</td><td>Infinite product grid (FlashList masonry), prefetch on press-in, offline banner</td></tr>
+<tr><td><code>/(app)/(tab)/categories</code></td><td>Categories</td><td>Cached, long-<code>staleTime</code> query</td></tr>
+<tr><td><code>/(app)/(tab)/search</code></td><td>Search</td><td>Debounced input, persisted recents, category suggestions</td></tr>
+<tr><td><code>/(app)/(tab)/bag</code></td><td>Bag</td><td>Persisted cart, promo codes, "sign in to check out" for guests</td></tr>
+<tr><td><code>/(app)/(tab)/account</code></td><td>Account</td><td>Profile sheet, biometric toggle, push opt-in, sign out, and the dev menu (non-production only)</td></tr>
+<tr><td><code>/(app)/product/[id]</code></td><td>Product detail</td><td>Placeholder data from the list cache, wishlist toggle, share, related products</td></tr>
+<tr><td><code>/(app)/products/[categoryId]</code></td><td>Category products</td><td>Filtered infinite query</td></tr>
+<tr><td><code>/(app)/checkout/address</code></td><td>Checkout · address</td><td>Per-step validation, saved address</td></tr>
+<tr><td><code>/(app)/checkout/shipping</code></td><td>Checkout · shipping</td><td>Shipping options, totals recalculated in integer cents</td></tr>
+<tr><td><code>/(app)/checkout/payment</code></td><td>Checkout · payment</td><td>Stripe payment sheet, or the simulated processor</td></tr>
+<tr><td><code>/(app)/checkout/review</code></td><td>Checkout · review</td><td>The only place the order is placed (idempotent), plus the push opt-in moment</td></tr>
+<tr><td><code>/(app)/order/[id]</code></td><td>Order detail</td><td>Push/deep-link target, live status polling, reorder</td></tr>
+<tr><td><code>/(app)/orders</code></td><td>Order history</td><td>Status filter, cached offline</td></tr>
+<tr><td><code>/(app)/wishlist</code></td><td>Wishlist</td><td>Optimistic toggles with rollback</td></tr>
 </tbody>
 </table>
 
@@ -135,15 +151,12 @@
 │                             │
 │  Wireless Headphones        │
 │  ★★★★☆  4.3 · 1,204 reviews │
-│  $129.00   $̶1̶8̶9̶.̶0̶0̶  −32%    │
-│                             │
-│  Colour                     │
-│  ⬤ ⬤ ⬤  Black               │
-│  Size    S  [M]  L          │
+│  $129.00                    │
 │                             │
 │  ▸ Description              │
-│  ▸ Shipping & returns       │
-│  ▸ Reviews (1,204)          │
+│                             │
+│  RELATED                    │
+│  ▣ ▣ ▣  →                   │
 ├─────────────────────────────┤
 │  $129.00    ┌─────────────┐ │
 │  In stock   │  Add to bag │ │
@@ -181,11 +194,8 @@
 │   ●━━━━●━━━━○────○          │
 │  Placed Packed Shipped Del. │
 │                             │
-│  Out for delivery           │
-│  Arriving today, 4–7 PM     │
-│  ┌───────────────────────┐  │
-│  │     [ MAP / ETA ]     │  │
-│  └───────────────────────┘  │
+│  Shipped                    │
+│  Placed 12 Mar, 10:14       │
 │                             │
 │  2 ITEMS                    │
 │  ▣ Headphones      ×1  $129 │
@@ -196,7 +206,7 @@
 │  Tax                 $12.40 │
 │  Total              $164.40 │
 │                             │
-│  Track  ·  Invoice  ·  Help │
+│  Reorder                    │
 └─────────────────────────────┘</div>
 
 <div class="ascii">┌─────────────────────────────┐
@@ -222,360 +232,443 @@
 │  New here? Create account › │
 └─────────────────────────────┘</div>
 </div>
-<p class="figcap">Note the sticky CTA above the keyboard, the inline field errors, and the step indicator — checkout abandonment lives in those details.</p>
+<p class="figcap">Note the sticky CTA above the keyboard, the inline field errors, and the step indicator — checkout abandonment lives in those details. These are layout targets, not pixel specs: variants, reviews, a delivery map and Track/Invoice/Help links are deliberately out of scope (see stretch goals).</p>
 
 <h2 id="architecture">Architecture</h2>
 
+<p>Three layers, each with one job. <strong>Routes</strong> (<code>src/app/projects/store/</code>) only compose screens and declare guards. <strong>The slice</strong> (<code>src/projects/store/</code>) holds everything else: API, auth, stores, hooks, components. <strong>Shared infra</strong> (<code>src/shared/</code>) is project-agnostic defaults used by more than one project. Dependencies point one way: routes import the slice, the slice imports shared, never the reverse and never a sibling project (ESLint enforces it).</p>
+
 <h3>Route groups</h3>
-<p>Today the store's routes are a flat list under <code>src/app/projects/store/</code>: <code>splash/</code>, <code>login/</code>, <code>main/(tab)/</code>, <code>orders/</code>, <code>place-order/</code>, <code>product-details/[productId]</code>, <code>products/[categoryId]</code>. Nothing separates signed-in from signed-out. The target shape introduces that split:</p>
+<p>A flat list of routes (splash, login, main tabs, orders, place-order, product details) can't express "signed in" versus "signed out". The target shape groups routes by <em>who may see them</em>:</p>
 
 <pre><code>src/app/projects/store/
-├── _layout.tsx              Stack.Protected guards (project-level, not root)
+├── _layout.tsx              providers + Stack.Protected guards (project-level, not root)
+├── onboarding.tsx           shown only until the per-device flag is set
 ├── (auth)/
-│   ├── _layout.tsx
-│   ├── sign-in.tsx          ← today's login/index.tsx
+│   ├── _layout.tsx          error boundary, initialRouteName "sign-in"
+│   ├── sign-in.tsx
 │   ├── sign-up.tsx
 │   └── forgot.tsx
-├── (app)/
-│   ├── _layout.tsx
-│   ├── (tab)/{index,categories,search,bag,account}.tsx
-│   ├── product/[id].tsx     ← today's product-details/[productId]
-│   ├── products/[categoryId].tsx
-│   ├── checkout/{address,shipping,payment,review}.tsx
-│   └── order/[id].tsx, orders.tsx, wishlist.tsx
-└── onboarding.tsx</code></pre>
+└── (app)/
+    ├── _layout.tsx          intent replay, pending-checkout reconcile, inner guard
+    ├── (tab)/{index,categories,search,bag,account}.tsx
+    ├── product/[id].tsx
+    ├── products/[categoryId].tsx
+    ├── checkout/{address,shipping,payment,review}.tsx
+    ├── order/[id].tsx
+    ├── orders.tsx
+    └── wishlist.tsx</code></pre>
+
+<p>There are two guard layers. The store layout guards the three top-level branches: <code>onboarding</code> while <code>!onboarded</code>, <code>(app)</code> while <code>onboarded &amp;&amp; (signedIn || guest)</code>, and <code>(auth)</code> while <code>onboarded &amp;&amp; !signedIn</code>. The <code>(app)</code> layout adds a second <code>Stack.Protected guard={signedIn}</code> around <code>checkout/*</code>, <code>order/[id]</code> and <code>orders</code>, so guests can browse but not buy. <code>(app)</code> is declared <em>before</em> <code>(auth)</code> on purpose: a guest passes both guards, and the first available screen is where the bare store URL lands.</p>
 
 <div class="warn">
   <strong>Every <code>Stack.Screen name=</code> must be re-derived, not guessed</strong>
-  <p>Adding <code>(auth)</code> and <code>(app)</code> changes the path every store route resolves to. Route names come from the <em>file tree</em>; a stale <code>name=</code> in <code>src/app/_layout.tsx</code> fails silently, leaving a screen with a path-derived header title rather than an error. After the move, grep for <code>"projects/store/</code> across <code>src/</code> and check each hit against the tree — typed routes will not catch all of them.</p>
+  <p>Route names come from the <em>file tree</em>. Adding <code>(auth)</code> and <code>(app)</code> changes what every store route resolves to, and a stale <code>name=</code> doesn't fail the build and typed routes don't check it: the screen just gets a path-derived header title. After any move, grep <code>name="</code> in the store layout and the <code>(app)</code> layout and check each hit against the tree. The root <code>src/app/_layout.tsx</code> declares only one <code>Stack.Screen</code> per project (<code>projects/store</code>); everything inside belongs to the store's own layouts.</p>
 </div>
 
 <h3>Slice layout</h3>
-<p>The store's non-route code lives at <code>src/projects/store/</code>. What's there now, and what this project adds:</p>
+<p>Everything non-route lives at <code>src/projects/store/</code>. Each folder has one responsibility, and the arrows below are the order you will create them in:</p>
 
 <pre><code>src/projects/store/
-├── api/                        exists: auth, product, user
-│   ├── auth.api.ts             + refresh, social
-│   ├── product.api.ts
-│   ├── user.api.ts
-│   ├── order.api.ts            new
-│   ├── cart.api.ts             new
-│   ├── payment.api.ts          new
-│   ├── interceptors.ts         new — 401 handling, injected into shared axios
-│   ├── refreshCoordinator.ts   new — single-flight token refresh
-│   └── errors.ts               new — ApiError normalisation
-├── auth/                       new
+├── api/
+│   ├── client.ts               four axios instances derived from the shared one
+│   ├── interceptors.ts         401 handling: refresh once, replay once
+│   ├── refreshCoordinator.ts   single-flight token refresh
+│   ├── errors.ts               ApiError normalisation (kind, isTransient)
+│   ├── auth.api.ts  product.api.ts  user.api.ts  wishlist.api.ts
+│   ├── cart.api.ts  order.api.ts  payment.api.ts  push.api.ts
+│   └── mockServer.ts           persisted on-device backend (idempotency, server-owned status)
+├── auth/
 │   ├── SessionProvider.tsx     the only owner of session state
-│   ├── useSession.ts
-│   ├── tokenStorage.ts         secure-store wrapper
-│   └── socialSignIn.ts         AuthSession flows
-├── components/                 exists: SlideItem, sheet/, ui/
-│   ├── ui/                     cart-footer, cart-item, product-image,
-│   │                           product-item, background-view
-│   ├── sheet/ProfileSheet.tsx
-│   └── checkout/               new
-├── hooks/                      exists: useAuth, useProduct, useUser,
-│   │                           useComponentHeight
-│   └── useCheckout.ts, useOrders.ts, useSearch.ts   new
-├── notifications/              new
-│   ├── registerForPush.ts
-│   ├── handlers.ts
-│   └── routeFromNotification.ts
-├── models/                     exists: Auth, CartItem, Product, User
-│   └── Order.ts, Payment.ts, Address.ts             new
-├── stores/                     exists: cartStore, cartSelectors
-│   └── + persistence and server reconciliation
-├── constants/                  exists: purple-images, credentials
-│   └── credentials.ts          DELETE in M2
-├── utils/
-│   ├── queryKeys.ts            exists — rebuild as a nested factory
-│   ├── render-item.tsx         exists
-│   ├── money.ts                new — Intl formatting
-│   ├── analytics.ts            new — one facade over the vendor SDK
-│   └── monitoring.ts           new — crash + perf
-└── checkout/
-    └── checkoutMachine.ts      new — explicit step state</code></pre>
+│   ├── sessionContext.ts  useSession.ts
+│   ├── tokenStorage.ts         secure-store wrapper + non-sensitive flags
+│   ├── socialSignIn.ts         Apple + Google (PKCE) flows
+│   └── biometrics.ts
+├── checkout/
+│   ├── checkoutMachine.ts      pure state machine: steps + phases
+│   ├── checkoutStore.ts        persisted Zustand wrapper around the machine
+│   └── pricing.ts  validation.ts
+├── navigation/
+│   ├── linkRoutes.ts           pure URL/push → store href mapping
+│   ├── pendingIntent.ts        the intent buffer
+│   └── useIntentReplay.ts
+├── notifications/
+│   ├── registerForPush.ts  handlers.ts  routeFromNotification.ts
+├── query/storeQuery.ts         store defaults, persistence, sign-out cleanup, useIsOnline
+├── stores/                     cartStore, cartMath, cartSync, cartSelectors, searchStore, hydration
+├── hooks/                      useAuth, useProduct, useSearch, useWishlist, useOrders,
+│                               useCheckout, usePayment, useUser, …
+├── models/                     Auth, Product, CartItem, User, Order, Payment, Address
+├── components/                 ui/, checkout/, order/, sheet/ (dumb, prop-driven)
+├── constants/                  config.ts (store-only runtime config), theme.ts
+├── utils/                      queryKeys, money, analytics, monitoring, devFlags, text
+└── __tests__/                  cartMath, checkout, linking, money, prefetch, refresh</code></pre>
 
 <div class="note">
   <strong>What goes to <code>src/shared/</code> and what doesn't</strong>
-  <p><code>src/shared/api/axios.ts</code> is already shared and every project's endpoint files import it. Auth interceptors are <em>not</em> generic — the journal and podcast projects have no session concept. Keep the axios instance dumb and have the store install its own interceptors at startup, from its slice. The genuinely generic new thing is <code>env.ts</code> (typed access to <code>Constants.expoConfig.extra</code>): that belongs in <code>src/shared/constants/</code>, because every project will read the API URL the same way.</p>
+  <p><code>src/shared/api/axios.ts</code> is shared and every project's endpoint files import it. Auth interceptors are <em>not</em> generic: the journal and podcast projects have no session concept. Keep the axios instance dumb and have the store install its own interceptors from its slice. Note what <code>create()</code> does: it merges defaults (timeout, headers) into a new instance but gives it its <em>own</em> interceptor chain. The genuinely generic new piece is <code>env.ts</code> (typed access to <code>Constants.expoConfig.extra</code>), which lives in <code>src/shared/constants/</code> because every project reads its API URL the same way. The one <code>QueryClient</code> and its <code>focusManager</code> / <code>onlineManager</code> wiring live in <code>src/shared/providers/QueryProvider.tsx</code>, because those managers are process-global.</p>
 </div>
 
+<h3>Components stay dumb</h3>
+<p>Components in <code>components/</code> take plain data and callbacks. They never import a store, a session hook or a view model; routes (the "screens") own state through hooks and pass it down. This is what makes <code>QuantityStepper</code>, <code>ProductGrid</code> or <code>TotalsView</code> reusable and testable in isolation. The same rule applies to alerts and sheets' children.</p>
+
 <h3>Query key factory</h3>
-<p>Today's <code>src/projects/store/utils/queryKeys.ts</code> is flat — <code>["products"]</code>, <code>["product", id]</code>, <code>["product-by-category", cat]</code>, <code>["orders", userId]</code>. Products and product-by-category don't share a prefix, so no single <code>invalidate</code> reaches both. Rebuild it nested:</p>
-<pre><code>// shape, not code
-products.all                        → ['products']
-products.list(filters)              → ['products','list',filters]
-products.byCategory(category)       → ['products','list',{category}]
-products.detail(id)                 → ['products','detail',id]
-orders.all                          → ['orders']
-orders.list(userId, status)         → ['orders','list',userId,status]
-orders.detail(id)                   → ['orders','detail',id]
-cart.current()                      → ['cart']
+<p>The shared <code>QueryClient</code> serves every project, so keys need a project root as well as a hierarchy. <code>utils/queryKeys.ts</code> builds both:</p>
+<pre><code>// shape of src/projects/store/utils/queryKeys.ts
+queryKeys.all                       → ['store']
+products.all                        → ['store','products']
+products.list(filters)              → ['store','products','list',filters]
+products.infinite(filters)          → ['store','products','infinite',filters]
+products.detail(id)                 → ['store','products','detail',id]
+categories.all                      → ['store','categories']
+orders.list(userId)                 → ['store','orders','list',userId]
+orders.detail(id)                   → ['store','orders','detail',id]
+wishlist.ids(userId | 'guest')      → ['store','wishlist','ids',owner]
+user.profile(id)                    → ['store','user','profile',id]
 
 // invalidation becomes surgical:
-//   invalidate(['products'])            → everything product-shaped
-//   invalidate(orders.detail(id))       → just this one</code></pre>
-<p>Make every hook consume the factory rather than a literal array, and delete <code>loginUser(credentials)</code> while you're in there — a login is a mutation, and a password has no business in a cache key. Keep the file inside the store's slice; there is no shared key file, because two projects sharing a namespace is a collision waiting to happen.</p>
+//   invalidate(queryKeys.all)                → the store's whole cache, nobody else's
+//   invalidate(queryKeys.products.all)       → everything product-shaped
+//   invalidate(queryKeys.orders.detail(id))  → just this one
+//
+// two predicates reuse the prefix:
+//   isStoreKey(key)      → what the persister may write
+//   isSensitiveKey(key)  → ['store','user',…], never written to disk</code></pre>
+<p>Every hook consumes the factory rather than a literal array. There is deliberately no login key: a login is a mutation, and a password has no business in a cache key.</p>
 
 <h3>Config &amp; environments</h3>
-<p>Move <code>app.json</code> → <code>app.config.ts</code> so config is computed:</p>
+<p>Replace <code>app.json</code> with <code>app.config.ts</code> so config is computed:</p>
 <pre><code>APP_VARIANT = development | preview | production   (env var, set per EAS profile)
 
-  → bundleIdentifier:  org.iw.wnrn.dev  /  .preview  /  (base)
-  → app name:          "Store (Dev)"    /  "Store (Beta)"  /  "Store"
-  → icon:              tinted per variant
-  → extra.apiUrl:      localhost / staging / prod
+  → bundleIdentifier / package:  org.imaginativeworld.whynotreactnative  +  .dev / .preview / (base)
+  → app name:          "WNRN (Dev)"  /  "WNRN (Beta)"  /  "Why-Not-ReactNative"
+  → extra.variant, extra.storeApiUrl (STORE_API_URL), extra.linkDomain (LINK_DOMAIN)
+  → extra.stripePublishableKey (EXPO_PUBLIC_STRIPE_KEY)
   → extra.eas.projectId
 
+Read at runtime through src/shared/constants/env.ts (typed, with fallbacks).
+Store-only values (EXPO_PUBLIC_STORE_BACKEND_URL, EXPO_PUBLIC_GOOGLE_*_CLIENT_ID,
+merchant id, currency) live in src/projects/store/constants/config.ts.
+
 Secrets → EAS environment variables, never in the config file.
-Public-but-variable values → extra, read via expo-constants.</code></pre>
-<p>Three variants installed side-by-side on one device is the goal — it changes how you test forever.</p>
+EXPO_PUBLIC_* values are inlined into the bundle: public identifiers only.</code></pre>
+<p>Three variants installed side-by-side on one device is the goal; it changes how you test forever. <code>runtimeVersion</code> uses the <code>fingerprint</code> policy and the bundle id feeds that fingerprint, so any <code>eas update</code> must set the matching <code>APP_VARIANT</code>.</p>
 
 <h2 id="auth">Auth &amp; token refresh</h2>
 
 <h3>The state machine</h3>
+<p><code>SessionProvider</code> is the only owner of session state and the only code that touches the keychain. Its <code>status</code> is one of <code>loading</code>, <code>signedIn</code>, <code>guest</code>, <code>signedOut</code>; a separate <code>locked</code> flag covers biometric re-entry.</p>
 <pre><code>          ┌──────────┐
-          │ loading  │  (reading keychain on boot)
+          │ loading  │  (reading keychain + flags on boot)
           └────┬─────┘
-       token?  │  no token
-     ┌─────────┴─────────┐
-     ▼                   ▼
-┌──────────┐        ┌──────────┐
-│  signed  │◄──────►│  signed  │
-│    in    │ logout │   out    │
-└────┬─────┘        └──────────┘
-     │ 401 from any request
+ tokens+user?  │  no (guest flag? → guest)
+     ┌─────────┴──────────────────┐
+     ▼                            ▼
+┌──────────┐   signOut()    ┌──────────┐ continueAsGuest() ┌───────┐
+│  signed  │───────────────►│  signed  │──────────────────►│ guest │
+│    in    │◄───────────────│   out    │                   │       │
+└────┬─────┘  signIn/signUp └──────────┘                   └───┬───┘
+              /social (also from guest) ◄────────────────┘
+     │ 401 from any store request
      ▼
-┌──────────────┐   success   ┌──────────┐
-│  refreshing  │────────────►│ signed in│
-└──────┬───────┘             └──────────┘
-       │ refresh fails (401/invalid)
-       ▼
-  clear tokens → signed out → route to /sign-in</code></pre>
+┌──────────────┐  new token   ┌──────────────────────┐
+│  refreshing  │─────────────►│ replay request once  │
+└──────┬───────┘              └──────────┬───────────┘
+       │ refresh fails                   │ replay still 401
+       ▼                                 ▼
+  onAuthFailure() → signOut("expired") → clear tokens, caches, cart → status "signedOut"
+  → Stack.Protected swaps (app) for (auth). No imperative navigation.</code></pre>
+<p><em>Refreshing</em> isn't a status in React state; it's the pending promise inside the coordinator. Keeping it out of state means a refresh never re-renders the tree.</p>
 
 <h3>Single-flight refresh — the part everyone gets wrong</h3>
-<p>Five requests fire in parallel. All five get a 401. A naive interceptor performs five refreshes; four of them invalidate the token the fifth just obtained, and the user is logged out for no reason.</p>
-<pre><code>refreshCoordinator:
-  if (inFlightPromise) return inFlightPromise      ← the whole trick
-  inFlightPromise = doRefresh()
-    .finally(() => inFlightPromise = null)
-  return inFlightPromise
+<p>Five requests fire in parallel. All five get a 401. A naive interceptor performs five refreshes; with rotating refresh tokens, four of them present a token that was already rotated away (or invalidate the pair the fifth just stored), and the user is logged out for no reason.</p>
+<pre><code>refreshCoordinator.refresh():
+  if (inFlight) return inFlight                   ← the whole trick
+  inFlight = refreshFn().finally(() => inFlight = null)   ← finally, not then
+  return inFlight
 
-axios response interceptor on 401:
-  if (request.isRetry) → give up, sign out
-  newToken = await refreshCoordinator.get()
-  retry original request once with newToken</code></pre>
-<p>Verify it: add an artificial-401 toggle in a dev menu, fire six requests at once, and assert exactly one refresh call hits the network.</p>
+response interceptor on a rejected request (installed on storeApi + backendApi only):
+  error → ApiError  (toApiError)
+  if not "unauthorized", or config.skipAuthRefresh → rethrow
+  if config._isRetry → onAuthFailure(); rethrow       ← replayed once already
+  token = await coordinator.refresh()                ← concurrent 401s share this
+  replay { ...config, _isRetry: true } with the new bearer</code></pre>
+<p>Two more details keep it correct. The refresh call itself goes through <code>authBackendApi</code>/<code>authApi</code>, which have <em>no</em> interceptors, and login/refresh pass <code>skipAuthRefresh: true</code>, so a failing refresh can never wait on itself. And the refresh function persists the rotated tokens <em>before</em> its promise resolves, so every queued request replays with the new token.</p>
+<p>Verify it two ways. Automated: <code>__tests__/refresh.test.ts</code> drives six concurrent requests through a fake axios <code>adapter</code> and asserts one refresh and zero sign-outs. By hand: on the Account tab (non-production builds) turn on "Force 401 on first attempt" and tap "Fire 6 requests at once"; the result line reports how many refreshes hit the network.</p>
 
 <h3>Storage rules</h3>
 <table>
 <thead><tr><th>Data</th><th>Where</th><th>Why</th></tr></thead>
 <tbody>
-<tr><td>Refresh token</td><td><code>expo-secure-store</code>, with <code>WHEN_UNLOCKED_THIS_DEVICE_ONLY</code></td><td>Keychain/Keystore-backed; never leaves the device, never in a backup.</td></tr>
-<tr><td>Access token</td><td>In memory (plus secure-store if you need cold-start resume)</td><td>Short-lived; keeping it only in memory limits exposure.</td></tr>
-<tr><td>User profile</td><td>MMKV / AsyncStorage</td><td>Non-sensitive, needed instantly for the boot UI.</td></tr>
-<tr><td>Cart</td><td>MMKV + server</td><td>Must survive reinstall via the server copy.</td></tr>
+<tr><td>Refresh token</td><td><code>expo-secure-store</code>, with <code>keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY</code></td><td>Keychain/Keystore-backed; readable only while unlocked, never in a backup or device migration.</td></tr>
+<tr><td>Access token</td><td>An in-memory variable for the interceptor's synchronous read, plus secure-store so a cold start resumes without a refresh round trip</td><td>SecureStore reads are async; request interceptors want a sync read. The memory copy is primed by <code>loadTokens()</code>.</td></tr>
+<tr><td>User profile (boot UI), onboarded / guest / biometric flags</td><td>AsyncStorage</td><td>Non-sensitive and needed instantly. Tokens never go here: it is a plain file on disk.</td></tr>
+<tr><td>Cart, checkout machine, recent searches</td><td>AsyncStorage through Zustand <code>persist</code> (<code>partialize</code> keeps data, drops actions)</td><td>Must survive a relaunch; the cart is also reconciled with the server copy on sign-in. The checkout machine carries the idempotency key.</td></tr>
+<tr><td>Query cache</td><td>AsyncStorage through the TanStack persister, <code>["store", …]</code> keys with status <code>success</code> only, never <code>["store","user",…]</code></td><td>Cold start in airplane mode shows last-known data; profile PII is never written.</td></tr>
 <tr><td>Anything else sensitive</td><td>Nowhere</td><td>Don't cache PII you don't need.</td></tr>
 </tbody>
 </table>
+<p>If you later need synchronous storage (no hydration flash), <code>react-native-mmkv</code> is a drop-in adapter for Zustand <code>persist</code>. This project instead waits for hydration at boot (<code>stores/hydration.ts</code>), which is what you will meet in the cold-start section below.</p>
+
+<h3>Sign-out is a wipe, not a flag flip</h3>
+<p><code>signOut()</code> runs once (a ref guards against concurrent auth failures), revokes the session and unregisters the push token best-effort with <code>Promise.allSettled</code> so a dead connection can't block it, then clears tokens and profile, removes user-scoped queries (<code>orders</code>, <code>wishlist</code>, <code>user</code>), empties the bag, resets the checkout machine, and only <em>then</em> sets <code>status: "signedOut"</code>. By the time the UI re-renders there is nothing left to leak to the next person on the device. The product catalogue is deliberately kept: it is the same for every user.</p>
 
 <h2 id="push">Push &amp; deep-link routing</h2>
 
-<pre><code>REGISTRATION
-  request permission (with rationale first)
-  Android: create channels BEFORE requesting
-  getExpoPushTokenAsync({ projectId })      ← projectId from Constants
-  POST token + deviceId to your backend, tied to the user
-  re-register on: login, token change, app update
+<p>Everything that enters the app from outside (a tapped push, a universal link, a custom-scheme URL) goes through the same three steps: <strong>validate</strong> it into a store href built from typed ids, <strong>buffer</strong> the href, and <strong>replay</strong> it once the session has resolved and the navigator is mounted.</p>
+
+<pre><code>REGISTRATION   (notifications/registerForPush.ts, only for a signed-in store session)
+  show OUR rationale Alert first (iOS prompts once, ever)
+  Android: create channels BEFORE requesting permission
+  register the "Track" / "Reorder" notification category
+  getExpoPushTokenAsync({ projectId })      ← env.easProjectId from app.config extra
+  POST token + a stable deviceId to your backend, tied to the user
+  re-register on: sign-in, push-token rotation (addPushTokenListener)
+  never on simulators (Device.isDevice)
 
 DELIVERY  (three very different cases)
-  1. Foreground → setNotificationHandler decides banner/sound/list
+  1. Foreground → setNotificationHandler decides banner / sound / badge
   2. Background, app alive → response listener fires on tap
-  3. Cold start → getLastNotificationResponseAsync() on boot
+  3. Cold start → getLastNotificationResponse() when the listener starts
+  (a cold start can deliver the SAME response twice → de-duplicate by
+   identifier + actionIdentifier)
 
-ROUTING
-  notification.data = { type: 'order', orderId: '10482' }
+ROUTING   (notifications/routeFromNotification.ts, navigation/linkRoutes.ts)
+  notification.data = { project: 'store', type: 'order', orderId: '10482' }
        │
-       ├─ parse into a route:  /projects/store/order/10482
-       │    (the project prefix is mandatory — the launcher owns the root)
-       ├─ ensure auth is resolved FIRST (else the guard bounces you to sign-in)
-       └─ router.push after the navigation tree is mounted
+       ├─ ignore anything whose project !== 'store' (expo-notifications is process-global)
+       ├─ BUILD the href from validated ids:  /projects/store/order/10482
+       │    (the project prefix is mandatory; the launcher owns the root)
+       │    never copy a path out of the payload
+       ├─ setPendingIntent(href); if the store isn't mounted, router.navigate('/projects/store')
+       └─ (app) layout: useIntentReplay waits for session != loading AND a navigation key,
+            then pushes the href on the next animation frame
 
 TEARDOWN
-  remove listeners on unmount; unregister token on logout</code></pre>
+  sign-out: unregister the token on the backend, clear the badge
+  foreground: clear the badge each time the app becomes active</code></pre>
+
+<h3>Universal links and the namespaced router</h3>
+<p>Because the launcher owns the root, a link like <code>https://&lt;linkDomain&gt;/p/42</code> would match nothing. <code>src/app/+native-intent.tsx</code> runs each project's pure rewriter before the router resolves the URL; the store's <code>rewriteStoreSystemPath</code> maps <code>/p/&lt;digits&gt;</code> to <code>/projects/store/product/&lt;id&gt;</code> and <code>/order/&lt;id&gt;</code> to the order screen, and returns <code>null</code> for foreign hosts and malformed ids. Custom-scheme links are already namespaced (<code>whynotreactnative://projects/store/…</code>). The AASA and <code>assetlinks.json</code> templates are in <code>docs/well-known/</code>; <code>app.config.ts</code> sets <code>associatedDomains</code> and Android <code>intentFilters</code> with <code>autoVerify</code>.</p>
+
+<h3>The intent buffer</h3>
+<p><code>Stack.Protected</code> only <em>blocks</em>. A signed-out user who opens <code>whynotreactnative://projects/store/order/7</code> is bounced to sign-in and the router forgets where they were going. The store layout captures the URL (<code>Linking.useLinkingURL</code>), and if it points behind the guard, parks it with <code>setPendingIntent</code>. Pushes, deep links and a guest tapping "Check out" all use the same buffer. A guest who needs an account (<code>requiresAccount</code>) is sent to sign-in with the intent kept, and the replay effect runs again when the status flips.</p>
 
 <div class="warn">
   <strong>The cold-start race</strong>
-  <p>On a cold start from a push, three things race: reading the token from the keychain, mounting the router, and handling the notification response. Get the order wrong and the user lands on the sign-in screen instead of their order. Solution: hold the splash screen until the session resolves, buffer the pending route, and replay it once the navigator is ready. Build this deliberately — it's the single most valuable thing in this project.</p>
+  <p>On a cold start from a push, four things race: reading the token from the keychain, restoring persisted stores and the query cache, mounting the router, and handling the notification response. Get the order wrong and the user lands on the sign-in screen or Home instead of their order. The finished code resolves it in three moves. The tap listener starts from the <em>root</em> layout (a project layout hasn't loaded on a cold start, so a tap would be lost) but only buffers an href. The store layout keeps the native splash up (<code>SplashScreen.preventAutoHideAsync</code>) until the session resolves and the persisted state is restored, with a 1.5 s cap so disk I/O can't brick boot. And <code>useIntentReplay</code> replays only after <code>useRootNavigationState()?.key</code> exists and the status isn't <code>loading</code>. Build this deliberately: it's the single most valuable thing in this project.</p>
 </div>
 
 <div class="note">
-  <strong>Push registration is store-specific, not global</strong>
-  <p>Register for push from the store's session lifecycle, not from <code>src/app/_layout.tsx</code>. A user who only ever opens Tic-Tac-Toe should never see a push permission prompt. Same for the notification response listener — it routes into store screens, so it belongs to the store.</p>
+  <strong>Push is store-specific, not global</strong>
+  <p>Register for push from the store's session lifecycle (<code>usePushLifecycle(signedIn)</code> in the store layout), not from <code>src/app/_layout.tsx</code>. A user who only ever opens Tic-Tac-Toe should never see a push permission prompt. The one exception is the response <em>listener</em>, which must start at the root so a cold-start tap isn't lost; it never requests permission. And because <code>setNotificationHandler</code> is process-global and last-writer-wins, the store's handler is deliberately neutral for payloads that aren't its own (banner and list, no sound, no badge), so another project's reminders still show in the foreground.</p>
 </div>
 
 <h2 id="milestones">Build order</h2>
+
+<p>Each milestone ends with a <strong>checkpoint</strong> you can demonstrate and a <strong>verify</strong> step you can run. Don't move on until both pass. After every milestone run <code>npm run typecheck</code>, <code>npm run lint</code> and <code>npx jest --no-watchman</code>; after M1, M2 and M7 also run <code>npx expo export --platform ios --output-dir /tmp/out</code>, because the bundler catches route and import mistakes that <code>tsc</code> can't.</p>
 
 <div class="milestone">
   <h3><span class="tag">M1</span> Audit &amp; foundations</h3>
   <div class="goal">Goal: know what you have, and make config real.</div>
   <ul>
-    <li>Write the audit doc.</li>
-    <li>Restructure the store's routes into <code>(auth)</code> / <code>(app)</code> groups and update every <code>Stack.Screen name=</code> in <code>src/app/_layout.tsx</code> to match the new tree.</li>
-    <li>Migrate <code>app.json</code> → <code>app.config.ts</code> with three variants.</li>
-    <li>Typed env access module in <code>src/shared/constants/</code>; base URL from config, not the hardcoded FakeStoreAPI string.</li>
-    <li>Normalize API errors into one <code>ApiError</code> shape with a user-facing message.</li>
-    <li>Upgrade <code>src/projects/store/utils/queryKeys.ts</code> into a nested factory; delete the unused <code>loginUser</code> key.</li>
+    <li>Write the audit doc (see above).</li>
+    <li>Regroup the store's routes into <code>(auth)</code> / <code>(app)</code> and re-derive every <code>Stack.Screen name=</code> in the store's layouts to match the new tree (see <a href="#restructure">Restructuring notes</a>).</li>
+    <li>Replace <code>app.json</code> with <code>app.config.ts</code> and three variants driven by <code>APP_VARIANT</code>.</li>
+    <li>Typed env access in <code>src/shared/constants/env.ts</code>; the base URL comes from config, not a hardcoded string.</li>
+    <li>Normalise API errors into one <code>ApiError</code> (<code>api/errors.ts</code>) with a <code>kind</code>, a user-facing message and an <code>isTransient</code> flag that retry policy can read.</li>
+    <li>Rebuild <code>utils/queryKeys.ts</code> as a nested factory under a <code>"store"</code> root; leave no login key.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each hitting a different API. <code>npm run lint</code> and <code>npx tsc --noEmit</code> are both clean after the route move.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each pointing at its own API.</div>
+  <p><b>Verify</b> — <code>npm run lint</code> and <code>npm run typecheck</code> are clean after the route move; grep <code>name="</code> in the layouts and confirm each hit has a file; <code>npx expo export</code> succeeds.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M2</span> Auth</h3>
   <div class="goal">Goal: a session that survives everything.</div>
   <ul>
-    <li><code>SessionProvider</code> + <code>useSession</code>; splash held until the session resolves.</li>
-    <li>Secure token storage; sign-in / sign-up / sign-out. Delete <code>src/projects/store/constants/credentials.ts</code> — the demo credentials stop being the login path.</li>
-    <li><code>Stack.Protected</code> guards for the <code>(app)</code> and <code>(auth)</code> groups, declared in the store's own <code>_layout.tsx</code>, not the root one.</li>
-    <li>Redirect-after-login: deep-link to a protected route while signed out → sign in → land on the original destination.</li>
-    <li>Refresh coordinator, installed into the shared axios instance from the store's slice rather than baked into <code>src/shared/api/axios.ts</code>.</li>
-    <li>Optional biometric unlock for returning users.</li>
+    <li><code>SessionProvider</code> + <code>useSession</code>; the native splash is held until the session resolves.</li>
+    <li>Secure token storage (<code>auth/tokenStorage.ts</code>); sign-in / sign-up / sign-out. Remove any hardcoded demo credentials and give development a dev-only fill button.</li>
+    <li><code>Stack.Protected</code> guards for onboarding, <code>(app)</code> and <code>(auth)</code>, declared in the store's own <code>_layout.tsx</code>, not the root one. Add the inner <code>signedIn</code> guard for checkout and orders so guests can browse.</li>
+    <li>Redirect-after-login: deep-link to a protected route while signed out, sign in, land on the original destination (intent buffer).</li>
+    <li>Refresh coordinator and interceptors, installed from the store's slice onto store-owned axios instances, not baked into <code>src/shared/api/axios.ts</code>.</li>
+    <li>Dev menu on the Account tab: force a 401, fail the next refresh, fire six requests at once.</li>
+    <li>Optional biometric unlock for returning users (<code>auth/biometrics.ts</code>).</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Six concurrent requests with an expired token trigger exactly one refresh and zero spurious logouts.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Six concurrent requests with an expired token trigger exactly one refresh and zero spurious logouts. Cold start with a stored session shows no sign-in flash.</div>
+  <p><b>Verify</b> — Write <code>__tests__/refresh.test.ts</code> with a custom axios <code>adapter</code> as the fake server: six concurrent 401s give one refresh; a replay that still 401s signs out once and doesn't loop; <code>skipAuthRefresh</code> requests never refresh.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M3</span> Social sign-in</h3>
   <div class="goal">Goal: OAuth without a WebView hack.</div>
   <ul>
-    <li>Sign in with Apple (required by App Store rules if you offer other social logins).</li>
-    <li>Google via <code>expo-auth-session</code> with PKCE and a proper redirect URI.</li>
-    <li><code>WebBrowser.maybeCompleteAuthSession()</code> and the redirect plumbing.</li>
-    <li>Account linking: same email arriving via two providers.</li>
+    <li>Sign in with Apple via <code>expo-apple-authentication</code> with a hashed nonce (required by App Store rules if you offer other social logins).</li>
+    <li>Google via <code>expo-auth-session</code> with PKCE and a proper redirect URI; disabled when no client IDs are configured.</li>
+    <li><code>WebBrowser.maybeCompleteAuthSession()</code> at module scope and the redirect plumbing.</li>
+    <li>Account linking: decide the rule for the same email arriving via two providers and write it down (enforcement belongs on the backend).</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Cancel the OAuth sheet mid-flow. The app returns to a clean state, not a stuck spinner.</div>
+  <p><b>Verify</b> — Every social flow resolves to <code>success | cancel | error</code> and never throws for a user cancel; check that on a device for both providers.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M4</span> Catalog &amp; query mastery</h3>
-  <div class="goal">Goal: data layer that feels instant.</div>
+  <div class="goal">Goal: a data layer that feels instant.</div>
   <ul>
-    <li>Infinite scroll on product lists with <code>useInfiniteQuery</code>.</li>
-    <li>Prefetch product detail on list-item press-in.</li>
-    <li>Search with debounce, <code>placeholderData</code> to keep previous results, and recents.</li>
-    <li>Wishlist with optimistic toggle + rollback on failure.</li>
-    <li>Cache persistence so a cold start shows last-known data immediately.</li>
-    <li>Wire <code>focusManager</code> to <code>AppState</code> and <code>onlineManager</code> to <code>expo-network</code>.</li>
+    <li>Infinite scroll on the product grid with <code>useInfiniteQuery</code> and <code>select</code> to flatten pages.</li>
+    <li>Prefetch product detail on list-item press-in (seed the cache, but date the seed with <code>updatedAt: 0</code> so the request still runs).</li>
+    <li>Search with a debounce, filtering the one shared catalogue query during render, and persisted recents.</li>
+    <li>Wishlist with an optimistic toggle and rollback on failure.</li>
+    <li>Store-scoped query defaults (<code>staleTime</code>, <code>gcTime</code> &ge; persister <code>maxAge</code>, a retry policy that reads <code>ApiError.isTransient</code>) via <code>setQueryDefaults</code> on the <code>["store"]</code> prefix.</li>
+    <li>Cache persistence with <code>persistQueryClient</code>: only <code>success</code> queries under the store prefix, never profile data, never mutations.</li>
+    <li>Wire <code>focusManager</code> to <code>AppState</code> and <code>onlineManager</code> to <code>expo-network</code> once, app-wide.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Airplane mode cold start shows cached products with a "showing offline data" banner, not an error screen.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Airplane mode cold start shows cached products with an offline banner, not an error screen.</div>
+  <p><b>Verify</b> — <code>__tests__/prefetch.test.ts</code> against a real <code>QueryClient</code>; turn on "Fail wishlist writes" in the dev menu and watch the heart roll back.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M5</span> Cart &amp; checkout</h3>
   <div class="goal">Goal: an interruption-safe purchase flow.</div>
   <ul>
-    <li>Cart persistence + merge with the server cart on login (decide the merge rule and write it down).</li>
-    <li>Multi-step checkout with per-step validation and a resumable state.</li>
-    <li>Address form with correct <code>textContentType</code>/<code>autoComplete</code> so OS autofill works.</li>
-    <li>Promo codes, shipping options, tax recalculation.</li>
-    <li>Order placement with an idempotency key — a double-tap must not create two orders.</li>
+    <li>Cart persistence plus a merge with the server cart on sign-in. Decide the rule and write it down; the finished one is union by product, <em>max</em> (not sum) quantity, unresolvable server lines dropped. Await <code>persist.rehydrate()</code> before merging.</li>
+    <li>A pure checkout state machine (steps <code>address → shipping → payment → review</code>, phases <code>editing → awaiting_payment → completed</code>), persisted, so the flow resumes after a force-quit.</li>
+    <li>Per-step validation and an address form with <code>textContentType</code> / <code>autoComplete</code> so OS autofill works.</li>
+    <li>Promo codes, shipping options and tax computed in integer cents (<code>checkout/pricing.ts</code>, <code>utils/money.ts</code>); the client only previews, the server prices.</li>
+    <li>Order placement with one idempotency key per checkout attempt, sent as an <code>Idempotency-Key</code> header: a double tap must not create two orders.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Force-quit at the payment step and relaunch. The user resumes where they were, with the cart intact.</div>
+  <p><b>Verify</b> — <code>__tests__/cartMath.test.ts</code> (including idempotence of the merge) and <code>__tests__/checkout.test.ts</code> (resume keeps the same key; locked after placement).</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M6</span> Payments</h3>
   <div class="goal">Goal: money actually moves (in test mode).</div>
   <ul>
-    <li>Stripe payment sheet (or your provider's equivalent) with a server-created payment intent.</li>
-    <li>Apple Pay / Google Pay.</li>
-    <li>3DS / SCA challenge handling.</li>
-    <li>Failure paths: declined card, network drop mid-confirm, app killed after charge but before your server callback.</li>
-    <li>Understand the store rules: physical goods → external payments fine; digital content → in-app purchase required.</li>
+    <li>Stripe payment sheet with a <em>server-created</em> PaymentIntent for an existing order; the client never says what to charge. Mount <code>StripeProvider</code> only when a publishable key exists.</li>
+    <li>Apple Pay / Google Pay through the payment sheet's <code>applePay</code> / <code>googlePay</code> options, and a <code>returnURL</code> for 3DS / bank redirects.</li>
+    <li>A clearly labelled simulated processor and a persisted on-device mock backend (<code>api/mockServer.ts</code>), so the whole flow, including idempotency and server-owned status, is exercisable without Stripe or a server.</li>
+    <li>Failure paths: declined card, network drop mid-confirm, app killed after charge but before your server callback. After any outcome, re-read the order from the server before declaring success.</li>
+    <li>On launch, reconcile a persisted <code>awaiting_payment</code> checkout against the server (<code>useReconcilePendingCheckout</code>).</li>
+    <li>Understand the store rules: physical goods, external payments are fine; digital content, in-app purchase is required.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Kill the app immediately after confirming payment. On relaunch, the order state is correct — the server, not the client, is the source of truth.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Kill the app immediately after confirming payment. On relaunch, the order state is correct; the server, not the client, is the source of truth.</div>
+  <p><b>Verify</b> — In the dev menu set the simulated outcome to <code>network_drop</code> and place an order: the client reports a failure, yet the order ends up paid.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M7</span> Push &amp; universal links</h3>
   <div class="goal">Goal: the app can be entered from outside.</div>
   <ul>
-    <li>Push registration, backend association, permission rationale.</li>
-    <li>Notification categories with actions ("Track", "Reorder").</li>
-    <li>Badge count management.</li>
-    <li>Routing from a tap in all three delivery states, including cold start.</li>
-    <li>Universal links: host an AASA file and <code>assetlinks.json</code>, configure <code>associatedDomains</code> and Android intent filters.</li>
+    <li>Push registration with backend association and an in-app permission rationale shown first (after a purchase, or from Account).</li>
+    <li>Android channels before the prompt; notification categories with "Track" and "Reorder" actions.</li>
+    <li>Badge handling: server sets it in the payload, the app clears it on foreground and sign-out.</li>
+    <li>Routing from a tap in all three delivery states, including cold start, with a <code>project</code> discriminator on every payload.</li>
+    <li>Universal links: host the AASA file and <code>assetlinks.json</code> (templates in <code>docs/well-known/</code>), configure <code>associatedDomains</code> and Android intent filters, and rewrite the URL in <code>+native-intent.tsx</code>.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Tap <code>https://yourdomain/p/42</code> in Messages on a device with the app installed. It opens the product screen directly, no browser bounce.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — Tap <code>https://yourdomain/p/42</code> in Messages on a device with the app installed. It opens the product screen directly, no browser bounce. Tap a store push with the app killed and land on the order.</div>
+  <p><b>Verify</b> — <code>__tests__/linking.test.ts</code> pins the rewriters: foreign hosts, non-numeric ids and traversal-style order ids all return nothing; other projects' notifications are ignored.</p>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M8</span> Observability &amp; tests</h3>
   <div class="goal">Goal: you'd find out about a bug before your users tell you.</div>
   <ul>
-    <li>Crash reporting with uploaded source maps — verify a stack trace is readable in the dashboard.</li>
-    <li>Analytics facade with a typed event catalogue (<code>view_product</code>, <code>add_to_cart</code>, <code>begin_checkout</code>, <code>purchase</code>).</li>
-    <li>Error boundaries per route group with a real recovery action.</li>
-    <li>Unit tests for the refresh coordinator, cart math, and money formatting.</li>
-    <li>MSW-mocked tests for the key hooks.</li>
-    <li>One Maestro flow: sign in → add to cart → checkout.</li>
-    <li>Accessibility pass: labels, roles, dynamic type, contrast; then run it with VoiceOver/TalkBack.</li>
+    <li>A crash/performance facade (<code>utils/monitoring.ts</code>) with a console adapter, shaped so a vendor SDK (Sentry, Bugsnag) plugs in with one call. Source maps are uploaded by the release pipeline, not by app code.</li>
+    <li>An analytics facade with a typed event catalogue (<code>view_product</code>, <code>add_to_cart</code>, <code>begin_checkout</code>, <code>purchase</code>, …) and a no-PII rule.</li>
+    <li>Error boundaries per route group (<code>(app)</code>, <code>(app)/(tab)</code>, <code>(auth)</code>) with a real retry action.</li>
+    <li>Unit tests for the refresh coordinator, cart math, checkout machine, link rewriters and money formatting.</li>
+    <li>One Maestro flow: sign in, add to bag, check out with the simulated processor.</li>
+    <li>Accessibility pass: labels, roles, dynamic type, contrast; then run it with VoiceOver / TalkBack.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Deliberately throw in production-mode code and read the symbolicated stack trace in your dashboard.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — With a vendor adapter connected, deliberately throw in a production-mode build and read the symbolicated stack trace in the dashboard.</div>
+  <p><b>Verify</b> — <code>npx jest --no-watchman</code> is green; <code>maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/store-checkout.yaml</code> passes against a development build. The flow needs the dev-only fill button and simulated payment, so it won't pass on a production build with Stripe configured.</p>
 </div>
 
 <h2 id="libraries">Library hints</h2>
 
+<p>Check each library's current docs before you write against it (APIs move between SDKs). Notes below were checked against the Expo SDK 57 docs and TanStack Query v5.</p>
+
 <table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
-<tr><td>Secure storage</td><td><code>expo-secure-store</code></td><td><code>setItemAsync</code>, <code>getItemAsync</code>, <code>deleteItemAsync</code>, <code>keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, <code>requireAuthentication</code></td></tr>
-<tr><td>Routing guards</td><td><code>expo-router</code> <span class="chip green">installed</span></td><td><code>&lt;Stack.Protected guard={…}&gt;</code>, <code>&lt;Redirect&gt;</code>, <code>useRouter</code>, <code>useLocalSearchParams</code>, <code>unstable_settings.initialRouteName</code>, <code>useRootNavigationState</code></td></tr>
-<tr><td>Server state</td><td><code>@tanstack/react-query</code> <span class="chip green">installed</span></td><td><code>useInfiniteQuery</code>, <code>useMutation</code> with <code>onMutate</code>/<code>onError</code>/<code>onSettled</code>, <code>queryClient.setQueryData</code>, <code>prefetchQuery</code>, <code>focusManager</code>, <code>onlineManager</code></td></tr>
-<tr><td>Cache persistence</td><td><code>@tanstack/query-async-storage-persister</code> + <code>@tanstack/react-query-persist-client</code></td><td><code>PersistQueryClientProvider</code>, <code>maxAge</code>, <code>dehydrateOptions</code> — exclude auth-bearing queries</td></tr>
-<tr><td>OAuth</td><td><code>expo-auth-session</code> + <code>expo-web-browser</code> <span class="chip green">installed</span></td><td><code>useAuthRequest</code>, <code>makeRedirectUri</code>, <code>exchangeCodeAsync</code>, PKCE by default, <code>maybeCompleteAuthSession()</code></td></tr>
-<tr><td>Apple sign-in</td><td><code>expo-apple-authentication</code></td><td><code>signInAsync</code>, <code>&lt;AppleAuthenticationButton&gt;</code>, credential state checks</td></tr>
-<tr><td>Push</td><td><code>expo-notifications</code></td><td><code>getExpoPushTokenAsync({projectId})</code>, <code>setNotificationCategoryAsync</code>, <code>setBadgeCountAsync</code>, <code>getLastNotificationResponseAsync</code>, <code>addNotificationResponseReceivedListener</code></td></tr>
-<tr><td>Payments</td><td><code>@stripe/stripe-react-native</code></td><td><code>StripeProvider</code>, <code>useStripe().initPaymentSheet/presentPaymentSheet</code>, <code>PlatformPayButton</code>. Requires a dev build + config plugin.</td></tr>
-<tr><td>In-app purchase</td><td><code>expo-iap</code> or <code>react-native-iap</code></td><td>Only if you sell digital goods — then it's mandatory, not optional.</td></tr>
-<tr><td>Forms</td><td><code>react-hook-form</code> + <code>zod</code></td><td><code>useForm</code>, <code>Controller</code>, <code>zodResolver</code>, per-step schemas</td></tr>
-<tr><td>Fast KV</td><td><code>react-native-mmkv</code></td><td>Synchronous — great for a Zustand persist adapter, no async hydration flash.</td></tr>
-<tr><td>Crash/perf</td><td><code>@sentry/react-native</code></td><td><code>Sentry.init</code>, <code>wrap()</code>, Expo config plugin, automatic source-map upload via EAS</td></tr>
-<tr><td>Analytics</td><td>Firebase Analytics / PostHog / Amplitude</td><td>Wrap in your own facade so swapping vendors is a one-file change.</td></tr>
-<tr><td>Config</td><td><code>expo-constants</code> <span class="chip green">installed</span></td><td><code>Constants.expoConfig.extra</code>, <code>Constants.easConfig.projectId</code></td></tr>
-<tr><td>i18n</td><td><code>expo-localization</code> + <code>i18next</code></td><td><code>getLocales()</code>, <code>getCalendars()</code>, RTL via <code>I18nManager</code>, <code>Intl.NumberFormat</code></td></tr>
-<tr><td>Testing</td><td><code>jest-expo</code>, <code>@testing-library/react-native</code>, <code>msw</code>, <code>maestro</code></td><td>Component queries by accessibility role; MSW intercepts at the network layer so hooks are tested for real.</td></tr>
+<tr><td>Secure storage</td><td><code>expo-secure-store</code></td><td><code>setItemAsync</code>, <code>getItemAsync</code>, <code>deleteItemAsync</code>, <code>keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, <code>requireAuthentication</code>. Keys may only contain alphanumerics, <code>.</code>, <code>-</code> and <code>_</code>.</td></tr>
+<tr><td>Routing guards</td><td><code>expo-router</code></td><td><code>&lt;Stack.Protected guard={…}&gt;</code> (a false guard removes the screens and redirects to the anchor or first available screen; a <code>redirectTo</code> prop arrives in a later SDK, so on 57 the intent buffer does that job), <code>useRouter</code>, <code>useLocalSearchParams</code>, <code>unstable_settings.initialRouteName</code>, <code>useRootNavigationState</code>, <code>ErrorBoundary</code> exports, <code>+native-intent.tsx</code> (<code>redirectSystemPath</code>)</td></tr>
+<tr><td>Server state</td><td><code>@tanstack/react-query</code> v5</td><td><code>queryOptions</code>, <code>useInfiniteQuery</code> (<code>initialPageParam</code>, <code>getNextPageParam</code>), <code>useMutation</code> with <code>onMutate</code>/<code>onError</code>/<code>onSettled</code>, <code>queryClient.setQueryData(key, data, { updatedAt })</code>, <code>prefetchQuery</code>, <code>ensureQueryData</code>, <code>setQueryDefaults</code>, <code>removeQueries</code>, <code>focusManager</code>, <code>onlineManager</code></td></tr>
+<tr><td>Cache persistence</td><td><code>@tanstack/query-async-storage-persister</code> + <code>@tanstack/react-query-persist-client</code></td><td><code>createAsyncStoragePersister({ storage, key, throttleTime })</code>, <code>persistQueryClient({ queryClient, persister, maxAge, buster, dehydrateOptions })</code> returning <code>[unsubscribe, restored]</code>, <code>shouldDehydrateQuery</code>. Keep <code>gcTime</code> &ge; <code>maxAge</code>. The finished code calls <code>persistQueryClient</code> directly (scoped, stoppable) rather than mounting <code>PersistQueryClientProvider</code>.</td></tr>
+<tr><td>HTTP</td><td><code>axios</code></td><td><code>axios.create</code>, request/response interceptors and <code>eject</code>, the <code>adapter</code> config (a test seam), <code>AxiosError</code>, <code>isAxiosError</code></td></tr>
+<tr><td>Client state</td><td><code>zustand</code> v5</td><td><code>create</code>, <code>persist</code> with <code>createJSONStorage(() =&gt; AsyncStorage)</code>, <code>partialize</code>, <code>version</code>, <code>persist.rehydrate()</code>, <code>persist.onFinishHydration</code></td></tr>
+<tr><td>Lists</td><td><code>@shopify/flash-list</code> v2</td><td><code>masonry</code>, <code>numColumns</code>, <code>onEndReached</code>; v2 measures items itself, no <code>estimatedItemSize</code></td></tr>
+<tr><td>OAuth</td><td><code>expo-auth-session</code> + <code>expo-web-browser</code></td><td><code>providers/google</code>, <code>exchangeCodeAsync</code>, PKCE, <code>maybeCompleteAuthSession()</code></td></tr>
+<tr><td>Apple sign-in</td><td><code>expo-apple-authentication</code></td><td><code>isAvailableAsync</code>, <code>signInAsync</code>, <code>&lt;AppleAuthenticationButton&gt;</code>; set <code>ios.usesAppleSignIn</code></td></tr>
+<tr><td>Biometrics</td><td><code>expo-local-authentication</code></td><td><code>hasHardwareAsync</code>, <code>isEnrolledAsync</code>, <code>authenticateAsync</code></td></tr>
+<tr><td>Push</td><td><code>expo-notifications</code></td><td><code>getExpoPushTokenAsync({ projectId })</code>, <code>setNotificationChannelAsync</code> (before requesting permission on Android 13+), <code>setNotificationCategoryAsync</code>, <code>setNotificationHandler</code>, <code>setBadgeCountAsync</code>, <code>getLastNotificationResponse()</code> (sync; the <code>…Async</code> variant is deprecated), <code>addNotificationResponseReceivedListener</code>, <code>addPushTokenListener</code></td></tr>
+<tr><td>Payments</td><td><code>@stripe/stripe-react-native</code></td><td><code>StripeProvider</code> (<code>publishableKey</code>, <code>merchantIdentifier</code>, <code>urlScheme</code>), <code>useStripe().initPaymentSheet / presentPaymentSheet</code>, <code>PaymentSheetError</code>. Requires a dev build and its config plugin.</td></tr>
+<tr><td>In-app purchase</td><td><code>expo-iap</code> or <code>react-native-iap</code></td><td>Not used here (physical goods). Mandatory if you sell digital goods.</td></tr>
+<tr><td>Config</td><td><code>expo-constants</code></td><td><code>Constants.expoConfig.extra</code>, <code>Constants.easConfig.projectId</code></td></tr>
+<tr><td>Splash</td><td><code>expo-splash-screen</code></td><td><code>preventAutoHideAsync</code>, <code>hide</code></td></tr>
+<tr><td>Network, device, crypto</td><td><code>expo-network</code>, <code>expo-device</code>, <code>expo-crypto</code></td><td><code>getNetworkStateAsync</code> + <code>addNetworkStateListener</code>; <code>Device.isDevice</code>; <code>randomUUID</code>, <code>digestStringAsync</code></td></tr>
+<tr><td>Locale &amp; money</td><td><code>expo-localization</code> + <code>Intl.NumberFormat</code></td><td><code>getLocales()</code>; integer cents everywhere, format once at the view boundary</td></tr>
+<tr><td>Crash/perf, analytics</td><td>Sentry / Bugsnag / PostHog / Firebase</td><td>Not installed. Implement <code>MonitoringAdapter</code> / <code>AnalyticsSink</code> and register it; swapping vendors is a one-file change.</td></tr>
+<tr><td>Testing</td><td><code>jest-expo</code>, <code>@testing-library/react-native</code>, Maestro</td><td>Pure-module unit tests; a custom axios <code>adapter</code> instead of an HTTP mocking library; a real <code>QueryClient</code> for cache behaviour. MSW is a reasonable alternative for hook tests.</td></tr>
+<tr><td>Forms</td><td>(plain React state + <code>checkout/validation.ts</code>)</td><td>The finished code validates with small pure functions per step. <code>react-hook-form</code> + <code>zod</code> is a fine alternative if forms grow.</td></tr>
 </tbody>
 </table>
 
 <div class="note">
   <strong>Backend options if you don't want to write one</strong>
-  <p>Supabase (auth + Postgres + realtime, generous free tier), Medusa or Saleor (real commerce backends), or a small Hono/Express service on a free host. FakeStoreAPI — what this repo uses now — has no auth and no persistence, so it can't take you past M3. Plan to replace it.</p>
+  <p>FakeStoreAPI has no refresh endpoint, no persistent cart and no orders, so it can't take you past the catalogue and sign-in. The finished code bridges the gap two ways: a persisted on-device mock backend (<code>api/mockServer.ts</code>, used when <code>EXPO_PUBLIC_STORE_BACKEND_URL</code> is empty) that implements idempotency keys and server-owned order status, and a typed contract (<code>auth/login</code>, <code>auth/refresh</code>, <code>orders</code>, <code>payments/intents</code>, push registration) that a real server can satisfy. For a real one: Supabase (auth + Postgres + realtime), Medusa or Saleor (commerce), or a small Hono/Express service on a free host.</p>
 </div>
 
 <h2 id="pitfalls">Failure modes to experience deliberately</h2>
 
+<p>Reproduce each failure before you fix it, so you recognise its symptom in production. The last column says how the finished code handles it, and where to look.</p>
+
+<table>
+<thead><tr><th>Failure mode</th><th>How it shows up</th><th>How the final code handles it</th></tr></thead>
+<tbody>
+<tr><td><strong>The refresh stampede</strong></td><td>Random logouts when several screens load at once and the access token has just expired.</td><td>Single-flight promise in <code>api/refreshCoordinator.ts</code>, cleared in <code>finally</code>; replay once via <code>_isRetry</code>; proven in <code>refresh.test.ts</code> and by the dev menu.</td></tr>
+<tr><td><strong>Refresh recursion</strong></td><td>All requests hang after the refresh endpoint itself returns 401.</td><td>Auth calls use instances without interceptors and <code>skipAuthRefresh</code> (<code>api/client.ts</code>).</td></tr>
+<tr><td><strong>Token in AsyncStorage</strong></td><td>Anyone with a rooted device or an emulator file system reads the session.</td><td>Tokens only in secure-store; AsyncStorage holds the profile and flags (<code>auth/tokenStorage.ts</code>).</td></tr>
+<tr><td><strong>Guard flicker</strong></td><td>The sign-in screen flashes on every cold start while the session loads.</td><td>Native splash held until session and persisted state resolve (store <code>_layout.tsx</code>).</td></tr>
+<tr><td><strong>Double order</strong></td><td>A double tap on a slow network creates two orders and two charges.</td><td>One idempotency key per checkout attempt, persisted with the machine, reused on every retry (<code>checkout/</code>, <code>hooks/useCheckout.ts</code>).</td></tr>
+<tr><td><strong>Optimistic update without rollback</strong></td><td>Toggle a wishlist item offline; the server rejects it; the UI now lies permanently.</td><td><code>cancelQueries</code>, snapshot, write, restore on error, invalidate on settle (<code>hooks/useWishlist.ts</code>).</td></tr>
+<tr><td><strong>Cached PII</strong></td><td>After sign-out, the next user on the device sees the previous person's orders or profile.</td><td>Profile queries are never persisted; <code>signOut()</code> removes orders, wishlist and user queries, empties the bag and resets checkout.</td></tr>
+<tr><td><strong>Lost deep link</strong></td><td>A signed-out user taps a link, signs in and lands on Home, having lost what they clicked.</td><td>Intent buffer (<code>navigation/pendingIntent.ts</code>) replayed by <code>useIntentReplay</code>.</td></tr>
+<tr><td><strong>Cold-start push race</strong></td><td>Tapping a push with the app killed lands on sign-in or Home.</td><td>Root listener that only buffers; replay waits for session and navigation key.</td></tr>
+<tr><td><strong>Stale hydration merge</strong></td><td>A user signs in before the persisted cart has loaded; the merge uses an empty cart and then the old one overwrites it.</td><td><code>reconcileCartOnSignIn</code> awaits <code>persist.rehydrate()</code> first (<code>stores/cartSync.ts</code>).</td></tr>
+<tr><td><strong>Charge succeeded, response lost</strong></td><td>The client says "failed" but the card was charged.</td><td>Always re-read the order from the server; reconcile a persisted <code>awaiting_payment</code> checkout on launch.</td></tr>
+<tr><td><strong>Untrusted deep link or push</strong></td><td>A crafted payload or URL navigates somewhere arbitrary.</td><td>Hrefs are built from validated ids, never copied; foreign hosts and other projects' payloads are ignored.</td></tr>
+<tr><td><strong>Unsymbolicated crashes</strong></td><td>You try to read <code>index.android.bundle:1:284736</code>.</td><td>Facade ready for a vendor adapter; source-map upload belongs in the release pipeline.</td></tr>
+<tr><td><strong>Hardcoded currency</strong></td><td>A locale where the symbol goes after the number and the separator is a comma looks wrong; float math drifts.</td><td>Integer cents and one <code>Intl.NumberFormat</code> formatter (<code>utils/money.ts</code>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="restructure">Restructuring notes</h2>
+
+<p>The store began as a flat slice of routes inside the launcher. These are the moves that regrouped it behind guards, in the order that keeps the app running.</p>
+
 <ol>
-  <li><strong>The refresh stampede.</strong> Described above. Reproduce it before you fix it, so you recognise the symptom (random logouts) in the wild.</li>
-  <li><strong>Token in AsyncStorage.</strong> Put one there, then read it off a jailbroken/rooted device or an emulator's file system. Now you'll never do it again.</li>
-  <li><strong>Guard flicker.</strong> Render the protected tree before the session finishes loading, and users see the sign-in screen flash on every cold start. Fix by holding the splash.</li>
-  <li><strong>Double order.</strong> Ship without an idempotency key, then double-tap "Place order" on a slow network.</li>
-  <li><strong>Optimistic update without rollback.</strong> Toggle a wishlist item offline; the server rejects it; the UI now lies permanently.</li>
-  <li><strong>Cached PII.</strong> Persist the query cache including the user profile, then log out. The next user on the device sees the previous person's data. Clear the cache on logout.</li>
-  <li><strong>Deep link to a protected route while signed out.</strong> Without an intent buffer, the user signs in and lands on Home, having lost what they clicked.</li>
-  <li><strong>Unsymbolicated crashes.</strong> Ship without source maps and try to read <code>index.android.bundle:1:284736</code>.</li>
-  <li><strong>Hardcoded currency.</strong> Test with a locale where the symbol goes after the number and the decimal separator is a comma.</li>
+  <li><strong>Move, don't rewrite.</strong> Create <code>(auth)</code> and <code>(app)</code> and move files with <code>git mv</code> so history follows: login becomes <code>(auth)/sign-in</code>, <code>main/(tab)</code> becomes <code>(app)/(tab)</code>, <code>product-details/[productId]</code> becomes <code>(app)/product/[id]</code>, <code>place-order</code> becomes <code>(app)/checkout/*</code>. Parameter names change with the file name, so update <code>useLocalSearchParams</code> callers too.</li>
+  <li><strong>Hoist the guards one level.</strong> The store layout (not the root) owns <code>Stack.Protected</code>, so the root only knows "there is a project called store". Give each group its own <code>_layout.tsx</code> with its own <code>ErrorBoundary</code> and <code>unstable_settings.initialRouteName</code>.</li>
+  <li><strong>Remember URLs lose group segments.</strong> <code>(app)/(tab)/bag</code> is <code>/projects/store/bag</code>. Every hardcoded href, notification payload mapping and link rewriter must target the namespaced URL.</li>
+  <li><strong>Declare order matters.</strong> The first available group is where the bare URL lands, so <code>(app)</code> goes before <code>(auth)</code> and a guest can reach both.</li>
+  <li><strong>Move session state out of screens.</strong> The splash timer and per-screen redirects go away; <code>SessionProvider</code> plus guards replace them. Sign-out becomes "change state", never <code>router.replace</code>.</li>
+  <li><strong>Keep shared code project-agnostic.</strong> Anything the store needs that the journal can't use (interceptors, session) stays in the slice and is installed from there. Only genuinely cross-project pieces (typed <code>env</code>, the single <code>QueryClient</code> and its managers) are promoted to <code>src/shared/</code>.</li>
+  <li><strong>Prefix before you share.</strong> One <code>QueryClient</code> serves all projects, so root every key at <code>"store"</code> before adding persistence or defaults, otherwise they leak onto other projects.</li>
+  <li><strong>Re-verify mechanically.</strong> After the move run typecheck, lint, tests and <code>npx expo export</code> for both platforms, and grep for the old path strings.</li>
 </ol>
 
 <h2 id="stretch">Stretch goals</h2>
 <ul>
   <li><strong>Server-driven UI</strong> — home-screen sections described by a JSON schema so merchandising changes ship without a release.</li>
   <li><strong>A/B testing</strong> via remote config, gated behind an experiment facade.</li>
-  <li><strong>Realtime order tracking</strong> over websockets/Supabase Realtime feeding the order-detail screen.</li>
+  <li><strong>Realtime order tracking</strong> over websockets/Supabase Realtime feeding the order-detail screen (instead of 30-second polling).</li>
+  <li><strong>Product variants, reviews and a delivery map</strong> from the wireframes.</li>
   <li><strong>App Clip / Instant App</strong> for a single product page.</li>
   <li><strong>iOS widget</strong> showing the latest order status (bridges into Project 04).</li>
-  <li><strong>Web parity</strong> — this app already builds for web. Make checkout work there and discover which of your abstractions were platform-leaky.</li>
+  <li><strong>Web parity</strong> — the app is configured to build for web. Make checkout work there and discover which of your abstractions were platform-leaky.</li>
 </ul>
 
 <div class="nav-links">

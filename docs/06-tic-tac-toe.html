@@ -29,6 +29,7 @@
 
 <ul class="toc">
   <li><a href="#building-a-game">Building a game</a></li>
+  <li><a href="#objectives">Learning objectives</a></li>
   <li><a href="#what-are-you-building">What are you building?</a></li>
   <li><a href="#setup-the-four-types">Setup: the four types</a></li>
   <li><a href="#building-the-board">Building the board</a></li>
@@ -39,6 +40,11 @@
   <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
   <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
   <li><a href="#final-cleanup">Final cleanup</a></li>
+  <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
+  <li><a href="#accessibility">Make it accessible</a></li>
+  <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
+  <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
+  <li><a href="#stretch-goals">Stretch goals</a></li>
   <li><a href="#wrapping-up">Wrapping up</a></li>
   <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
   <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
@@ -63,6 +69,21 @@
   <li><strong>Completing the game</strong> — the most common techniques in React development.</li>
   <li><strong>Adding time travel</strong> — a deeper insight into the unique strengths of React.</li>
 </ul>
+<h3 id="objectives">Learning objectives</h3>
+<p>By the end you will be able to:</p>
+<ul>
+  <li>Build a typed Zustand store with the <code>combine</code> middleware and read it with selector hooks.</li>
+  <li>Lift state up, keep <code>Square</code> and <code>Board</code> dumb, and derive values (<code>xIsNext</code>, the current board) instead of storing them.</li>
+  <li>Model time travel with immutable updates: one new board per move, <code>currentMove</code> as an index, and a truncated future after a rewind.</li>
+  <li>Translate DOM elements and CSS into React Native primitives and flexbox.</li>
+  <li>Move pure logic out of a route file into <code>utils/game.ts</code> and cover it with Jest tests.</li>
+  <li>Add screen-reader labels, roles and states, and register a single-route project in the launcher.</li>
+</ul>
+<p><strong>Prerequisites:</strong> basic React (components, props, <code>useState</code>) and TypeScript. The repo's <code>npm run typecheck</code>, <code>npm run lint</code> and <code>npx jest --no-watchman</code> commands are your checkpoints. Build in a scratch route first (<code>src/app/projects/tic-tac-toe/index.tsx</code> is the finished one), and compare against it at the end.</p>
+<div class="note">
+  <strong>How the build is staged</strong>
+  <p>Stages 1 to 7 follow the upstream tutorial in a single file (<code>App.tsx</code> in the snippets). Stage 8 (<a href="#extract-helpers">extract and test</a>) and stage 9 (<a href="#accessibility">accessibility</a>) are what turn that file into the version in this repo. Each stage ends with a <strong>Checkpoint</strong> telling you what you should see before moving on.</p>
+</div>
 <h3 id="what-are-you-building">What are you building?</h3>
 <p>In this tutorial, you'll build an interactive tic-tac-toe game with React Native, Zustand and TypeScript. You can see what it will look like when you're finished here:</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -277,6 +298,10 @@ const styles = StyleSheet.create({
     fontFamily: MONO,
   },
 })</code></pre></div>
+<div class="note">
+  <strong>Single-file form vs. the repo</strong>
+  <p>The program above is the single-file form you reach at the end of <a href="#final-cleanup">Final cleanup</a>, with the pure helpers kept inline. In the repo the types and helpers are imported from <code>@/src/projects/tic-tac-toe/utils/game</code>, and <code>Square</code> also takes <code>label</code> and <code>disabled</code> props. Those two differences are built in <a href="#extract-helpers">stage 8</a> and <a href="#accessibility">stage 9</a>.</p>
+</div>
 <h3 id="setup-the-four-types">Setup: the four types</h3>
 <p>Everything in the port hangs off four declarations. Add them once at the top of the file and the rest of the tutorial needs almost no annotations — inference does the work.</p>
 <div class="codeblock"><div class="codehead"><span class="fname">types.ts</span><span class="lang">ts</span></div><pre><code>type Player = 'X' | 'O'
@@ -379,6 +404,10 @@ const styles = StyleSheet.create({
   <strong>Do not put a border on the board container</strong>
   <p>The web original draws a border around the grid as well as around each button. Try that here and the board collapses to two squares per row: React Native boxes are always <code>border-box</code>, so <code>width: 120</code> with <code>borderWidth: 1</code> leaves only 118px of content — one pixel short of three 40px squares, and <code>flexWrap</code> dutifully wraps. Keep the borders on the squares, keep the container's width an exact multiple of <code>SQUARE_SIZE</code>, and add padding or a border only on a wrapper <code>View</code> outside it.</p>
 </div>
+<div class="note">
+  <strong>Checkpoint 1: static board</strong>
+  <p>Nine squares in a 3 by 3 grid, each showing its number, and <code>npm run typecheck</code> clean. If you see two squares per row, re-read the border warning above.</p>
+</div>
 <h3 id="lifting-state-up">Lifting state up</h3>
 <p>Each <code>Square</code> component could maintain a part of the game's state. To check for a winner, the <code>Board</code> component would need to know the state of each of the 9 <code>Square</code> components. Although asking each child for its state is technically possible in React, we discourage it: the code becomes difficult to understand, susceptible to bugs, and hard to refactor. Instead, store the game's state in the parent, and let the parent tell each <code>Square</code> what to display by passing a prop.</p>
 <p>To collect data from multiple children, or to have two or more child components communicate with each other, declare the shared state in their parent component instead.</p>
@@ -462,6 +491,10 @@ export default function Board() {
   )
 }</code></pre></div>
 <p>Note how in <code>handleClick</code>, you call <code>.slice()</code> to create a copy of the squares array instead of modifying the existing array. <code>handleClick(i: number)</code> is the only annotation needed here: parameters of a plain function declaration are never inferred, while <code>squares.slice()</code> already returns <code>SquareValue[]</code> and <code>nextSquares[i] = 'X'</code> is checked against it.</p>
+<div class="note">
+  <strong>Checkpoint 2: state in the store</strong>
+  <p>Pressing an empty square puts an <code>X</code> in it; pressing it again does nothing. Every press creates a new array (<code>slice()</code>), never a mutation.</p>
+</div>
 <h3 id="taking-turns">Taking turns</h3>
 <p>It's now time to fix a major defect in this tic-tac-toe game: the <code>'O'</code>s cannot be used on the board. You'll set the first move to be <code>'X'</code> by default, tracked by another piece of state in the <code>useGameStore</code> hook:</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
@@ -522,6 +555,10 @@ export default function Board() {
   )
 }</code></pre></div>
 <p><code>const player = xIsNext ? 'X' : 'O'</code> needs no annotation: a conditional over two string literals infers <code>'X' | 'O'</code>, which *is* <code>Player</code>. Resist the urge to annotate what inference already gets right — every unnecessary annotation is a place that can drift out of sync.</p>
+<div class="note">
+  <strong>Checkpoint 3: alternating marks</strong>
+  <p>Presses alternate <code>X</code>, <code>O</code>, <code>X</code>. Nothing yet stops play after three in a row.</p>
+</div>
 <h3 id="declaring-a-winner-or-draw">Declaring a winner or draw</h3>
 <p>Now that the players can take turns, you'll want to show when the game is won or drawn. Add three helper functions: <code>calculateWinner</code> takes an array of 9 squares and returns <code>'X'</code>, <code>'O'</code>, or <code>null</code>; <code>countRemainingTurns</code> returns the number of turns left, which is the count of empty squares; and <code>calculateStatus</code> builds the status string from the winner, the remaining turns, and the current player.</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function calculateWinner(squares: Squares): SquareValue {
@@ -757,6 +794,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 })</code></pre></div>
+<div class="note">
+  <strong>Checkpoint 4: a complete single-board game</strong>
+  <p>The status line reads <code>Next player: X</code>, then <code>Winner X</code> or <code>Draw</code>, and a finished board ignores presses. Try the board <code>X O X / X O O / O X X</code>: no winner, full board, so <code>Draw</code>.</p>
+</div>
 <h3 id="adding-time-travel">Adding time travel</h3>
 <p>As a final exercise, let's make it possible to "go back in time" and revisit previous moves.</p>
 <p>If you had directly modified the squares array, implementing time travel would be very difficult. However, since you used <code>slice()</code> to create a new copy after every move, treating it as immutable, you can store every past version of the squares array and navigate between them.</p>
@@ -1112,6 +1153,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 })</code></pre></div>
+<div class="note">
+  <strong>Checkpoint 5: history is recorded</strong>
+  <p>Game still plays exactly as before, now with the board coming from <code>history[history.length - 1]</code> and <code>Board</code> receiving everything as props. No behaviour change is the proof the refactor is right.</p>
+</div>
 <h3 id="showing-the-past-moves">Showing the past moves</h3>
 <p>Since you are recording the game's history, you can now display a list of past moves. You already have an array of <code>history</code> moves in the store, so you need to transform it into an array of React elements with <code>.map()</code>, and display a list of pressables to jump to past moves:</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
@@ -1259,6 +1304,14 @@ const styles = StyleSheet.create({
     &lt;/View&gt;
   )
 }</code></pre></div>
+<div class="note">
+  <strong>Checkpoint 6: time travel works</strong>
+  <p>Play three moves, press <code>Go to move #1</code>: the board shows one mark and the status says <code>Next player: O</code>. Press a square: the later moves disappear and the list ends at the new move.</p>
+</div>
+<div class="warn">
+  <strong>The jumpTo above has a stale-read bug on purpose</strong>
+  <p>The first <code>jumpTo</code> snippet calls <code>setXIsNext(currentMove % 2 === 0)</code>, which reads the <em>old</em> <code>currentMove</code>, because the store update has not been seen by this render yet. The corrected version in the full listing uses <code>nextMove % 2 === 0</code>. The cleanup below removes the whole problem by deriving <code>xIsNext</code>.</p>
+</div>
 <h3 id="final-cleanup">Final cleanup</h3>
 <p>If you look closely, <code>xIsNext</code> is <code>true</code> when <code>currentMove</code> is even and <code>false</code> when it's odd. If you know <code>currentMove</code>, you can always determine <code>xIsNext</code>. There's no need to store it separately — redundant state means more ways to introduce bugs. Calculate it instead:</p>
 <div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
@@ -1308,10 +1361,209 @@ const styles = StyleSheet.create({
   <strong>Two React Native finishing touches</strong>
   <p>The game is complete, but a real screen needs two more things this tutorial leaves out. Wrap the root in a safe-area view (<code>useSafeAreaInsets</code> or <code>SafeAreaView</code>) so the board is not under the notch or the home indicator, and give the monospace look a real font: <code>fontFamily: 'monospace'</code> resolves on Android but not on iOS, so use <code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code> — which is what the <a href="#what-are-you-building">complete program</a> at the top of this page does.</p>
 </div>
-<div class="tip">
-  <strong>How the repo version differs</strong>
-  <p>The tutorial keeps everything in one file. In this repo the pure helpers (<code>calculateWinner</code>, <code>countRemainingTurns</code>, <code>calculateStatus</code>) live in <code>src/projects/tic-tac-toe/utils/game.ts</code>. A route file can't hold tests or shared code, and moving the helpers out lets <code>__tests__/game.test.ts</code> cover them. The squares and move buttons also carry accessibility props: <code>accessibilityRole="button"</code>, a label like "Row 2, column 3, empty", and <code>accessibilityState</code>. Without them a screen reader reads an empty square as nothing at all.</p>
+<div class="note">
+  <strong>Checkpoint 7: derived state</strong>
+  <p>Behaviour is identical to checkpoint 6, but <code>xIsNext</code> and <code>setXIsNext</code> are gone from the store. The store now holds exactly two fields, <code>history</code> and <code>currentMove</code>.</p>
 </div>
+
+<h3 id="extract-helpers">Extract the helpers and test them</h3>
+<p>Stage 8 is a pure restructuring: no behaviour changes. The three helpers have no React and no React Native in them, so they do not belong in a route file. Two reasons: anything under <code>src/app/</code> is a route (a test file there would become a screen), and a pure module is the cheapest thing in the app to test.</p>
+<p>Create <code>src/projects/tic-tac-toe/utils/game.ts</code>. It exports the types, the helpers, and one new helper for stage 9. <code>LINES</code> moves to module scope so it is built once.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>export type Player = 'X' | 'O'
+export type SquareValue = Player | null
+export type Squares = SquareValue[]
+
+const LINES = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+]
+
+export function calculateWinner(squares: Squares): SquareValue {
+  for (let i = 0; i &lt; LINES.length; i++) {
+    const [a, b, c] = LINES[i]
+    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
+
+  return null
+}
+
+/** Turns left to play, which is the number of empty squares. */
+export function countRemainingTurns(squares: Squares): number {
+  return squares.filter((square) =&gt; !square).length
+}
+
+export function calculateStatus(
+  winner: SquareValue,
+  remainingTurns: number,
+  player: Player,
+): string {
+  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
+  if (winner) return `Winner ${winner}`
+  return `Next player: ${player}`
+}
+
+/** Screen-reader label for square `index` (0-8), e.g. "Row 2, column 3, X". */
+export function squareLabel(index: number, value: SquareValue): string {
+  const row = Math.floor(index / 3) + 1
+  const column = (index % 3) + 1
+  return `Row ${row}, column ${column}, ${value ?? 'empty'}`
+}</code></pre></div>
+<p>In the route file, delete the local types (<code>Updater&lt;T&gt;</code> stays, it is store-only) and the three functions, then import them. The repo uses the <code>@/</code> alias:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>import {
+  calculateStatus,
+  calculateWinner,
+  countRemainingTurns,
+  squareLabel,
+  SquareValue,
+  Squares,
+} from '@/src/projects/tic-tac-toe/utils/game'</code></pre></div>
+<p>Now the tests. The file lives at <code>src/projects/tic-tac-toe/__tests__/game.test.ts</code>, never under <code>src/app/</code>. A tiny <code>board()</code> helper turns a string such as <code>"XXX......"</code> into a <code>Squares</code> so the cases stay readable:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/__tests__/game.test.ts</span><span class="lang">ts</span></div><pre><code>import {
+  calculateStatus,
+  calculateWinner,
+  countRemainingTurns,
+  squareLabel,
+  Squares,
+} from '../utils/game'
+
+const board = (cells: string): Squares =&gt;
+  [...cells].map((c) =&gt; (c === 'X' || c === 'O' ? c : null))
+
+describe('calculateWinner', () =&gt; {
+  it('finds rows, columns and diagonals', () =&gt; {
+    expect(calculateWinner(board('XXX......'))).toBe('X')
+    expect(calculateWinner(board('.O..O..O.'))).toBe('O')
+    expect(calculateWinner(board('..X.X.X..'))).toBe('X')
+  })
+
+  it('returns null with no line', () =&gt; {
+    expect(calculateWinner(board('.........'))).toBeNull()
+    expect(calculateWinner(board('XOXXOOOXX'))).toBeNull()
+  })
+})
+
+describe('calculateStatus', () =&gt; {
+  it('reports a draw only when the board is full with no winner', () =&gt; {
+    expect(calculateStatus(null, 0, 'X')).toBe('Draw')
+    expect(calculateStatus(null, 1, 'O')).toBe('Next player: O')
+  })
+
+  it('prefers the winner, even on the last square', () =&gt; {
+    expect(calculateStatus('X', 0, 'O')).toBe('Winner X')
+  })
+})</code></pre></div>
+<p>The repo file also covers <code>countRemainingTurns</code> and <code>squareLabel</code>. Run it with <code>npx jest --no-watchman src/projects/tic-tac-toe</code> (plain <code>npm test</code> outside the sandbox).</p>
+<div class="tip">
+  <strong>Why these particular cases</strong>
+  <p>Each one pins a rule that is easy to break while refactoring. The "winner on the last square" case guards the order of the checks in <code>calculateStatus</code>: if the draw check ran without the <code>!winner</code> guard, a winning final move would read <code>Draw</code>. The full-board no-winner case guards the opposite. Both are the same edge seen from either side.</p>
+</div>
+<div class="note">
+  <strong>Checkpoint 8: extracted and tested</strong>
+  <p><code>npm run typecheck</code>, <code>npm run lint</code> and the Jest run are all green, the game plays exactly as before, and <code>index.tsx</code> no longer contains <code>calculateWinner</code>.</p>
+</div>
+
+<h3 id="accessibility">Make it accessible</h3>
+<p>A <code>Pressable</code> containing only an <code>X</code>, an <code>O</code> or nothing gives a screen reader very little: an empty square is read as nothing at all, and it does not say which square it is. Stage 9 adds role, label and state to the squares and move buttons, plus a live region on the status line. <code>squareLabel</code> from stage 8 builds the label; <code>Board</code> passes it down so <code>Square</code> stays a dumb, reusable component.</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
+  value: SquareValue
+  label: string
+  disabled: boolean
+  onSquareClick: () =&gt; void
+}
+
+function Square({ value, label, disabled, onSquareClick }: SquareProps) {
+  return (
+    &lt;Pressable
+      style={styles.square}
+      onPress={onSquareClick}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+    &gt;
+      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
+    &lt;/Pressable&gt;
+  )
+}
+
+// In Board's return:
+&lt;Text style={styles.status} accessibilityLiveRegion="polite"&gt;
+  {status}
+&lt;/Text&gt;
+{squares.map((square, squareIndex) =&gt; (
+  &lt;Square
+    key={`square-${squareIndex}`}
+    value={square}
+    label={squareLabel(squareIndex, square)}
+    disabled={square !== null || winner !== null}
+    onSquareClick={() =&gt; handleClick(squareIndex)}
+  /&gt;
+))}
+
+// In Game's move list:
+&lt;Pressable
+  key={historyIndex}
+  style={styles.moveButton}
+  accessibilityRole="button"
+  accessibilityState={{ selected: historyIndex === currentMove }}
+  onPress={() =&gt; jumpTo(historyIndex)}
+&gt;</code></pre></div>
+<ul>
+  <li><code>accessibilityState={{ disabled }}</code> is announced as "dimmed" or "disabled"; it does not block presses, which is why <code>handleClick</code> still guards on <code>squares[i] || winner</code>.</li>
+  <li><code>accessibilityLiveRegion="polite"</code> announces status changes (<code>Next player: O</code>, <code>Winner X</code>) on Android. It is an Android prop; on iOS it has no effect.</li>
+  <li>The move buttons need no <code>accessibilityLabel</code>: their text child (<code>Go to move #2</code>) already reads well. <code>selected</code> tells the user which move is showing.</li>
+</ul>
+<div class="note">
+  <strong>Checkpoint 9: screen-reader pass</strong>
+  <p>Turn on VoiceOver (iOS) or TalkBack (Android). Swiping across the board reads <code>Row 1, column 1, empty</code>, then <code>Row 1, column 2, empty</code>, and so on, and a played square reads <code>Row 2, column 3, X</code>. After a winning move the squares are reported as disabled.</p>
+</div>
+
+<h3 id="in-the-launcher">How it sits in the launcher</h3>
+<p>This is the one single-route project. Its route file is <code>src/app/projects/tic-tac-toe/index.tsx</code>, and it has no <code>_layout.tsx</code>, no <code>stores/</code> folder and no providers. Three places know it exists:</p>
+<ul>
+  <li><strong>The registry</strong>, <code>src/shared/config/projects.ts</code>: <code>{ slug: 'tic-tac-toe', title: 'Tic-Tac-Toe', route: '/projects/tic-tac-toe', singleScreen: true }</code>. The launcher list is rendered from this array and has no hardcoded knowledge of the project.</li>
+  <li><strong>The root Stack</strong>, <code>src/app/_layout.tsx</code>: it generates one <code>Stack.Screen</code> per project. Because <code>singleScreen</code> is set, this one is declared as <code>projects/tic-tac-toe/index</code> with the registry <code>title</code> as its header, since there is no inner layout to supply a header.</li>
+  <li><strong>The slice</strong>, <code>src/projects/tic-tac-toe/</code>: only <code>utils/game.ts</code> and <code>__tests__/game.test.ts</code>. Isolation rules apply: nothing in it imports another project, and no other project imports it.</li>
+</ul>
+<p>The store itself stays in the route file as a module-scope <code>useGameStore</code>, so it lives as long as the JS runtime does. Leaving the screen and coming back keeps the game; there is no persistence, so a cold launch starts fresh.</p>
+<div class="note">
+  <strong>Checkpoint 10: run it</strong>
+  <p><code>npm start</code>, open the launcher, tap the Tic-Tac-Toe row. Then run <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npx jest --no-watchman</code> and <code>npx expo export --platform ios --output-dir /tmp/out</code>. The export catches problems <code>tsc</code> cannot, such as a bad import in a route.</p>
+</div>
+
+<h3 id="failure-modes">Failure modes and common mistakes</h3>
+<table>
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Red screen: <code>View config getter callback for component "button"</code></td><td>Pasted DOM tags from the web tutorial</td><td>Use <code>Pressable</code>, <code>View</code>, <code>Text</code> (see the <a href="#appendix-web">appendix</a>)</td></tr>
+<tr><td><em>Text strings must be rendered within a &lt;Text&gt; component</em></td><td>A bare <code>{value}</code> inside a <code>View</code> or <code>Pressable</code></td><td>Wrap in <code>&lt;Text&gt;</code></td></tr>
+<tr><td>Board shows two squares per row</td><td>A border on the 120px container leaves 118px of content</td><td>Borders on squares only; width stays <code>SQUARE_SIZE * 3</code></td></tr>
+<tr><td>Nine boards appear in the move list</td><td><code>history.concat(nextSquares)</code> instead of <code>[nextSquares]</code></td><td>Wrap in an array, or spread: <code>[...history.slice(0, currentMove + 1), nextSquares]</code>. <code>tsc</code> will not catch it.</td></tr>
+<tr><td>Moves made after a rewind are mixed with the old future</td><td>Appending to the full <code>history</code> instead of <code>slice(0, currentMove + 1)</code></td><td>Truncate before appending, then set <code>currentMove</code> to the last index</td></tr>
+<tr><td>A winning move shows <code>Draw</code></td><td>Draw check without the <code>!winner</code> guard, or checks in the wrong order</td><td>Keep the order in <code>calculateStatus</code>; the unit test pins it</td></tr>
+<tr><td>Wrong player after jumping</td><td>Storing <code>xIsNext</code> separately and reading the stale <code>currentMove</code></td><td>Derive: <code>currentMove % 2 === 0</code></td></tr>
+<tr><td>Squares keep changing after mutation (no re-render, or a broken history)</td><td>Writing into <code>squares</code> directly rather than a <code>slice()</code> copy</td><td>Copy, edit the copy, pass it to <code>onPlay</code></td></tr>
+<tr><td>Component re-renders on every store change</td><td>Selecting the whole store: <code>useGameStore()</code></td><td>Select one field per hook, as <code>Game</code> does</td></tr>
+<tr><td><code>setXIsNext(false)</code> stops compiling after adding <code>as const</code></td><td>The literal type <code>true</code> instead of <code>boolean</code></td><td>Let <code>combine</code> infer the widened type</td></tr>
+<tr><td>A test file under <code>src/app/</code> shows up as a route</td><td>Every file in <code>src/app/</code> is a route</td><td>Keep tests in <code>src/projects/tic-tac-toe/__tests__/</code></td></tr>
+</tbody></table>
+
+<h3 id="stretch-goals">Stretch goals</h3>
+<ul>
+  <li><strong>Reset button.</strong> Add a <code>reset</code> action to the store that returns to the initial state. Decide whether it belongs in the store or whether <code>setHistory</code> and <code>setCurrentMove</code> are enough.</li>
+  <li><strong>Highlight the winning line.</strong> Change <code>calculateWinner</code> to return the line as well as the player, update its tests first, then pass a <code>highlighted</code> prop down to <code>Square</code>.</li>
+  <li><strong>Sort toggle for the move list.</strong> Keep the toggle in local <code>useState</code> in <code>Game</code>: it is view state, not game state.</li>
+  <li><strong>Persist the game.</strong> Wrap the store in the <code>persist</code> middleware with AsyncStorage, as the other projects' stores do. Think about which fields to include with <code>partialize</code>, and check how <code>combine</code> composes with <code>persist</code> in the Zustand docs.</li>
+  <li><strong>Selector hygiene.</strong> Replace the four selector hooks in <code>Game</code> with one selector that returns an object, using <code>useShallow</code> from <code>zustand/react/shallow</code>, and explain what goes wrong without it.</li>
+  <li><strong>Component tests.</strong> Add a render test with <code>@testing-library/react-native</code> that plays a winning game and asserts the status text.</li>
+</ul>
 <h3 id="wrapping-up">Wrapping up</h3>
 <p>Congratulations! You've created a fully typed tic-tac-toe game that:</p>
 <ul>
@@ -1432,7 +1684,7 @@ Typing guidance cross-checked against the Zustand <a href="https://zustand.docs.
 Prose belongs to the Zustand authors (MIT); the TypeScript port, the React Native port and the notes were written for this repo.
 <br>
 Every snippet on this page was extracted and compiled with <code>tsc --strict</code> (TypeScript 6, Zustand 5,
-React Native 0.81, <code>@types/react</code> 19) — the three complete programs on their own, and each excerpt stitched
+React Native, <code>@types/react</code> 19) — the three complete programs on their own, and each excerpt stitched
 into its stage context. Zero errors, zero <code>any</code>, no <code>@ts-ignore</code>. The only deliberate exceptions are the
 mid-refactor steps called out in the notes above.
 </p>
@@ -1442,7 +1694,7 @@ mid-refactor steps called out in the notes above.
   <a href="index.html">Learning path index</a>
 </div>
 
-<footer>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code></footer>
+<footer>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code> and <code>src/projects/tic-tac-toe/</code></footer>
 
 </div>
 </body>

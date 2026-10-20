@@ -37,6 +37,7 @@ npm run lint           # expo lint — exit code 0 and no output when clean
 npm test               # jest (in this sandbox: npx jest --no-watchman)
 npx expo export --platform ios --output-dir /tmp/out   # bundle check — catches what tsc can't
 node docs/training/validate.mjs   # quiz banks: shape, answers, and that every referenced file exists
+node docs/training/check-links.mjs   # official-docs links in the quiz banks (needs internet)
 ```
 
 Most projects need a **development build**, not Expo Go:
@@ -72,7 +73,8 @@ plugins/            hand-written config plugins (Project 04)
 .github/workflows/  ci.yml, release.yml, fingerprint.yml (Project 05)
 .maestro/           e2e flows: store-checkout.yaml, podcast-smoke.yaml
 docs/               learning-path write-ups, audit, release runbook, well-known templates
-docs/training/      code-reading quizzes, one bank per project (static page, see its README)
+docs/training/      code-reading quizzes, one bank per project (static page, see its README;
+                    standalone quiz.css, no external deps, must keep working over file://)
 ```
 
 `modules/` and `plugins/` sit at the repo root because Expo's autolinker and prebuild look for

@@ -26,6 +26,12 @@ This checks shape, unique ids, per-type fields and answer indices. It also confi
 path in `files` still exists** and that `index.html` loads every bank. Run it after moving code
 around: a question that points at a deleted file fails here.
 
+## Checking the links
+
+```bash
+node docs/training/check-links.mjs   # needs internet; reports every non-200 official-docs URL
+```
+
 ## Question format
 
 Each bank is plain browser JS (not a module), so it loads over `file://`:
@@ -44,6 +50,7 @@ QUIZ.register({
       prompt: "…",                          // `code`, **bold**, blank line, "- " bullets
       code: "optional snippet",
       hint: "optional",
+      links: [{ title: "Expo Router: Stack", url: "https://docs.expo.dev/..." }], // official docs, shown after answering
       explain: "shown after answering",
       // per type:
       choices: ["…"], answer: 2,            // mcq (answer = index)

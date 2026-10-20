@@ -57,6 +57,11 @@ for (const name of readdirSync(banksDir).filter((f) => f.endsWith(".js")).sort()
     if (!Array.isArray(q.topics) || q.topics.length === 0) errors.push(`${at}: topics must be a non-empty array`);
     if (typeof q.prompt !== "string" || !q.prompt.trim()) errors.push(`${at}: missing prompt`);
     if (typeof q.explain !== "string" || !q.explain.trim()) errors.push(`${at}: missing explain`);
+    if (q.links !== undefined) {
+      if (!Array.isArray(q.links) || q.links.some((l) => !l || typeof l.title !== "string" || !/^https:\/\/[^\s]+$/.test(l.url || ""))) {
+        errors.push(`${at}: links must be [{ title, url: "https://…" }]`);
+      }
+    }
     if (q.code !== undefined && typeof q.code !== "string") errors.push(`${at}: code must be a string`);
 
     if (!Array.isArray(q.files) || q.files.length === 0) {
@@ -97,6 +102,8 @@ for (const name of readdirSync(banksDir).filter((f) => f.endsWith(".js")).sort()
 
   const counts = {};
   for (const q of bank.questions) counts[q.type] = (counts[q.type] || 0) + 1;
+  const noLinks = bank.questions.filter((q) => !q.links || !q.links.length).length;
+  if (noLinks) warnings.push(`${name}: ${noLinks} question(s) without links (fine when no official doc applies)`);
   if (bank.questions.length < 30) warnings.push(`${name}: only ${bank.questions.length} questions`);
   for (const t of TYPES) if (!counts[t]) warnings.push(`${name}: no "${t}" questions`);
 }
