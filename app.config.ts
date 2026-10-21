@@ -136,7 +136,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-localization",
     "expo-sharing",
     "expo-background-task",
-    "expo-build-properties",
+    ["expo-build-properties", { android: { minSdkVersion: 26 } }],
     "expo-apple-authentication",
     ["expo-notifications", { color: "#4f46e5", defaultChannel: "default" }],
     [
