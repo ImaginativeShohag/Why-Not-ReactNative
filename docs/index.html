@@ -7,7 +7,11 @@
 <meta name="description" content="Why-Not-ReactNative: six production-grade Expo + React Native projects, a step-by-step learning path and code-reading quizzes.">
 <title>Why-Not-ReactNative — Expo &amp; React Native, built for production</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M9 17l5 5 9-12' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/nav.css">
 <style>
+  /* Map this page's tokens for the shared theme button (nav.css). */
+  :root { --nav-soft: var(--card); --nav-border: var(--border); }
+
   :root {
     --bg: #0b0d14;
     --card: rgba(22, 25, 37, 0.72);
@@ -21,8 +25,19 @@
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
+  :root[data-theme="light"] {
+    --bg: #f7f8fc;
+    --card: rgba(255, 255, 255, 0.8);
+    --card-hover: #ffffff;
+    --border: rgba(15, 23, 42, 0.1);
+    --border-hover: rgba(79, 70, 229, 0.45);
+    --fg: #141722;
+    --fg-dim: #4c5566;
+    --fg-faint: #838c9e;
+    --grad: linear-gradient(120deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%);
+  }
   @media (prefers-color-scheme: light) {
-    :root {
+    :root:not([data-theme]) {
       --bg: #f7f8fc;
       --card: rgba(255, 255, 255, 0.8);
       --card-hover: #ffffff;
@@ -60,7 +75,8 @@
   .backdrop span:nth-child(1) { width: 560px; height: 560px; top: -200px; left: -140px; background: #4f46e5; }
   .backdrop span:nth-child(2) { width: 480px; height: 480px; bottom: -220px; right: -120px; background: #0891b2; animation-delay: -8s; opacity: 0.35; }
   .backdrop span:nth-child(3) { width: 360px; height: 360px; top: 30%; left: 45%; background: #7c3aed; animation-delay: -16s; opacity: 0.2; }
-  @media (prefers-color-scheme: light) { .backdrop span { opacity: 0.14; } }
+  :root[data-theme="light"] .backdrop span { opacity: 0.14; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme]) .backdrop span { opacity: 0.14; } }
   @keyframes float {
     0% { transform: translate3d(0, 0, 0) scale(1); }
     50% { transform: translate3d(60px, 40px, 0) scale(1.08); }
@@ -82,6 +98,17 @@
   .brand { display: flex; align-items: center; gap: 12px; font-weight: 650; letter-spacing: -0.01em; }
   .brand .logo { width: 32px; height: 32px; border-radius: 9px; background: var(--grad); display: grid; place-items: center; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35); }
   .brand .logo svg { width: 18px; height: 18px; }
+  .toplinks { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .tn-theme svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .toplinks a { padding: 7px 12px; border-radius: 9px; color: var(--fg-dim); font-size: 0.88rem; font-weight: 550; transition: color 0.15s, background-color 0.15s; }
+  .toplinks a:hover { color: var(--fg); background: var(--card); }
+  /* Phones: the header wraps, links go to their own row under the brand. */
+  @media (max-width: 560px) {
+    .brand { flex-wrap: wrap; row-gap: 10px; }
+    .brand small { display: none; }
+    .toplinks { margin-left: 0; width: 100%; justify-content: space-between; }
+    .toplinks a { padding: 7px 8px; }
+  }
   .brand small { color: var(--fg-faint); font-weight: 500; font-family: var(--mono); font-size: 0.75rem; margin-left: 4px; }
 
   .hero {
@@ -170,7 +197,7 @@
   /* Tablets and phones: stack and let the page scroll. */
   @media (max-width: 960px) {
     .page { padding: 22px 20px; gap: 36px; }
-    .hero { grid-template-columns: 1fr; gap: 36px; }
+    .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   }
   @media (max-width: 520px) {
     .stats { gap: 22px; }
@@ -184,6 +211,14 @@
     .link, .link .arrow { transition: none; }
   }
 </style>
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
 <div class="backdrop" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -192,6 +227,12 @@
   <header class="brand">
     <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
     Why-Not-ReactNative <small>Expo SDK 57</small>
+    <nav class="toplinks" aria-label="Site">
+      <a href="learning-path.html">Learning path</a>
+      <a href="training/index.html">Training</a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
   </header>
 
   <main class="hero">
@@ -237,5 +278,6 @@
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </footer>
 </div>
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

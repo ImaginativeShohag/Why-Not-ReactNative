@@ -3,25 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>05 · Release Runbook — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html" aria-current="page"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / <a href="05-podcast-player.html">Project 05</a> / Release runbook</div>
+      <div class="lp-eyebrow">Project 05 · Runbook</div>
+      <h1>Release runbook</h1>
+      <p class="subtitle">How this repo is built, updated over the air, rolled out, rolled back and checked in CI. Every command below was checked against the current EAS CLI docs.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
+  <span class="chip pink">Ship it</span>
+  <span class="chip">EAS Build</span>
+  <span class="chip">EAS Update</span>
+  <span class="chip">GitHub Actions</span>
+</div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/podcast-player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / <a href="05-podcast-player.html">Project 05</a> / Release runbook</div>
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#build-profiles-eas-json">Build profiles (eas.json)</a></li>
+      <li><a href="#channels-branches-runtime-versions">Channels, branches, runtime versions</a></li>
+      <li><a href="#publishing-and-staged-rollout-m7">Publishing and staged rollout (M7)</a></li>
+      <li><a href="#in-app-updates">In-app update experience (src/projects/podcast-player/lib/updates.ts)</a></li>
+      <li><a href="#ci-cd-github-workflows">CI/CD (.github/workflows/)</a></li>
+      <li><a href="#store-readiness-m8">Store readiness (M8)</a></li>
+      <li><a href="#failure-mode-checklist">Failure-mode checklist</a></li>
+    </ol>
+  </nav>
 
-<h1>Project 05 · Release runbook</h1>
-<p class="subtitle">How this repo is built, updated over the air, rolled out, rolled back and checked in CI. Every command below was checked against the current EAS CLI docs.</p>
-
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#build-profiles-eas-json">Build profiles (eas.json)</a></li>
+      <li><a href="#channels-branches-runtime-versions">Channels, branches, runtime versions</a></li>
+      <li><a href="#publishing-and-staged-rollout-m7">Publishing and staged rollout (M7)</a></li>
+      <li><a href="#in-app-updates">In-app update experience (src/projects/podcast-player/lib/updates.ts)</a></li>
+      <li><a href="#ci-cd-github-workflows">CI/CD (.github/workflows/)</a></li>
+      <li><a href="#store-readiness-m8">Store readiness (M8)</a></li>
+      <li><a href="#failure-mode-checklist">Failure-mode checklist</a></li>
+  </ol>
+</details>
 <div class="warn">
   <strong>The rule that applies throughout</strong>
   <p>An OTA may only carry JavaScript and assets.</p>
 </div>
 
-<h2>Build profiles (<code>eas.json</code>)</h2>
+<h2 id="build-profiles-eas-json">Build profiles (<code>eas.json</code>)</h2>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Profile</th><th>Distribution</th><th>Channel</th><th><code>APP_VARIANT</code></th><th>Installs as</th></tr></thead>
 <tbody>
 <tr><td><code>development</code></td><td>internal, dev client, simulator</td><td><code>development</code></td><td>development</td><td><code>org.imaginativeworld.whynotreactnative.dev</code></td></tr>
@@ -29,7 +111,7 @@
 <tr><td><code>preview</code></td><td>internal (APK / ad-hoc)</td><td><code>preview</code></td><td>preview</td><td><code>….preview</code></td></tr>
 <tr><td><code>production</code></td><td>store, <code>autoIncrement</code></td><td><code>production</code></td><td>production</td><td>base id</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <p>All three variants can be installed side by side, because <code>app.config.ts</code> gives each one its own bundle id and name.</p>
 
@@ -37,7 +119,7 @@
 eas build --profile production --platform ios --local     # compare with the cloud build
 eas submit --profile production --platform ios            # TestFlight</code></pre>
 
-<h2>Channels, branches, runtime versions</h2>
+<h2 id="channels-branches-runtime-versions">Channels, branches, runtime versions</h2>
 
 <div class="ascii">build  ──has──►  channel   (baked into the binary: "production")
                     │  mapped server-side, can change at any time
@@ -61,7 +143,7 @@ eas channel:edit production --branch release-1.4  # repoint it (e.g. for a relea
   <li><strong><code>APP_VARIANT</code> when publishing.</strong> <code>eas.json</code>'s <code>env</code> only applies to builds. <code>app.config.ts</code> changes the bundle id and name per variant, and the app config feeds the fingerprint, so <code>eas update</code> must run with the same <code>APP_VARIANT</code> as the target builds (<code>release.yml</code> sets it), or the update is stamped with the development runtime version and reaches nobody.</li>
 </ul>
 
-<h2>Publishing and staged rollout (M7)</h2>
+<h2 id="publishing-and-staged-rollout-m7">Publishing and staged rollout (M7)</h2>
 
 <pre><code># 1. Publish to the release branch at 10%.
 APP_VARIANT=production eas update --branch release-1.4 --environment production \
@@ -93,20 +175,20 @@ eas update:revert-update-rollout</code></pre>
 
 <pre><code>eas channel:rollout production        # move a channel to a new branch gradually</code></pre>
 
-<h2>In-app update experience (<code>src/projects/podcast-player/lib/updates.ts</code>)</h2>
+<h2 id="in-app-updates">In-app update experience (<code>src/projects/podcast-player/lib/updates.ts</code>)</h2>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Mode</th><th>Where</th><th>Use for</th></tr></thead>
 <tbody>
 <tr><td>Silent (default)</td><td>expo-updates downloads on launch and applies on the next one</td><td>Most fixes</td></tr>
 <tr><td>Prompt to restart</td><td><code>UpdateBanner</code> ("Update ready · Restart", <code>reloadAsync()</code>)</td><td>Visible fixes</td></tr>
 <tr><td>Channel surfing (testers only)</td><td>Podcast <strong>Settings → Channel surfing</strong>, using <code>switchChannel()</code> → <code>Updates.setUpdateRequestHeadersOverride({ "expo-channel-name": … })</code>. The chips offer the real channels (<code>development</code>, <code>preview</code>, <code>production</code>); a free-text field covers any other channel you create</td><td>Test a preview bundle on another build with the same runtime version</td></tr>
 </tbody>
-</table>
+</table></div>
 
-<h2>CI/CD (<code>.github/workflows/</code>)</h2>
+<h2 id="ci-cd-github-workflows">CI/CD (<code>.github/workflows/</code>)</h2>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Workflow</th><th>Trigger</th><th>Does</th></tr></thead>
 <tbody>
 <tr><td><code>ci.yml</code></td><td>every PR, pushes to <code>main</code>/<code>dev</code></td><td><code>npm ci</code> → typecheck → lint → jest → <code>expo export</code> for iOS and Android. The Maestro job runs only on PRs labelled <code>e2e</code>: it builds a preview APK on EAS, downloads it and runs every flow in <code>.maestro/</code> on Maestro Cloud with <code>APP_ID=org.imaginativeworld.whynotreactnative.preview</code>.</td></tr>
@@ -114,7 +196,7 @@ eas update:revert-update-rollout</code></pre>
 <tr><td><code>release.yml</code></td><td>tag <code>v*</code></td><td><code>eas build --profile production --platform all --auto-submit</code>, then a GitHub release with notes</td></tr>
 <tr><td><code>fingerprint.yml</code></td><td>nightly / manual</td><td>Compares the local fingerprint (<code>APP_VARIANT=production</code>, <code>--environment production</code>) with the last finished production build, per platform. <strong>Warn-only by design:</strong> drift is a <code>::warning::</code> and the job stays green, because it means "the next release needs a store build, not an OTA", not that something broke. Real errors (auth, <code>build:list</code>, <code>fingerprint:compare</code>, bad JSON) fail the job. <code>fingerprint:compare</code> exits 0 on drift, so drift is read from its <code>--json</code> hashes.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <p><strong>Maestro locally:</strong> the flows take the app id as a parameter, because each variant installs under its own id:</p>
 
@@ -122,15 +204,15 @@ eas update:revert-update-rollout</code></pre>
 
 <p><strong>Secrets:</strong> <code>EXPO_TOKEN</code>, and <code>MAESTRO_CLOUD_API_KEY</code> for the e2e job. Apple and Google credentials stay in EAS (<code>eas credentials</code>), never in GitHub.</p>
 
-<p><strong>Source maps:</strong> when a crash reporter is chosen (see <a href="audit-03.html">the store audit</a>), add its upload step after <code>eas update</code> / <code>eas build</code> in <code>release.yml</code>. A production stack trace you can't read is one of the doc's failure modes.</p>
+<p><strong>Source maps:</strong> when a crash reporter is chosen (see <a href="03-commerce-platform.html#checklist">the store's readiness checklist</a>), add its upload step after <code>eas update</code> / <code>eas build</code> in <code>release.yml</code>. A production stack trace you can't read is one of the doc's failure modes.</p>
 
-<h2>Store readiness (M8)</h2>
+<h2 id="store-readiness-m8">Store readiness (M8)</h2>
 
 <ul>
   <li><strong>iOS privacy manifest.</strong> Expo adds the SDK modules' manifests; the app declares its own required-reason APIs in <code>app.config.ts</code> under <code>ios.privacyManifests</code>:</li>
 </ul>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>API category</th><th>Reason</th><th>Why this app uses it</th></tr></thead>
 <tbody>
 <tr><td><code>NSPrivacyAccessedAPICategoryUserDefaults</code></td><td><code>CA92.1</code></td><td>AsyncStorage / settings</td></tr>
@@ -138,7 +220,7 @@ eas update:revert-update-rollout</code></pre>
 <tr><td><code>NSPrivacyAccessedAPICategoryDiskSpace</code></td><td><code>E174.1</code></td><td>Storage bar and download storage cap</td></tr>
 <tr><td><code>NSPrivacyAccessedAPICategorySystemBootTime</code></td><td><code>35F9.1</code></td><td>React Native timing</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <ul>
   <li>Collected data types: none are sent off the device by the podcast player. The store and fitness projects declare their own (purchase history, health and fitness data, precise location).</li>
@@ -147,7 +229,7 @@ eas update:revert-update-rollout</code></pre>
   <li><strong>Phased release:</strong> App Store Connect's 7-day phased release, or Play's staged rollout. This sits on top of the OTA rollout above, which only covers JS.</li>
 </ul>
 
-<h2>Failure-mode checklist</h2>
+<h2 id="failure-mode-checklist">Failure-mode checklist</h2>
 
 <ul style="list-style: none; padding-left: 0">
   <li>☐ Ship without <code>playsInSilentMode</code>. Mute-switch users get silence. (<code>playback/service.ts</code> sets it.)</li>
@@ -165,8 +247,16 @@ eas update:revert-update-rollout</code></pre>
   <a href="learning-path.html">Learning path</a>
 </div>
 
-<footer>Project 05 · release runbook · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 05 · release runbook · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

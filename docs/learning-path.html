@@ -3,44 +3,306 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Expo Deep-Dive Learning Path — Why-Not-ReactNative</title>
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="A build-it-yourself curriculum for Expo and React Native: a launcher, six projects from an offline-first journal to a podcast player with a release pipeline, and code-reading quizzes.">
+<title>Learning Path — Why-Not-ReactNative</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M9 17l5 5 9-12' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="index.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" aria-current="page" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
 
-<h1>Expo Deep-Dive Learning Path</h1>
-<p class="subtitle">Five tiered projects that, together, cover essentially the whole Expo + React Native production surface — from managed-workflow basics to custom native modules and OTA release engineering — plus Project 06, a Zustand warm-up, and the launcher that holds them all.</p>
+<section class="lp-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="lp-eyebrow">Curriculum</div>
+      <h1>The Expo &amp; React Native <span class="lp-grad">learning path</span></h1>
+      <p class="lead">Build seven things in order: a launcher that holds every exercise, then six projects that each add a new capability tier, from an offline-first journal to custom native modules and over-the-air releases. Each step has a write-up to build from and a quiz that sends you into the real code.</p>
+      <div class="lp-cta">
+        <a class="btn primary" href="00-launcher.html">Start with Step 00 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn" href="training/index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quizzes</a>
+      </div>
+      <div class="meta-row">
+        <span class="chip accent">Expo SDK 57</span>
+        <span class="chip">React Native 0.86</span>
+        <span class="chip">React 19.2 + Compiler</span>
+        <span class="chip">Expo Router</span>
+        <span class="chip">New Architecture</span>
+        <span class="chip">TypeScript</span>
+      </div>
+    </div>
+    <div class="lp-stats" aria-label="At a glance">
+      <div class="lp-stat"><b>7</b><span>Steps, 00 to 06</span></div>
+      <div class="lp-stat"><b>290+</b><span>Code-reading quiz questions</span></div>
+      <div class="lp-stat"><b>~20</b><span>Weeks at a steady pace</span></div>
+      <div class="lp-stat"><b>1</b><span>App that holds them all</span></div>
+    </div>
+  </div>
+</section>
 
-<div class="meta-row">
-  <span class="chip accent">Expo SDK 57</span>
-  <span class="chip">React Native 0.86</span>
-  <span class="chip">React 19.2 + Compiler</span>
-  <span class="chip">Expo Router v7</span>
-  <span class="chip">New Architecture</span>
-  <span class="chip">TypeScript</span>
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#path">The path</a></li>
+      <li><a href="#coverage">Coverage map</a></li>
+      <li><a href="#baseline">Before you start</a></li>
+      <li><a href="#rules">Ground rules</a></li>
+      <li><a href="#structure">How the repo is organised</a></li>
+      <li><a href="#new-project">Adding a project</a></li>
+      <li><a href="#pacing">Pacing</a></li>
+      <li><a href="#reference">Reference shelf</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main" id="main">
+
+<section id="how">
+<h2>How it works</h2>
+<p class="lp-kicker">This is a curriculum, not a list of app ideas. Each project introduces a new capability tier and takes away the training wheels of the one before it, so build them in order.</p>
+<div class="lp-steps">
+  <div class="lp-step">
+    <h3>Read the write-up</h3>
+    <p>Learning objectives, screens and wireframes, the folder layout of the slice, data flow, library hints and the failure modes to expect.</p>
+  </div>
+  <div class="lp-step">
+    <h3>Build milestone by milestone</h3>
+    <p>Every milestone ends with a checkpoint you can demonstrate and a verify step you can run. Don't move on until both pass. Then compare with the finished code.</p>
+  </div>
+  <div class="lp-step">
+    <h3>Check yourself</h3>
+    <p>Each project has a quiz that points at the real files: open them, work out the answer, then read why. Spaced repetition brings back what you missed.</p>
+  </div>
 </div>
+</section>
 
-<p class="lead">This is a curriculum, not a list of app ideas. Each project deliberately introduces a <em>new capability tier</em> and retires the training wheels of the previous one. Build them in order — the ordering is the point.</p>
+<section id="path">
+<h2>The path</h2>
+<p class="lp-kicker">Step 00 comes first because every project lives inside it. Project 06 sits outside the tiers: do it whenever you like.</p>
 
-<div class="note">
-  <strong>How to use these docs</strong>
-  <p>Each project page contains: the learning objectives, a screen-by-screen UI breakdown with wireframes, the folder/architecture layout for that project's slice, data-flow diagrams, milestone-based build order with checkpoints, library hints with the exact package names, and a list of "things that will break" so you learn the failure modes too. <strong>There is no copy-pasteable implementation code</strong> — only API surface hints. You write the code; that is where the learning lives.</p>
-</div>
+<ol class="lp-path">
+  <li class="lp-node">
+    <span class="lp-dot">00</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="00-launcher.html">Launcher &amp; multi-project structure</a></h3><span class="lp-time">Do first</span></div>
+      <p>A home screen driven by a typed registry, one isolated vertical slice per project, routing that namespaces every deep link, and lint rules that make the boundaries real.</p>
+      <div class="meta-row"><span class="chip accent">Prerequisite</span><span class="chip">Expo Router</span><span class="chip">ESLint boundaries</span></div>
+      <div class="lp-done"><b>Done when</b>a cold launch shows the list, a new registry entry adds a row without touching the launcher, and a cross-project import fails lint.</div>
+      <div class="lp-card-links">
+        <a href="00-launcher.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/launcher"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node">
+    <span class="lp-dot">01</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="01-offline-journal.html">Offline-first journal</a></h3><span class="lp-time">~2 weeks</span></div>
+      <p>A private journal that works with the network cable cut: SQLite with migrations, full-text search, an outbox that syncs exactly once, local notifications, a background task and a biometric lock.</p>
+      <div class="meta-row"><span class="chip green">Foundation</span><span class="chip">expo-sqlite</span><span class="chip">Background task</span></div>
+      <div class="lp-done"><b>Done when</b>you can kill the network, write 20 entries, restart, reconnect, and every entry syncs exactly once.</div>
+      <div class="lp-card-links">
+        <a href="01-offline-journal.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/offline-journal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node">
+    <span class="lp-dot">02</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="02-camera-social.html">Camera &amp; social capture</a></h3><span class="lp-time">~2–3 weeks</span></div>
+      <p>Capture, edit, share. Camera and permissions, a gesture-driven editor with Skia filters, video, the media library, deep links to a post, and sharing into and out of the app.</p>
+      <div class="meta-row"><span class="chip accent">Device I/O</span><span class="chip">Dev build</span><span class="chip">Reanimated 4 + Skia</span></div>
+      <div class="lp-done"><b>Done when</b>someone can share a photo into your app from Photos, and your app can share it back out.</div>
+      <div class="lp-card-links">
+        <a href="02-camera-social.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/camera-social"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node">
+    <span class="lp-dot">03</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="03-commerce-platform.html">Production commerce app</a></h3><span class="lp-time">~4 weeks</span></div>
+      <p>Everything around the features that makes an app shippable: protected routes, token refresh, secure storage, OAuth, a resumable checkout, payments, push, universal links and build variants.</p>
+      <div class="meta-row"><span class="chip purple">Production</span><span class="chip">Dev build + backend</span><span class="chip">TanStack Query</span></div>
+      <div class="lp-done"><b>Done when</b>a push notification opens the right order screen from a cold start, with a freshly refreshed token.</div>
+      <div class="lp-card-links">
+        <a href="03-commerce-platform.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/store"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node">
+    <span class="lp-dot">04</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="04-fitness-tracker.html">Background fitness tracker</a></h3><span class="lp-time">~4–6 weeks</span></div>
+      <p>The native boundary. Background location with a foreground service, sensors and maps, your own config plugin, an Expo Module in Swift and Kotlin, a Live Activity and home-screen widgets.</p>
+      <div class="meta-row"><span class="chip amber">Native</span><span class="chip">Config plugin</span><span class="chip">Expo Module</span></div>
+      <div class="lp-done"><b>Done when</b>a 30-minute walk with the phone in your pocket and the screen off records an accurate route, and the Live Activity ticks the whole way.</div>
+      <div class="lp-card-links">
+        <a href="04-fitness-tracker.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/fitness-tracker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node">
+    <span class="lp-dot">05</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="05-podcast-player.html">Podcast player &amp; release pipeline</a></h3><span class="lp-time">~4 weeks</span></div>
+      <p>Background audio, lock-screen controls and offline downloads, plus the shipping half: EAS Build, EAS Update channels, fingerprint runtime versions, staged rollouts, rollback, e2e tests and CI.</p>
+      <div class="meta-row"><span class="chip pink">Ship it</span><span class="chip">EAS Update</span><span class="chip">GitHub Actions</span></div>
+      <div class="lp-done"><b>Done when</b>you ship a JS-only fix through EAS Update, roll it out to 10%, then roll it back.</div>
+      <div class="lp-card-links">
+        <a href="05-podcast-player.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="05-release.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>Release runbook</a>
+        <a href="training/index.html#/quiz/podcast-player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+
+  <li class="lp-node side">
+    <span class="lp-dot">06</span>
+    <article class="lp-card">
+      <div class="lp-card-head"><h3><a href="06-tic-tac-toe.html">Tic-tac-toe with Zustand</a></h3><span class="lp-time">~half a day · any time</span></div>
+      <p>The official Zustand tutorial ported twice: every snippet typed, every DOM element replaced with a React Native primitive. Covers the <code>combine</code> middleware and derived versus stored state.</p>
+      <div class="meta-row"><span class="chip">Warm-up</span><span class="chip">Zustand + TypeScript</span></div>
+      <div class="lp-done"><b>Done when</b>you can rewind to any move and play on from there, and the game helpers pass their Jest tests.</div>
+      <div class="lp-card-links">
+        <a href="06-tic-tac-toe.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
+        <a href="training/index.html#/quiz/tic-tac-toe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
+      </div>
+    </article>
+  </li>
+</ol>
 
 <div class="tip">
-  <strong>Test yourself — <a href="training/index.html">React Native Training quizzes</a></strong>
-  <p>One code-reading quiz per project plus one for the launcher and shared infra. Each question points at the real files: open them, work out the answer, then read why. It covers multiple choice, select-all, ordering, find-in-code and self-graded explain questions, with spaced repetition and a per-topic mastery dashboard. Progress auto-saves in your browser, so you can stop and resume any time.</p>
+  <strong>If you only have time for two</strong>
+  <p>Do <strong>03</strong>, which covers everything around the features that makes an app shippable, and <strong>04</strong>, the only one that takes you past the JS boundary into config plugins and native modules, the part almost every tutorial skips.</p>
 </div>
+</section>
 
-<div class="tip">
-  <strong>Start here — <a href="00-launcher-restructure.html">Step 00 · Build the Launcher &amp; Multi-Project Structure</a></strong>
-  <p>Build the skeleton every project sits in: a Home launcher list driven by a registry, and one isolated slice per exercise. Step 00 teaches the folder layout, the routing strategy and the isolation rules (enforced by lint) that every numbered project below depends on. Do it first, then pick a project.</p>
+<section id="coverage">
+<h2>Coverage map</h2>
+<p class="lp-kicker">What each project is responsible for teaching. No topic is a headline twice: later projects assume the earlier ones.</p>
+<div class="lp-scroll">
+<table>
+<thead><tr><th>Domain</th><th>01 Journal</th><th>02 Camera</th><th>03 Commerce</th><th>04 Fitness</th><th>05 Podcast</th></tr></thead>
+<tbody>
+<tr><td>Navigation</td><td>Tabs, modals, typed routes</td><td>Full-screen camera, deep link to a post</td><td>Protected routes, route groups, universal links</td><td class="none">—</td><td>Persistent mini-player over the tabs</td></tr>
+<tr><td>Local persistence</td><td><code>expo-sqlite</code>, migrations, FTS5</td><td>SQLite, file system, media library</td><td>Secure store, persisted Zustand and query cache</td><td>SQLite time series, no provider</td><td>SQLite plus downloaded files</td></tr>
+<tr><td>Server state</td><td>Outbox sync, idempotent push</td><td class="none">—</td><td>TanStack Query in depth: keys, persistence, optimistic updates, infinite lists</td><td class="none">—</td><td>Feed parsing and refresh</td></tr>
+<tr><td>Device APIs</td><td>Local notifications</td><td>Camera, media library, sharing, video</td><td>Push, Apple and Google sign-in, payments</td><td>Location, sensors, maps, health data</td><td>Audio session, lock-screen controls</td></tr>
+<tr><td>Background work</td><td>Background task (sync)</td><td class="none">—</td><td>Notification taps from a cold start</td><td>Background location, foreground service</td><td>Background audio and downloads</td></tr>
+<tr><td>Animation &amp; gesture</td><td>Layout animations</td><td>Reanimated 4, gestures, Skia filters</td><td>Skeletons, transitions</td><td>Skia route thumbnails, live charts</td><td>Draggable scrubber</td></tr>
+<tr><td>Auth &amp; security</td><td>Biometric lock, privacy cover</td><td class="none">—</td><td>Token refresh, keychain, OAuth with PKCE</td><td class="none">—</td><td class="none">—</td></tr>
+<tr><td>Native layer</td><td class="none">—</td><td>Share extension</td><td class="none">—</td><td>Config plugin, Expo Module, Live Activity, widgets</td><td class="none">—</td></tr>
+<tr><td>Build &amp; release</td><td class="none">—</td><td>Development build</td><td>Build variants per environment</td><td>Prebuild and CNG</td><td>EAS Build and Update, fingerprints, rollouts, CI</td></tr>
+<tr><td>Testing</td><td>SQL against real SQLite in Node</td><td>Pure editor reducers</td><td>Interceptors via an axios adapter, Maestro checkout</td><td>Config plugins in memory</td><td>Queue and download policy, Maestro smoke</td></tr>
+</tbody>
+</table>
 </div>
+<p class="figcap">Step 00 covers the shared layer: registry-driven routing, slices, root-level side effects and lint-enforced isolation. Project 06 covers Zustand with TypeScript.</p>
+</section>
 
-<h2>Where the repo is right now</h2>
+<section id="baseline">
+<h2>Before you start</h2>
+<p class="lp-kicker">Clone the repo, run <code>npm install</code>, then put these three things in place. Every project assumes them.</p>
+<div class="lp-grid">
+  <div class="lp-box">
+    <h3><span class="n">1</span>A development build, not Expo Go</h3>
+    <p>Expo Go is a fixed binary with a fixed set of native modules. As soon as Project 02 needs a library outside that set, Expo Go stops being an option. Learn the dev-client workflow now, while nothing depends on it.</p>
+<pre><code>npx expo install expo-dev-client
+eas build --profile development --platform ios --local
+npx expo start --dev-client</code></pre>
+    <p><code>expo-dev-client</code> and <code>eas.json</code> are already set up. Confirm you can produce a build and connect to it.</p>
+  </div>
+  <div class="lp-box">
+    <h3><span class="n">2</span>Continuous Native Generation</h3>
+    <ul>
+      <li>There is no "managed versus bare" split. <code>ios/</code> and <code>android/</code> are build output, generated by <code>npx expo prebuild</code> from <code>app.config.ts</code> and config plugins.</li>
+      <li>Both are gitignored. If a change can't be expressed in <code>app.config.ts</code> or a config plugin, the next prebuild wipes it. Project 04 is where you feel this.</li>
+      <li>Native code doesn't mean "ejecting". You add Swift and Kotlin through a local Expo Module and keep regenerating freely.</li>
+    </ul>
+  </div>
+</div>
+<div class="lp-box">
+  <h3><span class="n">3</span>A feedback loop</h3>
+  <div class="wu-scroll">
+  <table>
+  <thead><tr><th>Tool</th><th>Purpose</th><th>Command or package</th></tr></thead>
+  <tbody>
+  <tr><td>Expo Atlas</td><td>Bundle size and module graph</td><td><code>npx expo start --atlas</code></td></tr>
+  <tr><td>React DevTools</td><td>Component tree and render inspection</td><td>press <code>j</code> in the dev server</td></tr>
+  <tr><td>Drizzle Studio plugin</td><td>Browse on-device SQLite live (works with plain expo-sqlite)</td><td><code>expo-drizzle-studio-plugin</code></td></tr>
+  <tr><td>React Query Devtools</td><td>Cache and query state</td><td><code>@tanstack/react-query-devtools</code></td></tr>
+  <tr><td>Performance monitor</td><td>FPS and JS thread health</td><td>Dev menu → Performance monitor</td></tr>
+  </tbody>
+  </table>
+  </div>
+</div>
+</section>
 
-<p>Two homes for non-route code — a project slice or <code>shared</code> — and no "misc" folder. Every project below fills in the same two blanks.</p>
+<section id="rules">
+<h2>Ground rules</h2>
+<p class="lp-kicker">These apply to every project.</p>
+<div class="lp-grid">
+  <div class="lp-box"><h3>Read the docs for signatures</h3><p>The write-ups give you the shape and the API surface. Looking up the exact signature on <a href="https://docs.expo.dev/">docs.expo.dev</a> is part of the exercise.</p></div>
+  <div class="lp-box"><h3>Stay inside your slice</h3><p>Routes go in <code>src/app/projects/&lt;slug&gt;/</code>, everything else in <code>src/projects/&lt;slug&gt;/</code>. Never import from another project. Promote to <code>src/shared/</code> only when a second project needs it.</p></div>
+  <div class="lp-box"><h3>Components stay dumb</h3><p>Screens own state and hooks; components receive plain props and callbacks. A component that imports a store is a component you can't reuse.</p></div>
+  <div class="lp-box"><h3>One state tool per concern</h3><p>Server data in TanStack Query, client state in Zustand or local state, persisted domain data in SQLite. Never mirror the same fact in two of them.</p></div>
+  <div class="lp-box"><h3>Own your query keys</h3><p>Each project has its own <code>utils/queryKeys.ts</code>, rooted at its own prefix. One <code>QueryClient</code> serves every project, so a shared namespace is a cache collision waiting to happen.</p></div>
+  <div class="lp-box"><h3>Handle all four states</h3><p>Every screen has loading, empty, error and content. Design the empty and error states before the happy path.</p></div>
+  <div class="lp-box"><h3>Test on a real device early</h3><p>Simulators lie about the camera, GPS, background execution, audio interruptions and battery, which is exactly what Projects 02, 04 and 05 are about.</p></div>
+  <div class="lp-box"><h3>Write down what broke</h3><p>Keep a notes file per project. The failure modes are the knowledge that lasts.</p></div>
+</div>
+</section>
+
+<section id="structure">
+<h2>How the repo is organised</h2>
+<p class="lp-kicker">Two homes for non-route code, a project slice or <code>shared</code>, and no "misc" folder. Every project fills in the same two blanks.</p>
 
 <pre><code>src/
 ├── app/                    routes only — expo-router owns this tree
@@ -61,214 +323,89 @@ plugins/                    hand-written config plugins — Project 04
 .github/workflows/          CI, release, fingerprint drift — Project 05
 .maestro/                   e2e flows (store checkout, podcast smoke)</code></pre>
 
+<div class="lp-scroll">
 <table>
-<thead><tr><th>Project</th><th>Route subtree</th><th>Code slice</th><th>State</th></tr></thead>
+<thead><tr><th>Project</th><th>Route subtree</th><th>Code slice</th><th>Write-up</th></tr></thead>
 <tbody>
-<tr><td>Offline Journal (01)</td><td><code>src/app/projects/offline-journal/</code></td><td><code>src/projects/offline-journal/</code></td><td>Built — M1–M7</td></tr>
-<tr><td>Camera &amp; Social (02)</td><td><code>src/app/projects/camera-social/</code></td><td><code>src/projects/camera-social/</code></td><td>Built — M0–M7</td></tr>
-<tr><td>Store (03)</td><td><code>src/app/projects/store/</code></td><td><code>src/projects/store/</code></td><td>Built — M1–M8 · <a href="audit-03.html">audit</a></td></tr>
-<tr><td>Fitness Tracker (04)</td><td><code>src/app/projects/fitness-tracker/</code></td><td><code>src/projects/fitness-tracker/</code> + <code>modules/</code>, <code>plugins/</code></td><td>Built — M1–M8</td></tr>
-<tr><td>Podcast Player (05)</td><td><code>src/app/projects/podcast-player/</code></td><td><code>src/projects/podcast-player/</code></td><td>Built — M1–M8 · <a href="release-05.html">runbook</a></td></tr>
-<tr><td>Tic-Tac-Toe (06)</td><td><code>src/app/projects/tic-tac-toe/</code></td><td>none — all in the route file</td><td>Built</td></tr>
+<tr><td>Offline Journal (01)</td><td><code>src/app/projects/offline-journal/</code></td><td><code>src/projects/offline-journal/</code></td><td><a href="01-offline-journal.html">01</a></td></tr>
+<tr><td>Camera &amp; Social (02)</td><td><code>src/app/projects/camera-social/</code></td><td><code>src/projects/camera-social/</code></td><td><a href="02-camera-social.html">02</a></td></tr>
+<tr><td>Store (03)</td><td><code>src/app/projects/store/</code></td><td><code>src/projects/store/</code></td><td><a href="03-commerce-platform.html">03</a></td></tr>
+<tr><td>Fitness Tracker (04)</td><td><code>src/app/projects/fitness-tracker/</code></td><td><code>src/projects/fitness-tracker/</code> + <code>modules/</code>, <code>plugins/</code></td><td><a href="04-fitness-tracker.html">04</a></td></tr>
+<tr><td>Podcast Player (05)</td><td><code>src/app/projects/podcast-player/</code></td><td><code>src/projects/podcast-player/</code></td><td><a href="05-podcast-player.html">05</a> · <a href="05-release.html">runbook</a></td></tr>
+<tr><td>Tic-Tac-Toe (06)</td><td><code>src/app/projects/tic-tac-toe/</code></td><td>pure helpers in <code>utils/game.ts</code>; the rest is in the route file</td><td><a href="06-tic-tac-toe.html">06</a></td></tr>
 </tbody>
 </table>
-
-<p>"Built" means implemented, type-checked, linted, unit-tested and bundling for iOS and Android. Every project's device checkpoints (real GPS, push from a cold start, OTA rollouts, …) still need a development build on a physical phone.</p>
+</div>
 
 <div class="note">
   <strong>Two rules the structure enforces, and one it can't</strong>
-  <p><strong>No cross-project imports</strong> — nothing in <code>src/projects/camera-social/</code> may ever import from <code>src/projects/store/</code>. If two projects need the same thing, promote it to <code>src/shared/</code> deliberately. <strong>Shared stays small</strong> — promote only when a <em>second</em> project actually needs it. And the one nothing enforces: <strong>a file under <code>src/app/</code> is a reachable route whether or not you declare it in a <code>Stack.Screen</code></strong>. A sheet body or list row parked there becomes a route that crashes when someone hits it directly. Put non-route code in a slice.</p>
+  <p><b>No cross-project imports:</b> nothing in <code>src/projects/camera-social/</code> may import from <code>src/projects/store/</code>. <b>Shared stays small:</b> promote only when a second project needs it. Lint enforces both. The one nothing enforces: a file under <code>src/app/</code> is a reachable route whether or not a <code>Stack.Screen</code> declares it. A sheet body or list row parked there becomes a route that crashes when someone opens it directly.</p>
 </div>
+</section>
 
-<h2>The path</h2>
-
-<div class="cards">
-
-  <a class="card" href="01-offline-journal.html">
-    <div class="num">PROJECT 01</div>
-    <h3>Offline-First Journal</h3>
-    <p>A private journaling app that works with the network cable cut. SQLite, migrations, FTS search, local notifications, background sync reconciliation.</p>
-    <div class="meta-row">
-      <span class="chip green">Foundation</span>
-      <span class="chip">Expo Go OK</span>
-      <span class="chip">~2 weeks</span>
-    </div>
-  </a>
-
-  <a class="card" href="02-camera-social.html">
-    <div class="num">PROJECT 02</div>
-    <h3>Camera &amp; Social Capture</h3>
-    <p>Capture, edit, share. Camera preview, video, image pipeline, media library, deep links, share intents, gesture-driven editor UI.</p>
-    <div class="meta-row">
-      <span class="chip green">Device I/O</span>
-      <span class="chip amber">Dev Client</span>
-      <span class="chip">~2–3 weeks</span>
-    </div>
-  </a>
-
-  <a class="card" href="03-commerce-platform.html">
-    <div class="num">PROJECT 03</div>
-    <h3>Production Commerce App</h3>
-    <p>Extends the store slice that already exists. Real auth with token refresh, secure storage, OAuth, push notifications, payments, universal links, analytics, error reporting.</p>
-    <div class="meta-row">
-      <span class="chip purple">Production</span>
-      <span class="chip green">Slice exists</span>
-      <span class="chip amber">Dev Client + Backend</span>
-      <span class="chip">~4 weeks</span>
-    </div>
-  </a>
-
-  <a class="card" href="04-fitness-tracker.html">
-    <div class="num">PROJECT 04</div>
-    <h3>Background Fitness Tracker</h3>
-    <p>The native boundary. Background geolocation, sensors, foreground services, a custom config plugin, an Expo Module in Swift/Kotlin, iOS Live Activity, home-screen widgets.</p>
-    <div class="meta-row">
-      <span class="chip red">Native</span>
-      <span class="chip red">Bare-adjacent</span>
-      <span class="chip">~4–6 weeks</span>
-    </div>
-  </a>
-
-  <a class="card" href="05-podcast-player.html">
-    <div class="num">PROJECT 05</div>
-    <h3>Podcast Player &amp; Release Pipeline</h3>
-    <p>Background audio, lock-screen controls, offline downloads, plus the shipping half: EAS Build, EAS Update channels, staged rollouts, rollback, e2e tests, CI/CD.</p>
-    <div class="meta-row">
-      <span class="chip pink">Ship it</span>
-      <span class="chip">EAS + CI</span>
-      <span class="chip">~4 weeks</span>
-    </div>
-  </a>
-
-  <a class="card" href="06-tic-tac-toe.html">
-    <div class="num">PROJECT 06</div>
-    <h3>Tic-Tac-Toe with Zustand</h3>
-    <p>Outside the tier progression — do it any time. The official Zustand tutorial, ported twice: every snippet typed, every DOM element replaced with a React Native primitive. Covers the <code>combine</code> middleware and derived-vs-stored state.</p>
-    <div class="meta-row">
-      <span class="chip green">Warm-up</span>
-      <span class="chip">Zustand + TS</span>
-      <span class="chip">~half a day</span>
-    </div>
-  </a>
-
-</div>
-
-<h2>Coverage map</h2>
-<p>What each project is responsible for teaching. Nothing is taught twice as a headline topic — later projects assume the earlier ones.</p>
-
-<table>
-<thead>
-<tr><th>Domain</th><th>01 Journal</th><th>02 Camera</th><th>03 Commerce</th><th>04 Fitness</th><th>05 Podcast</th></tr>
-</thead>
-<tbody>
-<tr><td>Navigation (Expo Router)</td><td>Stack, modals, typed routes</td><td>Tabs + shared element</td><td>Protected routes, deep links</td><td>—</td><td>Persistent mini-player layout</td></tr>
-<tr><td>Local persistence</td><td><b>expo-sqlite + Drizzle</b></td><td>File system, media library</td><td>MMKV / secure store</td><td>SQLite time-series</td><td>Download manager</td></tr>
-<tr><td>Server state</td><td>Offline mutation queue</td><td>—</td><td><b>TanStack Query deep</b></td><td>—</td><td>Feed parsing + cache</td></tr>
-<tr><td>Device APIs</td><td>Notifications</td><td><b>Camera, media, sharing</b></td><td>Biometrics</td><td><b>Location, sensors</b></td><td>Audio session</td></tr>
-<tr><td>Background execution</td><td>Background task (sync)</td><td>—</td><td>Push handlers</td><td><b>Background location + FGS</b></td><td>Background downloads</td></tr>
-<tr><td>Animation / gesture</td><td>Layout animations</td><td><b>Reanimated 4 + gestures</b></td><td>Skeletons, transitions</td><td>Live charts</td><td>Draggable player, scrubber</td></tr>
-<tr><td>Auth &amp; security</td><td>Local auth lock</td><td>—</td><td><b>OAuth, refresh, keychain</b></td><td>—</td><td>—</td></tr>
-<tr><td>Native layer</td><td>—</td><td>—</td><td>—</td><td><b>Config plugin + Expo Module</b></td><td>Native audio hooks</td></tr>
-<tr><td>Build &amp; release</td><td>—</td><td>Dev client</td><td>Env/variants</td><td>Local + cloud builds</td><td><b>EAS Update, rollouts, CI</b></td></tr>
-<tr><td>Testing</td><td>Unit (logic)</td><td>—</td><td>MSW + integration</td><td>—</td><td><b>Maestro e2e</b></td></tr>
-</tbody>
-</table>
-
-<h2>Before you start — the baseline</h2>
-
-<p>You already have this repo running. Get these three things in place first; every project assumes them.</p>
-
-<h3>1. A development build, not Expo Go</h3>
-<p>Expo Go is a fixed binary containing a fixed set of native modules. The moment Project 02 needs a library outside that set, Expo Go stops being an option. Learn the dev-client workflow now, while nothing depends on it.</p>
-<pre><code>npx expo install expo-dev-client
-eas build --profile development --platform ios --local
-# then: npx expo start --dev-client</code></pre>
-<p>This repo already has <code>expo-dev-client</code> and an <code>eas.json</code>. Confirm you can produce a build and connect to it.</p>
-
-<h3>2. Understand the three "workflow" myths</h3>
-<ul>
-  <li>There is no "managed vs bare" split anymore in the old sense. There is <em>Continuous Native Generation</em> (CNG): <code>android/</code> and <code>ios/</code> are build artifacts generated by <code>npx expo prebuild</code> from <code>app.config.ts</code> + config plugins.</li>
-  <li>This repo has already made the CNG choice — <code>/ios</code> and <code>/android</code> are both in <code>.gitignore</code>, so neither is tracked. Treat any local <code>android/</code> folder as disposable output: if a change can't be expressed in <code>app.config.ts</code> or a config plugin, it will be wiped on the next prebuild. Project 04 is where you feel this.</li>
-  <li>Native code does not mean "ejecting". You can add Swift/Kotlin via a local Expo Module and still regenerate projects freely.</li>
-</ul>
-
-<h3>3. Set up your feedback loop</h3>
-<table>
-<thead><tr><th>Tool</th><th>Purpose</th><th>Command / package</th></tr></thead>
-<tbody>
-<tr><td>React DevTools / Expo Atlas</td><td>Bundle size + render inspection</td><td><code>npx expo start --atlas</code></td></tr>
-<tr><td>Drizzle Studio plugin</td><td>Browse on-device SQLite live</td><td><code>expo-drizzle-studio-plugin</code></td></tr>
-<tr><td>React Query Devtools</td><td>Cache/state inspection (already installed)</td><td><code>@tanstack/react-query-devtools</code></td></tr>
-<tr><td>Reactotron / Flipper alt</td><td>Network + log inspection</td><td>optional</td></tr>
-<tr><td>Perf monitor</td><td>FPS + JS thread health</td><td>Dev menu → Performance monitor</td></tr>
-</tbody>
-</table>
-
-<h2>Ground rules that apply to every project</h2>
-
-<ol>
-  <li><strong>No implementation copy-paste.</strong> These docs give you the API surface and the shape. Reading <code>docs.expo.dev</code> for the exact signature <em>is</em> the exercise.</li>
-  <li><strong>Stay inside your slice.</strong> Routes go in <code>src/app/projects/&lt;slug&gt;/</code>, everything else in <code>src/projects/&lt;slug&gt;/</code>. Never import from another project's slice. Promote to <code>src/shared/</code> only when a second project genuinely needs the thing.</li>
-  <li><strong>Components stay dumb.</strong> Screens own state and hooks; components receive plain props and callbacks. Same rule as your Swift work — a component that imports a store is a component you can't reuse.</li>
-  <li><strong>One state tool per concern.</strong> Server data → TanStack Query. Ephemeral client state → Zustand or local state. Persisted domain data → SQLite. Do not mirror the same fact in two of them.</li>
-  <li><strong>Own your query keys.</strong> Each project gets its own <code>utils/queryKeys.ts</code> inside its slice. There is no shared key file — two projects sharing a key namespace is a cache-collision bug waiting to happen.</li>
-  <li><strong>Handle the four states, always.</strong> Every screen has loading / empty / error / content. Design the empty and error states before the happy path.</li>
-  <li><strong>Test on a real device early.</strong> Simulators lie about camera, GPS, background execution, audio interruptions, and battery behaviour — which is exactly what projects 02, 04 and 05 are about.</li>
-  <li><strong>Write down what broke.</strong> Keep a <code>.agents/lessons/_learned.md</code> per project. The failure modes are the durable knowledge.</li>
-</ol>
-
-<h2>Starting a new project — the mechanical part</h2>
-
-<p>Same steps every time, so none of the docs above repeat them. This is the recipe for adding another project to the launcher.</p>
-
-<ol>
-  <li>Add an entry to <code>src/shared/config/projects.ts</code> and a first route for it. The launcher reads the registry; it has no hardcoded knowledge of any project.</li>
-  <li>Create the slice: <code>src/projects/&lt;slug&gt;/</code> with only the subfolders you actually need. Don't scaffold empty ones.</li>
-  <li>Give the project its own <code>src/app/projects/&lt;slug&gt;/_layout.tsx</code> owning its inner <code>Stack</code>, — the root layout generates one <code>projects/&lt;slug&gt;</code> <code>Stack.Screen</code> per registry entry, so no root edit is needed.</li>
-  <li>Anything that must exist on a <strong>headless or cold launch</strong> — a <code>TaskManager.defineTask</code>, a notification-tap listener, a share-intent router — is imported from the <strong>root</strong> layout. A project layout only loads when the user opens that project; four projects in this repo hit this exact bug.</li>
-  <li>External URL shapes (universal links, share callbacks) get a pure rewriter in your slice, registered in <code>src/app/+native-intent.tsx</code>.</li>
-  <li>Before calling a milestone done: <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npm test</code>, and <code>npx expo export --platform ios</code> (the bundle catches what tsc can't — e.g. a stray <code>@react-navigation/*</code> import fails expo-router's check only at bundle time).</li>
+<section id="new-project">
+<h2>Adding a project</h2>
+<p class="lp-kicker">The mechanical part is the same every time, so the write-ups don't repeat it.</p>
+<ol class="lp-recipe">
+  <li>Add an entry to <code>src/shared/config/projects.ts</code> and a first route for it. The launcher reads the registry and knows no project by name.</li>
+  <li>Create the slice, <code>src/projects/&lt;slug&gt;/</code>, with only the subfolders you need. Don't scaffold empty ones.</li>
+  <li>Give the project its own <code>src/app/projects/&lt;slug&gt;/_layout.tsx</code> owning its inner <code>Stack</code>. The root layout generates one <code>Stack.Screen</code> per registry entry, so the root needs no edit.</li>
+  <li>Import anything that must exist on a <strong>headless or cold launch</strong> (a <code>TaskManager.defineTask</code>, a notification-tap listener, a share-intent router) from the <strong>root</strong> layout. A project layout only loads when the user opens that project, so a task defined there finds nothing registered on a background launch.</li>
+  <li>Give external URL shapes (universal links, share callbacks) a pure rewriter in your slice and register it in <code>src/app/+native-intent.tsx</code>.</li>
+  <li>Before calling a milestone done, run <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npm test</code> and <code>npx expo export --platform ios</code>. The bundle catches what <code>tsc</code> can't, such as a stray <code>@react-navigation/*</code> import.</li>
 </ol>
 
 <div class="warn">
-  <strong>Providers your project may need are not free</strong>
-  <p><code>src/app/_layout.tsx</code> mounts <code>QueryProvider</code>, <code>SafeAreaProvider</code>, <code>GestureHandlerRootView</code> and <code>ThemeProvider</code> once, globally. Anything narrower — <code>SQLiteProvider</code> (01), <code>BottomSheetModalProvider</code>, a playback host (05) — mounts in <em>your project's</em> layout, not the root. And never mount a second <code>QueryProvider</code>: two clients means two independent caches, and data fetched on one screen is invisible to the next.</p>
+  <strong>Providers are not free</strong>
+  <p><code>src/app/_layout.tsx</code> mounts <code>QueryProvider</code>, <code>SafeAreaProvider</code>, <code>GestureHandlerRootView</code> and <code>ThemeProvider</code> once, for everyone. Anything narrower, such as <code>SQLiteProvider</code> (01), <code>BottomSheetModalProvider</code> or a playback host (05), mounts in your project's layout. Never mount a second <code>QueryProvider</code>: two clients means two caches, and data fetched on one screen is invisible on the next.</p>
 </div>
+</section>
 
-<h2>Suggested pacing</h2>
+<section id="pacing">
+<h2>Pacing</h2>
+<p class="lp-kicker">About 20 weeks at a few hours a day. Device checkpoints (real GPS, push from a cold start, OTA rollouts) need a development build on a physical phone.</p>
+<div class="lp-scroll">
 <table>
-<thead><tr><th>Weeks</th><th>Project</th><th>You'll know you're done when…</th></tr></thead>
+<thead><tr><th>Weeks</th><th>Step</th><th>You're done when…</th></tr></thead>
 <tbody>
-<tr><td>1–2</td><td>01 Journal</td><td>You can kill the network, write 20 entries, restart the app, reconnect, and every entry syncs exactly once.</td></tr>
-<tr><td>3–5</td><td>02 Camera</td><td>Someone can share a photo <em>into</em> your app from Photos, and your app can share back out.</td></tr>
-<tr><td>6–9</td><td>03 Commerce</td><td>A push notification opens the correct order screen from a cold start, with a valid refreshed token.</td></tr>
-<tr><td>10–15</td><td>04 Fitness</td><td>Phone in pocket, screen off, 30-minute walk → an accurate route with no dropped segment, and a Live Activity that ticked the whole way.</td></tr>
-<tr><td>16–19</td><td>05 Podcast</td><td>You ship a JS-only fix to production via EAS Update, watch it roll out to 10%, then roll it back.</td></tr>
+<tr><td>Week 1</td><td><a href="00-launcher.html">00 Launcher</a></td><td>A new registry entry adds a row without touching the launcher, and lint rejects a cross-project import.</td></tr>
+<tr><td>1–2</td><td><a href="01-offline-journal.html">01 Journal</a></td><td>Kill the network, write 20 entries, restart, reconnect: every entry syncs exactly once.</td></tr>
+<tr><td>3–5</td><td><a href="02-camera-social.html">02 Camera</a></td><td>Someone can share a photo into your app from Photos, and your app can share it back out.</td></tr>
+<tr><td>6–9</td><td><a href="03-commerce-platform.html">03 Commerce</a></td><td>A push notification opens the right order screen from a cold start, with a refreshed token.</td></tr>
+<tr><td>10–15</td><td><a href="04-fitness-tracker.html">04 Fitness</a></td><td>Phone in pocket, screen off, 30-minute walk: an accurate route and a Live Activity that ticked the whole way.</td></tr>
+<tr><td>16–19</td><td><a href="05-podcast-player.html">05 Podcast</a></td><td>A JS-only fix ships through EAS Update, rolls out to 10%, then rolls back.</td></tr>
+<tr><td>Any time</td><td><a href="06-tic-tac-toe.html">06 Tic-tac-toe</a></td><td>Time travel works and the game helpers pass their tests.</td></tr>
 </tbody>
 </table>
+</div>
+</section>
 
-<div class="tip">
-  <strong>If you only have time for two</strong>
-  <p>Do <strong>03</strong> (it turns this repo into something production-shaped) and <strong>04</strong> (it's the only one that forces you past the JS boundary into config plugins and native modules — the part almost every tutorial skips).</p>
+<section id="reference">
+<h2>Reference shelf</h2>
+<div class="lp-links">
+  <a class="lp-link" href="https://docs.expo.dev/versions/latest/" target="_blank" rel="noopener noreferrer"><b>Expo SDK API reference</b><span>Bookmark the version selector. The path targets SDK 57.</span></a>
+  <a class="lp-link" href="https://docs.expo.dev/router/introduction/" target="_blank" rel="noopener noreferrer"><b>Expo Router</b><span>Especially authentication and protected routes.</span></a>
+  <a class="lp-link" href="https://docs.expo.dev/config-plugins/introduction/" target="_blank" rel="noopener noreferrer"><b>Config plugins</b><span>Required reading before Project 04.</span></a>
+  <a class="lp-link" href="https://docs.expo.dev/modules/overview/" target="_blank" rel="noopener noreferrer"><b>Expo Modules API</b><span>Swift and Kotlin modules, Project 04.</span></a>
+  <a class="lp-link" href="https://docs.expo.dev/eas-update/introduction/" target="_blank" rel="noopener noreferrer"><b>EAS Update</b><span>Required before Project 05.</span></a>
+  <a class="lp-link" href="https://docs.swmansion.com/react-native-reanimated/" target="_blank" rel="noopener noreferrer"><b>Reanimated 4</b><span>Animations from Project 02 on.</span></a>
+  <a class="lp-link" href="https://docs.swmansion.com/react-native-gesture-handler/" target="_blank" rel="noopener noreferrer"><b>Gesture Handler</b><span>Pan, pinch and composed gestures, from Project 02 on.</span></a>
+  <a class="lp-link" href="https://tanstack.com/query/latest/docs/framework/react/react-native" target="_blank" rel="noopener noreferrer"><b>TanStack Query for React Native</b><span>Offline persistence and the focus manager.</span></a>
+  <a class="lp-link" href="https://github.com/ImaginativeShohag/Why-Not-ReactNative/tree/main/docs/well-known" target="_blank" rel="noopener noreferrer"><b>Universal-link files</b><span>AASA and assetlinks templates for Projects 02 and 03.</span></a>
+  <a class="lp-link" href="training/index.html"><b>Training quizzes</b><span>Code-reading questions for every step, with spaced repetition.</span></a>
+</div>
+</section>
+
+  </main>
 </div>
 
-<h2>Reference shelf</h2>
-<ul>
-  <li><a href="https://docs.expo.dev/versions/latest/">Expo SDK API reference</a> — bookmark the version selector; SDK 57 is what this repo targets.</li>
-  <li><a href="https://docs.expo.dev/router/introduction/">Expo Router docs</a> — especially <em>Advanced → Authentication</em> and <em>Protected routes</em>.</li>
-  <li><a href="https://docs.expo.dev/config-plugins/introduction/">Config plugins</a> and <a href="https://docs.expo.dev/modules/overview/">Expo Modules API</a> — required reading before Project 04.</li>
-  <li><a href="https://docs.expo.dev/eas-update/introduction/">EAS Update</a> — required before Project 05.</li>
-  <li><a href="https://docs.swmansion.com/react-native-reanimated/">Reanimated 4</a> and <a href="https://docs.swmansion.com/react-native-gesture-handler/">Gesture Handler</a> — Project 02 onward.</li>
-  <li><a href="https://tanstack.com/query/latest/docs/framework/react/react-native">TanStack Query for React Native</a> — offline persistence + focus manager.</li>
-  <li><a href="00-launcher-restructure.html">Step 00 · Launcher &amp; restructure</a> — build the launcher, the project slices and the isolation rules.</li>
-  <li>Project write-ups produced while building: <a href="audit-03.html">03 · store audit</a>, <a href="release-05.html">05 · release runbook</a>, <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative/tree/main/docs/well-known">universal-link files</a>.</li>
-  <li><code>AGENTS.md</code> at the repo root — the same structure rules in the form the tooling reads. If it and this page ever disagree, <code>AGENTS.md</code> is the one that gets checked against disk.</li>
-</ul>
-
-<footer>
-  Why-Not-ReactNative learning path · targets Expo SDK 57 / RN 0.86 · authored by <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a>
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Why-Not-ReactNative learning path · Expo SDK 57 / React Native 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
 </footer>
 
-</div>
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

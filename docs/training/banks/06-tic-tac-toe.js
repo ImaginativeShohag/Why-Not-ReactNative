@@ -110,7 +110,7 @@ QUIZ.register({
         { title: "React: Thinking in React", url: "https://react.dev/learn/thinking-in-react" },
       ],
       explain:
-        "`const xIsNext = currentMove % 2 === 0;`. X moves on even indices, and the empty board is move 0.\n\n**Why it was restructured.** The first version stored `xIsNext` next to `currentMove`, so `handlePlay` had to flip it and `jumpTo` had to set it from the move parity. Deriving it means `jumpTo` sets only one value, and the turn is correct after time travel with no extra code.\n\n**Failure mode.** The write-up's first `jumpTo` snippet actually has a stale-read bug on purpose: it passes `currentMove % 2 === 0` using the value from before the update. That class of bug cannot exist once the value is derived during render.\n\nYou can see the progression in \"Adding time travel\" through \"Final cleanup\".",
+        "`const xIsNext = currentMove % 2 === 0;`. X moves on even indices, and the empty board is move 0.\n\n**Why derive it.** Storing `xIsNext` next to `currentMove` means `handlePlay` has to flip it and `jumpTo` has to set it from the move parity. Deriving it means `jumpTo` sets only one value, and the turn is correct after time travel with no extra code.\n\n**Failure mode.** The write-up's first `jumpTo` snippet actually has a stale-read bug on purpose: it passes `currentMove % 2 === 0` using the value from before the update. That class of bug cannot exist once the value is derived during render.\n\nYou can see the progression in \"Adding time travel\" through \"Final cleanup\".",
     },
     {
       id: "tic-tac-toe-06",
@@ -229,7 +229,7 @@ QUIZ.register({
         { title: "MDN: Array.prototype.slice", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice" },
       ],
       explain:
-        "Copying first keeps every board in `history` an untouched snapshot. A new array is a new reference, so Zustand and React can detect the change, and old entries stay valid for time travel. `.slice()` is only a shallow copy, but squares hold primitives (`\"X\"`, `\"O\"`, `null`), so shallow is enough. Zustand does not freeze state; mutation is allowed by the language but breaks both change detection and the stored history.\n\n**The restructuring decision.** The write-up introduces `slice()` in \"Lifting state up\" before time travel exists, then pays it off in \"Adding time travel\": \"since you used `slice()`... you can store every past version\".\n\n**Failure mode if you mutate.** See question tic-tac-toe-37: two history entries end up sharing one array, and an earlier move shows a later move's mark.",
+        "Copying first keeps every board in `history` an untouched snapshot. A new array is a new reference, so Zustand and React can detect the change, and old entries stay valid for time travel. `.slice()` is only a shallow copy, but squares hold primitives (`\"X\"`, `\"O\"`, `null`), so shallow is enough. Zustand does not freeze state; mutation is allowed by the language but breaks both change detection and the stored history.\n\n**Design decision.** The write-up introduces `slice()` in \"Lifting state up\" before time travel exists, then pays it off in \"Adding time travel\": \"since you used `slice()`... you can store every past version\".\n\n**Failure mode if you mutate.** See question tic-tac-toe-37: two history entries end up sharing one array, and an earlier move shows a later move's mark.",
     },
     {
       id: "tic-tac-toe-12",
@@ -266,7 +266,7 @@ QUIZ.register({
         { title: "Jest: Expect", url: "https://jestjs.io/docs/expect" },
       ],
       explain:
-        "`countRemainingTurns` returns `squares.filter((square) => !square).length`, the number of **empty** squares. That is also the number of turns left, so 9 minus 3 gives 6. `calculateStatus` relies on it: `!remainingTurns` means the board is full, which with no winner is a draw.\n\n**Why it was renamed and extracted.** It used to be called `calculateTurns`, which sounds like \"moves played\", the opposite of what it counts. The rename makes the name say what the body does, and moving it to `utils/game.ts` made it testable: the `countRemainingTurns` block in `__tests__/game.test.ts` pins 9, 7 and 0 for the three boards.\n\n**Failure mode.** A misleading name leads to an off-by-inversion bug in the draw check that tests with a mid-game board would not catch.\n\nSee \"Declaring a winner or draw\" and \"Extract the helpers\".",
+        "`countRemainingTurns` returns `squares.filter((square) => !square).length`, the number of **empty** squares. That is also the number of turns left, so 9 minus 3 gives 6. `calculateStatus` relies on it: `!remainingTurns` means the board is full, which with no winner is a draw.\n\n**Why this name, and why extract it.** A name like `calculateTurns` would sound like \"moves played\", the opposite of what it counts. `countRemainingTurns` says what the body does, and living in `utils/game.ts` makes it testable: the `countRemainingTurns` block in `__tests__/game.test.ts` pins 9, 7 and 0 for the three boards.\n\n**Failure mode.** A misleading name leads to an off-by-inversion bug in the draw check that tests with a mid-game board would not catch.\n\nSee \"Declaring a winner or draw\" and \"Extract the helpers\".",
     },
     {
       id: "tic-tac-toe-14",
@@ -387,7 +387,7 @@ QUIZ.register({
         { title: "TypeScript: Narrowing", url: "https://www.typescriptlang.org/docs/handbook/2/narrowing.html" },
       ],
       explain:
-        "`remainingTurns` is 0, but `winner` is `\"X\"`, so `!winner && !remainingTurns` is false and the second branch returns `Winner X`. A draw requires a full board **and no winner**.\n\n**Why the order and the guard matter.** Without the `!winner` in the first line, a winning last move would read `Draw`. The unit test \"prefers the winner, even on the last square\" (`calculateStatus(\"X\", 0, \"O\")` is `\"Winner X\"`) pins exactly this, next to the opposite case `calculateStatus(null, 0, \"X\")` is `\"Draw\"`.\n\n**Restructuring decision.** This edge case is the reason the helper lives in `utils/game.ts`: a pure function can be tested for the last-square case without playing a game by hand.\n\nSee \"Declaring a winner or draw\", \"Extract the helpers\" and the failure modes table.",
+        "`remainingTurns` is 0, but `winner` is `\"X\"`, so `!winner && !remainingTurns` is false and the second branch returns `Winner X`. A draw requires a full board **and no winner**.\n\n**Why the order and the guard matter.** Without the `!winner` in the first line, a winning last move would read `Draw`. The unit test \"prefers the winner, even on the last square\" (`calculateStatus(\"X\", 0, \"O\")` is `\"Winner X\"`) pins exactly this, next to the opposite case `calculateStatus(null, 0, \"X\")` is `\"Draw\"`.\n\n**Design decision.** This edge case is the reason the helper lives in `utils/game.ts`: a pure function can be tested for the last-square case without playing a game by hand.\n\nSee \"Declaring a winner or draw\", \"Extract the helpers\" and the failure modes table.",
     },
     {
       id: "tic-tac-toe-20",
@@ -679,7 +679,7 @@ QUIZ.register({
         { title: "React: Rules of React", url: "https://react.dev/reference/rules" },
       ],
       explain:
-        "True: the compiler is switched on with `reactCompiler: true` under `experiments` in `app.config.ts`; it caches computed values and JSX (including the inline `onSquareClick` arrows) based on their inputs; and it assumes render is pure and props and state are never mutated, so writing into `squares` in place would break its assumptions. False: no `React.memo` is required, and the compiler does not replace Zustand selectors, since selectors still decide when `useSyncExternalStore` re-renders `Game`.\n\n**Design decision.** Leave memoisation out and write code that follows the Rules of React. `squares.slice()` already respects them.\n\n**Failure mode.** In-place mutation (question tic-tac-toe-37) is both a time-travel bug and a compiler assumption violation, so the two problems appear together.\n\nThe repo's AGENTS.md lists further compiler rules for hooks and refs.",
+        "True: the compiler is switched on with `reactCompiler: true` under `experiments` in `app.config.ts`; it caches computed values and JSX (including the inline `onSquareClick` arrows) based on their inputs; and it assumes render is pure and props and state are never mutated, so writing into `squares` in place would break its assumptions. False: no `React.memo` is required, and the compiler does not replace Zustand selectors, since selectors still decide when `useSyncExternalStore` re-renders `Game`.\n\n**Design decision.** Leave memoisation out and write code that follows the Rules of React. `squares.slice()` already respects them.\n\n**Failure mode.** In-place mutation (question tic-tac-toe-37) is both a time-travel bug and a compiler assumption violation, so the two problems appear together.\n\nThe same compiler rules apply to hooks and refs: don't mutate a value a hook returned, and don't read refs during render.",
     },
     {
       id: "tic-tac-toe-33",
@@ -731,24 +731,24 @@ QUIZ.register({
       type: "explain",
       level: 2,
       topics: ["Architecture", "React Fundamentals"],
-      files: ["src/app/projects/tic-tac-toe/index.tsx", "AGENTS.md"],
+      files: ["src/app/projects/tic-tac-toe/index.tsx"],
       prompt:
-        "`Board` takes `{ xIsNext, squares, onPlay }` as props and never calls `useGameStore`, although it easily could. Explain why this design is better and how it matches the repo's component rule in `AGENTS.md`. Check the props of `Board` and `Square` and whether either imports `useGameStore`, then read the component rule in `AGENTS.md`.",
+        "`Board` takes `{ xIsNext, squares, onPlay }` as props and never calls `useGameStore`, although it easily could. Explain why this design is better and how it matches the rule that components stay dumb. Check the props of `Board` and `Square` and whether either imports `useGameStore`.",
       model:
-        "`Board` and `Square` are presentational (\"dumb\") components: plain data comes in, callbacks go out. `Game` is the only component that knows about the store. It decides which board to show (`history[currentMove]`) and what a move means (`handlePlay` cuts the history and appends). Because of that, `Board` can render any board, past or present, which is exactly what time travel needs. If it read the store directly, it would always show the latest state. The separation also makes `Board` reusable and easy to test or preview with fixed data and no store setup. `AGENTS.md` makes this a rule for the whole repo: components take plain data and callbacks, never a store or view model, and screens own the state.",
+        "`Board` and `Square` are presentational (\"dumb\") components: plain data comes in, callbacks go out. `Game` is the only component that knows about the store. It decides which board to show (`history[currentMove]`) and what a move means (`handlePlay` cuts the history and appends). Because of that, `Board` can render any board, past or present, which is exactly what time travel needs. If it read the store directly, it would always show the latest state. The separation also makes `Board` reusable and easy to test or preview with fixed data and no store setup. This is a rule for the whole repo: components take plain data and callbacks, never a store or view model, and screens own the state.",
       rubric: [
         "Calls `Board` / `Square` presentational: props and callbacks, no store access",
         "Says `Game` owns the store and decides which board to show (`history[currentMove]`)",
         "Links prop-driven rendering to time travel, showing a past board",
         "Mentions reuse or testability with no store",
-        "Cites the `AGENTS.md` rule that components are dumb and screens own state",
+        "Cites the rule that components are dumb and screens own state",
       ],
       links: [
         { title: "React: Sharing state between components", url: "https://react.dev/learn/sharing-state-between-components" },
         { title: "React: Thinking in React", url: "https://react.dev/learn/thinking-in-react" },
       ],
       explain:
-        "`Board` and `Square` are presentational: plain data comes in, callbacks go out. `Game` is the only component that knows about the store. It decides which board to show (`history[currentMove]`) and what a move means (`handlePlay`).\n\n**Why this is better.** `Board` can render any board, past or present, which is what time travel needs. If it read the store directly it would always show the latest state. It is also reusable and easy to test or preview with fixed data and no store setup.\n\n**Repo rule.** AGENTS.md says components take plain data and callbacks, never a store or view model, and screens own the state. This is also why stage 9 passes `label` and `disabled` into `Square` rather than letting it call `squareLabel` or read the winner.\n\n**Failure mode.** Letting `Board` subscribe makes it impossible to show a past board without adding a second prop path.\n\nSee \"Lifting state up, again\".",
+        "`Board` and `Square` are presentational: plain data comes in, callbacks go out. `Game` is the only component that knows about the store. It decides which board to show (`history[currentMove]`) and what a move means (`handlePlay`).\n\n**Why this is better.** `Board` can render any board, past or present, which is what time travel needs. If it read the store directly it would always show the latest state. It is also reusable and easy to test or preview with fixed data and no store setup.\n\n**Repo rule.** Components take plain data and callbacks, never a store or view model, and screens own the state. This is also why stage 9 passes `label` and `disabled` into `Square` rather than letting it call `squareLabel` or read the winner.\n\n**Failure mode.** Letting `Board` subscribe makes it impossible to show a past board without adding a second prop path.\n\nSee \"Lifting state up, again\".",
     },
     {
       id: "tic-tac-toe-36",
@@ -911,7 +911,7 @@ QUIZ.register({
       type: "mcq",
       level: 2,
       topics: ["Architecture", "Testing"],
-      files: ["src/projects/tic-tac-toe/utils/game.ts", "src/projects/tic-tac-toe/__tests__/game.test.ts", "AGENTS.md"],
+      files: ["src/projects/tic-tac-toe/utils/game.ts", "src/projects/tic-tac-toe/__tests__/game.test.ts"],
       prompt:
         "The store and components stay in the route file, but `calculateWinner`, `countRemainingTurns`, `calculateStatus` and `squareLabel` live in `src/projects/tic-tac-toe/utils/game.ts`. What's the main reason? Run `ls` on the slice and open the test file before answering.",
       choices: [
@@ -926,7 +926,7 @@ QUIZ.register({
         { title: "Jest: Getting started", url: "https://jestjs.io/docs/getting-started" },
       ],
       explain:
-        "Every file under `src/app/` is a route, so a test file cannot live there. Pure helpers in a slice can be imported and unit-tested by `__tests__/game.test.ts` without rendering anything. AGENTS.md says tests live in `src/projects/<slug>/__tests__/`, never under `src/app/`.\n\n**The restructuring decision.** Before the move, the helpers were not exported at all, and a helper can only be tested if a test can import it. Pure functions with no React or store dependency are the cheapest thing to test, so they are the first thing to pull out of a screen. The store and components stay in the route file because they are route-specific.\n\n**Failure mode.** Putting `game.test.ts` under `src/app/projects/tic-tac-toe/` makes Expo Router treat it as a route and try to bundle it.\n\nThe write-up builds this in \"Extract the helpers and test them\". Run `npx jest --no-watchman src/projects/tic-tac-toe` to check it.",
+        "Every file under `src/app/` is a route, so a test file cannot live there. Pure helpers in a slice can be imported and unit-tested by `__tests__/game.test.ts` without rendering anything. Tests live in `src/projects/<slug>/__tests__/`, never under `src/app/`.\n\n**Design decision.** A helper can only be tested if a test can import it, so it must be exported from a module outside the route file. Pure functions with no React or store dependency are the cheapest thing to test, so they are the first thing to pull out of a screen. The store and components stay in the route file because they are route-specific.\n\n**Failure mode.** Putting `game.test.ts` under `src/app/projects/tic-tac-toe/` makes Expo Router treat it as a route and try to bundle it.\n\nThe write-up builds this in \"Extract the helpers and test them\". Run `npx jest --no-watchman src/projects/tic-tac-toe` to check it.",
     },
   ],
 });

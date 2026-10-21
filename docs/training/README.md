@@ -9,8 +9,12 @@ out the answer from the real code, then the explanation tells you why.
   type. The dashboard has **Export / Import** for backups or moving browsers.
 - **Spaced repetition:** Leitner boxes 1–5, due again after 0 / 1 / 3 / 7 / 16 days. A miss
   drops a question to box 1. "Mastered" means box 4 or higher.
-- **Look:** `quiz.css` is a standalone design system (it no longer loads `../assets/style.css`):
-  dark and light themes (top-bar toggle, or "Match system" in settings), per-module colours and
+- **Look:** `quiz.css` is a standalone design system (it doesn't load `../assets/style.css`), with
+  the docs palette; the top nav's styles come from the shared `../assets/nav.css`. The page uses the same top nav as every
+  docs page (static markup in `index.html`, wired by `../assets/nav.js`), with the quiz's own
+  sub-bar (Dashboard, Review, stats, theme) rendered under it by `quiz.js`. It also has
+  dark and light themes (the site-wide toggle in the top nav, or "Match system" in settings; stored
+  in `localStorage["wnrn-theme"]`, shared with the docs), per-module colours and
   icons from `LOOKS` in `quiz.js`, and motion that respects `prefers-reduced-motion`. No external
   fonts or libraries, so `file://` still works offline.
 - **Source links:** when the page is opened from disk, "Open in VS Code" links point at the repo

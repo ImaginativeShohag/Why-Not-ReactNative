@@ -3,24 +3,105 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>01 · Offline-First Journal — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 01</div>
-
-<h1>01 · Offline-First Journal</h1>
-<p class="subtitle">A private journaling app with a biometric lock that is fully functional with the network permanently off — and reconciles correctly when it comes back.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html" aria-current="page"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 01</div>
+      <div class="lp-eyebrow">Project 01</div>
+      <h1>Offline-First Journal</h1>
+      <p class="subtitle">A private journaling app with a biometric lock that is fully functional with the network permanently off — and reconciles correctly when it comes back.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip green">Foundation tier</span>
   <span class="chip">Dev build from M5</span>
   <span class="chip">~2 weeks</span>
   <span class="chip accent">Core skill: local-first data</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/offline-journal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#data">Data model &amp; flow</a></li>
+      <li><a href="#launcher">Fitting into the launcher</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#testing">Testing &amp; verification</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#data">Data model &amp; flow</a></li>
+      <li><a href="#launcher">Fitting into the launcher</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#testing">Testing &amp; verification</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>Why this one first</strong>
   <p>Almost every RN tutorial starts by fetching from an API, which teaches you to treat the network as the source of truth. That habit produces apps that spin forever in a tunnel. Starting local-first inverts the model: the device is the source of truth, and the server is a replica you reconcile with. Everything else in this path is easier once you think that way.</p>
@@ -34,24 +115,11 @@
 </div>
 
 
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#ui">UI design &amp; screens</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#data">Data model &amp; flow</a></li>
-  <li><a href="#launcher">Fitting into the launcher</a></li>
-  <li><a href="#milestones">Build order (milestones)</a></li>
-  <li><a href="#testing">Testing &amp; verification</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
-</ul>
-
 <h2 id="objectives">Learning objectives</h2>
 
 <p class="lead">By the end you will have built an app whose database is the source of truth, whose writes are atomic with their sync intent, and whose every network, OS and lifecycle dependency is treated as unreliable.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>SQLite in Expo</td><td>Open a DB via provider, write versioned migrations with <code>PRAGMA user_version</code>, enable WAL mode, run typed queries.</td></tr>
@@ -66,7 +134,7 @@
 <tr><td>Testing SQL for real</td><td>Run migrations, triggers and the sync engine against real SQLite in Jest through <code>node:sqlite</code>, not mocks.</td></tr>
 <tr><td>List performance</td><td>FlashList with hundreds of variable-height rows, sticky date headers, and no jank on scroll.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h2 id="ui">UI design &amp; screens</h2>
 
@@ -82,7 +150,7 @@
 
 <p>Every route below is relative to <code>/projects/offline-journal</code> — that prefix comes from the file tree and is not optional. The tab group is named <code>(tab)</code> to match the convention the store slice already set.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>/(tab)/</code></td><td>Timeline</td><td>Reverse-chronological entries, grouped by day with sticky headers. The group's <code>index</code>.</td></tr>
@@ -94,7 +162,7 @@
 <tr><td><code>/lock</code></td><td>Lock screen</td><td>A "lock now" destination that Settings pushes. Arriving locks the journal; the real protection is <code>LockGate</code>, which covers the whole stack whenever the app is locked or backgrounded.</td></tr>
 <tr><td><code>/onboarding</code></td><td>Onboarding</td><td>Three slides: privacy promise, reminder setup, first entry prompt.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Wireframes</h3>
 
@@ -491,7 +559,7 @@ export default function JournalTabLayout() {
 <h2 id="data">Data model &amp; flow</h2>
 
 <h3>Tables</h3>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Table</th><th>Key columns</th><th>Notes</th></tr></thead>
 <tbody>
 <tr><td><code>entries</code></td><td>id (ULID), title, body, mood, created_at, updated_at, deleted_at, remote_id, dirty</td><td>Soft delete via <code>deleted_at</code> — hard deletes break sync.</td></tr>
@@ -502,7 +570,7 @@ export default function JournalTabLayout() {
 <tr><td><code>outbox</code></td><td>id, op (create/update/delete), entity, entity_id, payload JSON, attempts, next_attempt_at, last_error, created_at</td><td>The heart of offline-first. <code>next_attempt_at</code> is the backoff gate.</td></tr>
 <tr><td><code>sync_meta</code></td><td>key, value</td><td>Stores the <code>last_pulled_at</code> cursor, plus <code>last_synced_at</code>, <code>last_error</code> and the <code>seeded_at</code> flag.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <p>All four versions in one file. V1 is the base schema, V2 adds search, V3 is the "add a column without losing data" migration (<code>ALTER TABLE … ADD COLUMN</code> is the one change SQLite does in place), and V4 shows how to fix something already shipped: a device that ran V2 never runs it again, so the trigger is replaced by a <em>new step</em>, never by editing V2. Note what is <em>not</em> a helper here: the version gate is a dozen lines of plain code, and it is the piece an ORM hides from you.</p>
 
@@ -1466,9 +1534,9 @@ createServer(async (req, res) =&gt; {
 
 <h2 id="launcher">Fitting into the launcher</h2>
 
-<p>This project is one vertical slice inside a launcher app that holds several isolated projects. You do not build a standalone app; you add a slice. The restructuring rules are the part most tutorials skip, and each one prevents a specific bug.</p>
+<p>This project is one vertical slice inside a launcher app that holds several isolated projects. You do not build a standalone app; you add a slice. The structure rules are the part most tutorials skip, and each one prevents a specific bug.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Concern</th><th>What you do</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td>Registry</td><td>Add an entry with <code>slug: "offline-journal"</code> and <code>route: "/projects/offline-journal"</code> to <code>src/shared/config/projects.ts</code>.</td><td>The launcher list and the root <code>Stack.Screen</code> (one per project, <code>headerShown: false</code>) are generated from it. Neither knows any project by name.</td></tr>
@@ -1481,9 +1549,9 @@ createServer(async (req, res) =&gt; {
 <tr><td>Isolation</td><td>Import nothing from another project; promote to <code>src/shared/</code> only when a second project needs it.</td><td>ESLint's <code>no-restricted-imports</code> enforces it. Never import <code>@react-navigation/*</code>; use <code>expo-router/react-navigation</code> (it fails the bundle, not <code>tsc</code>).</td></tr>
 <tr><td>Config</td><td>Plugins in <code>app.config.ts</code>: <code>expo-sqlite</code>, <code>expo-background-task</code>, <code>expo-notifications</code>, <code>expo-local-authentication</code> (with <code>faceIDPermission</code>), <code>expo-image-picker</code>. The sync URL is <code>extra.journalSyncUrl</code> (from <code>JOURNAL_SYNC_URL</code>), read via <code>src/shared/constants/env.ts</code>; empty means <code>localhost</code> (iOS) or <code>10.0.2.2</code> (Android emulator).</td><td>Native changes must be expressible in config (continuous native generation); the emulator host differs by platform, so the default is decided at runtime.</td></tr>
 </tbody>
-</table>
+</table></div>
 
-<p>The wider story of how the launcher was carved out is in <a href="00-launcher-restructure.html">the launcher restructure write-up</a>.</p>
+<p>The launcher itself, and why each of these rules exists, is covered in <a href="00-launcher.html">Step 00 · Build the Launcher</a>.</p>
 
 <h2 id="milestones">Build order</h2>
 
@@ -3806,7 +3874,7 @@ EXPO_OFFLINE=1 CI=1 npx expo export --platform ios --output-dir /tmp/wnrn-export
 
 <h2 id="libraries">Library hints</h2>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface (look these up)</th></tr></thead>
 <tbody>
 <tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>SQLiteProvider</code> (<code>options={{ enableChangeListener: true }}</code>, <code>onInit</code>, <code>useSuspense</code>), <code>useSQLiteContext</code>, <code>openDatabaseAsync</code>, <code>db.databasePath</code>, <code>execAsync</code>, <code>runAsync</code>, <code>getAllAsync</code>, <code>getFirstAsync</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code> (event: <code>databaseFilePath</code>, <code>tableName</code>), <code>PRAGMA user_version</code></td></tr>
@@ -3826,7 +3894,7 @@ EXPO_OFFLINE=1 CI=1 npx expo export --platform ios --output-dir /tmp/wnrn-export
 <tr><td>Testing SQL</td><td><code>node:sqlite</code> (Node 22.5+)</td><td>An expo-sqlite-shaped adapter in <code>testing/nodeDatabase.ts</code> runs real migrations, FTS5 triggers and the sync engine in Jest. Test-only.</td></tr>
 <tr><td>IDs</td><td><code>expo-crypto</code> (<code>getRandomBytes</code>) plus a hand-written ULID</td><td>ULIDs sort lexicographically by time — very handy for a journal.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <div class="warn">
   <strong>SDK 57 note</strong>
@@ -3885,8 +3953,16 @@ node docs/training/validate.mjs</code></pre></div>
   <a href="02-camera-social.html">Project 02 · Camera &amp; Social →</a>
 </div>
 
-<footer>Project 01 · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 01 · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

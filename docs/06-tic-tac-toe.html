@@ -3,22 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>06 · Tic-Tac-Toe with Zustand — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .source { color: var(--fg-faint); font-size: 0.85rem; margin-top: 40px; border-top: 1px solid var(--border-soft); padding-top: 16px; }
   h2.appendix { margin-top: 48px; border-top: 1px solid var(--border-soft); padding-top: 28px; }
 </style>
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 06</div>
-
-<h1>06 · Tic-Tac-Toe <span style="color: var(--accent)">in TypeScript &amp; React Native</span></h1>
-<p class="subtitle">The official Zustand tic-tac-toe tutorial, ported twice over: every JavaScript snippet typed, and every DOM element replaced with a React Native primitive so the code actually runs on device.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html" aria-current="page"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 06</div>
+      <div class="lp-eyebrow">Project 06</div>
+      <h1>Tic-Tac-Toe <span class="lp-grad">in TypeScript &amp; React Native</span></h1>
+      <p class="subtitle">The official Zustand tic-tac-toe tutorial, ported twice over: every JavaScript snippet typed, and every DOM element replaced with a React Native primitive so the code actually runs on device.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip accent">Zustand v5</span>
   <span class="chip">React 19</span>
   <span class="chip green">TypeScript</span>
@@ -26,30 +67,67 @@
   <span class="chip">React Native / Expo</span>
   <span class="chip green">Typechecks under strict</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/tic-tac-toe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
-<ul class="toc">
-  <li><a href="#building-a-game">Building a game</a></li>
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#what-are-you-building">What are you building?</a></li>
-  <li><a href="#setup-the-four-types">Setup: the four types</a></li>
-  <li><a href="#building-the-board">Building the board</a></li>
-  <li><a href="#lifting-state-up">Lifting state up</a></li>
-  <li><a href="#taking-turns">Taking turns</a></li>
-  <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
-  <li><a href="#adding-time-travel">Adding time travel</a></li>
-  <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
-  <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
-  <li><a href="#final-cleanup">Final cleanup</a></li>
-  <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
-  <li><a href="#accessibility">Make it accessible</a></li>
-  <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
-  <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
-  <li><a href="#stretch-goals">Stretch goals</a></li>
-  <li><a href="#wrapping-up">Wrapping up</a></li>
-  <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
-  <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
-</ul>
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#building-a-game">Building a game</a></li>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#what-are-you-building">What are you building?</a></li>
+      <li><a href="#setup-the-four-types">Setup: the four types</a></li>
+      <li><a href="#building-the-board">Building the board</a></li>
+      <li><a href="#lifting-state-up">Lifting state up</a></li>
+      <li><a href="#taking-turns">Taking turns</a></li>
+      <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
+      <li><a href="#adding-time-travel">Adding time travel</a></li>
+      <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
+      <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
+      <li><a href="#final-cleanup">Final cleanup</a></li>
+      <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
+      <li><a href="#accessibility">Make it accessible</a></li>
+      <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
+      <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
+      <li><a href="#stretch-goals">Stretch goals</a></li>
+      <li><a href="#wrapping-up">Wrapping up</a></li>
+      <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
+      <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
+    </ol>
+  </nav>
 
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#building-a-game">Building a game</a></li>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#what-are-you-building">What are you building?</a></li>
+      <li><a href="#setup-the-four-types">Setup: the four types</a></li>
+      <li><a href="#building-the-board">Building the board</a></li>
+      <li><a href="#lifting-state-up">Lifting state up</a></li>
+      <li><a href="#taking-turns">Taking turns</a></li>
+      <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
+      <li><a href="#adding-time-travel">Adding time travel</a></li>
+      <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
+      <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
+      <li><a href="#final-cleanup">Final cleanup</a></li>
+      <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
+      <li><a href="#accessibility">Make it accessible</a></li>
+      <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
+      <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
+      <li><a href="#stretch-goals">Stretch goals</a></li>
+      <li><a href="#wrapping-up">Wrapping up</a></li>
+      <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
+      <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
+  </ol>
+</details>
 <h2 id="building-a-game">Building a game</h2>
 <p>You will build a small tic-tac-toe game during this tutorial, in <strong>TypeScript</strong>, running on <strong>React Native</strong>. It assumes existing React knowledge. The techniques here are fundamental to building any React app, and fully understanding it will give you a deep understanding of React and Zustand.</p>
 <div class="note">
@@ -1539,7 +1617,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
 </div>
 
 <h3 id="failure-modes">Failure modes and common mistakes</h3>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
 <tbody>
 <tr><td>Red screen: <code>View config getter callback for component "button"</code></td><td>Pasted DOM tags from the web tutorial</td><td>Use <code>Pressable</code>, <code>View</code>, <code>Text</code> (see the <a href="#appendix-web">appendix</a>)</td></tr>
@@ -1553,7 +1631,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
 <tr><td>Component re-renders on every store change</td><td>Selecting the whole store: <code>useGameStore()</code></td><td>Select one field per hook, as <code>Game</code> does</td></tr>
 <tr><td><code>setXIsNext(false)</code> stops compiling after adding <code>as const</code></td><td>The literal type <code>true</code> instead of <code>boolean</code></td><td>Let <code>combine</code> infer the widened type</td></tr>
 <tr><td>A test file under <code>src/app/</code> shows up as a route</td><td>Every file in <code>src/app/</code> is a route</td><td>Keep tests in <code>src/projects/tic-tac-toe/__tests__/</code></td></tr>
-</tbody></table>
+</tbody></table></div>
 
 <h3 id="stretch-goals">Stretch goals</h3>
 <ul>
@@ -1575,7 +1653,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
 </ul>
 <h3 id="the-conversion-in-one-table">The conversion, in one table</h3>
 <p>First, the JavaScript → TypeScript half of the port:</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>JavaScript</th><th>TypeScript</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td><code>Array(9).fill(null)</code></td><td><code>Array&lt;SquareValue&gt;(9).fill(null)</code></td><td><code>any[]</code> vs. a checked board — the single most important change on this page</td></tr>
@@ -1586,9 +1664,9 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
 <tr><td><code>create(combine(…))</code></td><td><code>create(combine(…))</code> — unchanged</td><td>Don't use curried <code>create&lt;T&gt;()()</code> with <code>combine</code></td></tr>
 <tr><td><code>calculateWinner(squares)</code></td><td><code>calculateWinner(squares: Squares): SquareValue</code></td><td>Return type documents the "no winner yet" case</td></tr>
 <tr><td><code>App.js</code></td><td><code>App.tsx</code></td><td>JSX needs the <code>x</code></td></tr>
-</tbody></table>
+</tbody></table></div>
 <p>And the DOM → React Native half:</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Web</th><th>React Native</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td><code>&lt;button onClick&gt;</code></td><td><code>&lt;Pressable onPress&gt;</code> wrapping a <code>&lt;Text&gt;</code></td><td>No DOM: <code>button</code> is not a registered native component</td></tr>
@@ -1602,7 +1680,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
 <tr><td><code>outline: 0</code>, <code>borderRadius: 0</code></td><td>deleted</td><td>Neither has a React Native equivalent or a default worth resetting</td></tr>
 <tr><td><code>fontFamily: 'monospace'</code></td><td><code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code></td><td>Generic font families don't resolve on iOS</td></tr>
 <tr><td>web fragment <code>&lt;&gt;…&lt;/&gt;</code></td><td><code>&lt;View&gt;</code></td><td>Fragments can't hold styles, and the parent's <code>flexDirection</code> would decide the layout</td></tr>
-</tbody></table>
+</tbody></table></div>
 <p>Everything else — the store shape, the four types, the game logic — is byte-for-byte the original. That is the point: the store and the types are platform-agnostic, so a React Native port touches only the view layer.</p>
 
 <h2 class="appendix" id="appendix-web">Appendix: if you came from the web tutorial</h2>
@@ -1694,8 +1772,16 @@ mid-refactor steps called out in the notes above.
   <a href="learning-path.html">Learning path index</a>
 </div>
 
-<footer>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code> and <code>src/projects/tic-tac-toe/</code></footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code> and <code>src/projects/tic-tac-toe/</code></span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

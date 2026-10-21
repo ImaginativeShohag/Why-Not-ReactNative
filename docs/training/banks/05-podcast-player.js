@@ -53,7 +53,7 @@ QUIZ.register({
         { title: "expo-sqlite (SQLiteProvider, PRAGMA)", url: "https://docs.expo.dev/versions/latest/sdk/sqlite" },
       ],
       explain:
-        "A provider only helps code that renders under it. `PlaybackService` and `DownloadManager` are plain classes, and the background task can run with no screen mounted, so they all call `getDb()`, which opens the file once, runs `migrate()` and caches the promise. If opening fails, the cache is cleared (`dbPromise = null`) so the next call can retry.\n\nThe design decision is to let module-scope services own their data access instead of threading a provider through them. The failure mode otherwise: a headless background run would have no way to reach the database, or you would end up opening several connections with competing migrations. WAL is enabled by `migrate()` itself, and several projects mount their own providers, so the other options are false.\n\nThe doc covers this under **Restructuring notes** (\"Lazy database instead of a provider\") and the data model table in **Architecture**.",
+        "A provider only helps code that renders under it. `PlaybackService` and `DownloadManager` are plain classes, and the background task can run with no screen mounted, so they all call `getDb()`, which opens the file once, runs `migrate()` and caches the promise. If opening fails, the cache is cleared (`dbPromise = null`) so the next call can retry.\n\nThe design decision is to let module-scope services own their data access instead of threading a provider through them. The failure mode otherwise: a headless background run would have no way to reach the database, or you would end up opening several connections with competing migrations. WAL is enabled by `migrate()` itself, and several projects mount their own providers, so the other options are false.\n\nThe doc covers this under **Architecture decisions** (\"Lazy database instead of a provider\") and the data model table in **Architecture**.",
     },
     {
       id: "podcast-player-03",
@@ -103,7 +103,7 @@ QUIZ.register({
       accept: [/^\[?\s*["']?c["']?\s*,\s*["']?a["']?\s*,\s*["']?b["']?\s*\]?$/i, "c a b", "cab"],
       hint: "Look at what `addNext` does to the existing entry before it prepends.",
       explain:
-        "`addNext` returns `[{ episodeId, addedAt: now }, ...without(queue, episodeId)]`, so `c` moves to the front and is never duplicated. Every queue operation is pure, returns a new array and never produces duplicates, which is why `queue.test.ts` can cover them without a player. Compare `addLast`, which moves an existing entry to the end but keeps its original `addedAt`.\n\nThe design decision is a pure core with a thin I/O shell: `PlaybackService` persists and applies the result, but the rules live in a file Jest can import. Also note that the playing episode is never in the queue: `onStartPlaying` removes it, and `playNext`/`addToQueue` ignore the current id. Without that invariant you get an episode that plays and then plays again.\n\nSee Milestone M2 and **Restructuring notes** (\"Pure core, thin I/O shell\").",
+        "`addNext` returns `[{ episodeId, addedAt: now }, ...without(queue, episodeId)]`, so `c` moves to the front and is never duplicated. Every queue operation is pure, returns a new array and never produces duplicates, which is why `queue.test.ts` can cover them without a player. Compare `addLast`, which moves an existing entry to the end but keeps its original `addedAt`.\n\nThe design decision is a pure core with a thin I/O shell: `PlaybackService` persists and applies the result, but the rules live in a file Jest can import. Also note that the playing episode is never in the queue: `onStartPlaying` removes it, and `playNext`/`addToQueue` ignore the current id. Without that invariant you get an episode that plays and then plays again.\n\nSee Milestone M2 and **Architecture decisions** (\"Pure core, thin I/O shell\").",
     },
     {
       id: "podcast-player-06",
@@ -181,9 +181,9 @@ QUIZ.register({
       type: "text",
       level: 1,
       topics: ["Expo Config & EAS", "Release & CI"],
-      files: ["app.config.ts", "docs/release-05.html"],
+      files: ["app.config.ts", "docs/05-release.html"],
       prompt:
-        "Which `runtimeVersion` policy does `app.config.ts` use? (Type the policy name.)\n\nSearch: open `app.config.ts` and find the `runtimeVersion` key. Then read `docs/release-05.html` for what the policy hashes.",
+        "Which `runtimeVersion` policy does `app.config.ts` use? (Type the policy name.)\n\nSearch: open `app.config.ts` and find the `runtimeVersion` key. Then read `docs/05-release.html` for what the policy hashes.",
       accept: ["fingerprint", /policy:\s*["']?fingerprint/i, /^\{?\s*policy\s*:\s*["']?fingerprint["']?\s*\}?$/i],
       links: [
         { title: "EAS Update: runtime versions", url: "https://docs.expo.dev/eas-update/runtime-versions" },
@@ -302,7 +302,7 @@ QUIZ.register({
         { title: "TanStack Query: query invalidation", url: "https://tanstack.com/query/latest/docs/framework/react/guides/query-invalidation" },
       ],
       explain:
-        "Native progress events fire many times a second. If the screen subscribed to the whole `live` map, every tick would re-render the full list. The narrow selector `s.live[episodeId]` limits the work to one row, and `mergeDownload()` combines it with the SQL row's `downloadState`/`downloadedBytes`, so every list shows the same badge without re-querying.\n\n`EpisodeRow` in `components/` still takes only data and callbacks, which is the repo's rule; the connected wrapper lives in `containers/` so the exceptions are few and easy to find. The manager also reduces load at the source: it pushes to the store only when the whole percent changes (`progressStep`) and writes SQLite at most every 3 s. Rows must hold no per-item local state because FlashList recycles them.\n\nSee **Restructuring notes** (\"Containers vs components\") and Milestone M5.",
+        "Native progress events fire many times a second. If the screen subscribed to the whole `live` map, every tick would re-render the full list. The narrow selector `s.live[episodeId]` limits the work to one row, and `mergeDownload()` combines it with the SQL row's `downloadState`/`downloadedBytes`, so every list shows the same badge without re-querying.\n\n`EpisodeRow` in `components/` still takes only data and callbacks, which is the repo's rule; the connected wrapper lives in `containers/` so the exceptions are few and easy to find. The manager also reduces load at the source: it pushes to the store only when the whole percent changes (`progressStep`) and writes SQLite at most every 3 s. Rows must hold no per-item local state because FlashList recycles them.\n\nSee **Architecture decisions** (\"Containers vs components\") and Milestone M5.",
     },
     {
       id: "podcast-player-15",
@@ -531,7 +531,7 @@ QUIZ.register({
       files: [
         ".github/workflows/ci.yml",
         ".github/workflows/release.yml",
-        "docs/release-05.html",
+        "docs/05-release.html",
       ],
       prompt:
         "Put this repo's release pipeline in order, from a pull request to the stores.\n\nSearch: read the `on:` and `if:` conditions in `ci.yml` and `release.yml`, and `channel` in `eas.json`.",
@@ -581,7 +581,7 @@ QUIZ.register({
       topics: ["Gesture Handler", "Media"],
       files: [
         "src/projects/podcast-player/components/player/Scrubber.tsx",
-        "docs/release-05.html",
+        "docs/05-release.html",
       ],
       prompt:
         "`Scrubber.tsx` keeps two pieces of local state, `scrub` and `settling`, and displays `scrub ?? settling ?? position`. What problem does `settling` solve?\n\nSearch: read `Scrubber.tsx` and find where `scrub` and `settling` are set and cleared. What happens if you remove `settling`?",
@@ -766,9 +766,9 @@ QUIZ.register({
       type: "multi",
       level: 3,
       topics: ["Release & CI", "Expo Config & EAS"],
-      files: ["app.config.ts", "docs/release-05.html", ".github/workflows/release.yml"],
+      files: ["app.config.ts", "docs/05-release.html", ".github/workflows/release.yml"],
       prompt:
-        "Select all that apply. Which of these changes need a new store build rather than an `eas update` OTA?\n\nSearch: read `docs/release-05.html` for the \"OTA may only carry\" rule, then check which of these options appear in `app.config.ts` or only in `src/`.",
+        "Select all that apply. Which of these changes need a new store build rather than an `eas update` OTA?\n\nSearch: read `docs/05-release.html` for the \"OTA may only carry\" rule, then check which of these options appear in `app.config.ts` or only in `src/`.",
       choices: [
         "Adding a dependency with native code (for example, a new `expo-*` module)",
         "Changing `expo-audio` plugin options in `app.config.ts` (for example `enableBackgroundPlayback`)",
@@ -876,7 +876,7 @@ QUIZ.register({
         ".github/workflows/release.yml",
         "eas.json",
         "app.config.ts",
-        "docs/release-05.html",
+        "docs/05-release.html",
         "src/app/projects/podcast-player/settings.tsx",
       ],
       prompt:
@@ -926,7 +926,7 @@ QUIZ.register({
         { title: "Zustand: persisting store data", url: "https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data.html" },
       ],
       explain:
-        "The OS can launch the app headless (no UI, no project layout mounted) to run a registered task. The definition has to exist as soon as the JS bundle loads, so it lives at module scope and is imported by the root layout (guarded with `isTaskDefined` so fast refresh does not define it twice). Registration persists across launches, so doing it once when the user first opens the project is enough, and it is skipped when the status is not `Available`. Registering from the root would wake the app periodically, opening the podcast database, for people who never used this project.\n\nWhen it runs, the task awaits `ensureSettingsHydrated()`, calls `refreshSubscriptions()` and `downloadManager.kick()`, and returns `Success` or `Failed`. Without the await, `getSettings()` can return `DEFAULT_SETTINGS` (Wi-Fi only, default cap) instead of the user's choices; `persist.rehydrate()` settles even when the storage read fails, so the task cannot hang. The OS gives a short window, and transfers are ordinary `DownloadTask`s, not a background-transfer service.\n\nSee **Restructuring notes** (\"Root-level download task\").",
+        "The OS can launch the app headless (no UI, no project layout mounted) to run a registered task. The definition has to exist as soon as the JS bundle loads, so it lives at module scope and is imported by the root layout (guarded with `isTaskDefined` so fast refresh does not define it twice). Registration persists across launches, so doing it once when the user first opens the project is enough, and it is skipped when the status is not `Available`. Registering from the root would wake the app periodically, opening the podcast database, for people who never used this project.\n\nWhen it runs, the task awaits `ensureSettingsHydrated()`, calls `refreshSubscriptions()` and `downloadManager.kick()`, and returns `Success` or `Failed`. Without the await, `getSettings()` can return `DEFAULT_SETTINGS` (Wi-Fi only, default cap) instead of the user's choices; `persist.rehydrate()` settles even when the storage read fails, so the task cannot hang. The OS gives a short window, and transfers are ordinary `DownloadTask`s, not a background-transfer service.\n\nSee **Architecture decisions** (\"Root-level download task\").",
     },
     {
       id: "podcast-player-41",
@@ -954,7 +954,7 @@ QUIZ.register({
         { title: "Expo Router: typed routes and useSegments", url: "https://docs.expo.dev/router/reference/typed-routes" },
       ],
       explain:
-        "`MiniPlayerHost` is a container: it is mounted once by the project layout and bridges the player store and service to the presentational `components/player/MiniPlayer`, which only gets `title`, `playing`, `hasNext` and callbacks. Keeping containers in their own folder makes the rule checkable by location: nothing under `components/` imports a store or a service.\n\nPosition changes twice a second, so the host does not pass it as a prop. It passes a `progressBar` slot holding `<NowPlayingProgress />`, which subscribes itself, so only the bar re-renders. Drag-to-expand runs on the UI thread: one shared value `expand` (0 to 1) drives translate, artwork scale and opacities through `useAnimatedStyle`, and `scheduleOnRN(openPlayer, \"drag\")` pushes `/player` at the end, which the layout shows without animation so the handover is invisible. If the host re-rendered with every tick, the drag would stutter.\n\nSee **Restructuring notes** and Milestone M4.",
+        "`MiniPlayerHost` is a container: it is mounted once by the project layout and bridges the player store and service to the presentational `components/player/MiniPlayer`, which only gets `title`, `playing`, `hasNext` and callbacks. Keeping containers in their own folder makes the rule checkable by location: nothing under `components/` imports a store or a service.\n\nPosition changes twice a second, so the host does not pass it as a prop. It passes a `progressBar` slot holding `<NowPlayingProgress />`, which subscribes itself, so only the bar re-renders. Drag-to-expand runs on the UI thread: one shared value `expand` (0 to 1) drives translate, artwork scale and opacities through `useAnimatedStyle`, and `scheduleOnRN(openPlayer, \"drag\")` pushes `/player` at the end, which the layout shows without animation so the handover is invisible. If the host re-rendered with every tick, the drag would stutter.\n\nSee **Architecture decisions** and Milestone M4.",
     },
     {
       id: "podcast-player-42",
@@ -986,7 +986,7 @@ QUIZ.register({
       type: "mcq",
       level: 3,
       topics: ["Release & CI", "Expo Config & EAS"],
-      files: [".github/workflows/fingerprint.yml", "docs/release-05.html", "app.config.ts"],
+      files: [".github/workflows/fingerprint.yml", "docs/05-release.html", "app.config.ts"],
       prompt:
         "`fingerprint.yml` runs `eas fingerprint:compare --build-id … --environment production --json`, compares `fingerprint1.hash` with `fingerprint2.hash`, and emits a `::warning::` on drift. The step also sets `APP_VARIANT: production` and starts with `set -euo pipefail`. Which statement matches how the job behaves?\n\nSearch: read the `env:` and `run:` of the compare step in `fingerprint.yml` and the `fingerprint:compare` entry in the EAS CLI reference.",
       choices: [

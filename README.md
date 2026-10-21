@@ -5,11 +5,12 @@ six isolated projects. Each one implements a write-up in [`docs/`](docs/learning
 
 | # | Project | What it teaches |
 | --- | --- | --- |
+| 00 | [Launcher](docs/00-launcher.html) | Start here: registry-driven launcher, project slices, routing and isolation rules |
 | 01 | [Offline Journal](docs/01-offline-journal.html) | SQLite migrations, FTS search, outbox sync, background task, local notifications, biometric lock |
 | 02 | [Camera & Social](docs/02-camera-social.html) | Camera and permissions, Reanimated/Gesture editor with Skia filters, media library, inbound/outbound sharing, video |
-| 03 | [Commerce](docs/03-commerce-platform.html) | Protected routes, token refresh, secure storage, OAuth, checkout, Stripe, push, universal links ([audit](docs/audit-03.html)) |
+| 03 | [Commerce](docs/03-commerce-platform.html) | Protected routes, token refresh, secure storage, OAuth, checkout, Stripe, push, universal links |
 | 04 | [Fitness Tracker](docs/04-fitness-tracker.html) | Background location, sensors, maps, a config plugin, a Swift/Kotlin Expo Module, Live Activity, widgets, health sync |
-| 05 | [Podcast Player](docs/05-podcast-player.html) | Background audio, lock screen, downloads, EAS Build/Update, rollouts, CI/CD ([runbook](docs/release-05.html)) |
+| 05 | [Podcast Player](docs/05-podcast-player.html) | Background audio, lock screen, downloads, EAS Build/Update, rollouts, CI/CD ([runbook](docs/05-release.html)) |
 | 06 | [Tic-Tac-Toe](docs/06-tic-tac-toe.html) | Zustand with TypeScript (warm-up) |
 
 Built with Expo SDK 57, React Native 0.86, React 19.2 + React Compiler, Expo Router,
@@ -120,5 +121,5 @@ npx expo prebuild --clean                     # native project drifted from the 
 - `modules/`, `plugins/`: the local native module and config plugins (Project 04).
 
 [`AGENTS.md`](AGENTS.md) has the full architecture and conventions.
-[`docs/00-launcher-restructure.html`](docs/00-launcher-restructure.html) explains how the repo
-became a launcher.
+[`docs/00-launcher.html`](docs/00-launcher.html) explains how the launcher and the
+project slices are built.

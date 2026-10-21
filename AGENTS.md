@@ -12,9 +12,9 @@ routes, components, hooks, stores, API calls and models, kept under its own dire
 | --- | --- | --- | --- |
 | 01 | Offline-first journal (SQLite, FTS, outbox sync, biometric lock) | `offline-journal` | `docs/01-offline-journal.html` |
 | 02 | Camera & social capture (camera, editor, media library, sharing) | `camera-social` | `docs/02-camera-social.html` |
-| 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html`, `docs/audit-03.html` |
+| 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html` |
 | 04 | Background fitness tracker (location task, sensors, native module, widgets) | `fitness-tracker` | `docs/04-fitness-tracker.html` |
-| 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/release-05.html` |
+| 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/05-release.html` |
 | 06 | Tic-tac-toe with Zustand (warm-up) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
 
 **Key Tech Stack:**
@@ -74,10 +74,21 @@ plugins/            hand-written config plugins (Project 04)
 .maestro/           e2e flows: store-checkout.yaml, podcast-smoke.yaml
 docs/               GitHub Pages site (Settings → Pages → main, /docs; `.nojekyll`, so files are
                     served as-is): index.html front page, learning-path.html curriculum,
-                    write-ups 00–06, audit-03.html, release-05.html, well-known templates.
-                    Keep it plain HTML: a .md here is served as raw text.
+                    write-ups 00–06, 05-release.html, well-known templates.
+                    Keep it plain HTML: a .md here is served as raw text. Every page
+                    except index.html carries the same sticky top nav (Back, Home,
+                    Learning path, Write-ups menu, Training, GitHub, theme toggle), styled
+                    by assets/nav.css (also loaded by the quiz) and wired by assets/nav.js.
+                    Theme: localStorage["wnrn-theme"] for the whole site, applied before
+                    first paint by an inline <head> script on every page; keep the markup identical
+                    across pages and add new pages to the Write-ups menu. Write-ups share the
+                    learning path's shell: `lp-hero wu-hero` header (crumb, eyebrow, h1,
+                    subtitle, an "At a glance" panel with chips and quiz/path buttons), an
+                    `lp-layout` with the sticky `lp-toc` plus a mobile `wu-toc-m`, `main#main`,
+                    tables wrapped in `wu-scroll`, and the `lp-foot` footer.
 docs/training/      code-reading quizzes, one bank per project (static page, see its README;
-                    standalone quiz.css, no external deps, must keep working over file://)
+                    standalone quiz.css, no external deps, must keep working over file://;
+                    same top nav and nav.css as the docs, with ../ paths, plus the quiz sub-bar)
 ```
 
 `modules/` and `plugins/` sit at the repo root because Expo's autolinker and prebuild look for

@@ -2,7 +2,7 @@ QUIZ.register({
   slug: "launcher",
   number: "00",
   title: "Launcher & shared infra",
-  doc: "../00-launcher-restructure.html",
+  doc: "../00-launcher.html",
   summary:
     "Trains the parts of the repo that sit outside the six project slices: the registry-driven launcher, the root layout and its cold-start side effects, URL rewriting, the shared QueryClient/axios/theme layer, and the Expo config, EAS, Metro, TypeScript and Jest setup that every project builds on.",
   questions: [
@@ -23,7 +23,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "Both the launcher list and the root `Stack` are generated from `PROJECTS`, so a new project is a data change, not a navigation edit.\n\n- **Why it was built this way:** the restructure (doc 00, Build order M4) exists so neither `index.tsx` nor `_layout.tsx` knows a project by name. If you hand-write `Stack.Screen` and `ProjectListItem` entries, every new project edits two files that can drift apart, and a project listed in one but not the other shows a row that opens a default-titled route.\n- **Why the distractors fail:** `extra` carries per-environment values, and expo-router has no linking map to fill in because routes come from the file tree.\n- **How you arrive at it yourself:** when you write the Home screen in M4 you will notice the root layout needs the same list. Extracting one typed array and mapping it twice is the natural fix.",
+        "Both the launcher list and the root `Stack` are generated from `PROJECTS`, so a new project is a data change, not a navigation edit.\n\n- **Why it was built this way:** doc 00, Build order M4, is designed so neither `index.tsx` nor `_layout.tsx` knows a project by name. If you hand-write `Stack.Screen` and `ProjectListItem` entries, every new project edits two files that can drift apart, and a project listed in one but not the other shows a row that opens a default-titled route.\n- **Why the distractors fail:** `extra` carries per-environment values, and expo-router has no linking map to fill in because routes come from the file tree.\n- **How you arrive at it yourself:** when you write the Home screen in M4 you will notice the root layout needs the same list. Extracting one typed array and mapping it twice is the natural fix.",
       links: [
         { title: "Expo Router: core concepts", url: "https://docs.expo.dev/router/basics/core-concepts" },
         { title: "Expo Router: nesting navigators", url: "https://docs.expo.dev/router/advanced/nesting-navigators" },
@@ -51,7 +51,7 @@ QUIZ.register({
       type: "mcq",
       level: 1,
       topics: ["Expo Router", "Architecture"],
-      files: ["src/app/_layout.tsx", "docs/00-launcher-restructure.html"],
+      files: ["src/app/_layout.tsx", "docs/00-launcher.html"],
       prompt:
         "A teammate adds `src/app/projects/store/components/PriceTag.tsx` (a default-exported component that expects props) and imports it into a store screen. They do **not** add any `Stack.Screen` for it. What actually happens?",
       choices: [
@@ -62,7 +62,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "Expo Router derives routes from the file tree. A `Stack.Screen` declaration only configures a route; it never creates or hides one. So `PriceTag.tsx` under `src/app/` is reachable at `/projects/store/components/PriceTag`, rendered with no props and none of the providers its parent screen supplies.\n\n- **Real failure mode:** this repo's profile sheet once lived under `src/app/` and crashed when its URL was opened, because `useBottomSheetModal()` throws outside the tab layout's provider.\n- **The rule that follows:** `src/app/` holds routes only; sheets, rows and helpers go in `src/projects/<slug>/` or `src/shared/`, and tests never go under `src/app/`.\n- **How you arrive at it:** doc 00 (Routing strategy and Failure modes #6) has you park a component under `src/app/` on purpose, open its URL and watch the crash. Doing it once makes the rule stick.",
+        "Expo Router derives routes from the file tree. A `Stack.Screen` declaration only configures a route; it never creates or hides one. So `PriceTag.tsx` under `src/app/` is reachable at `/projects/store/components/PriceTag`, rendered with no props and none of the providers its parent screen supplies.\n\n- **Real failure mode:** a bottom-sheet body parked under `src/app/` crashes when its URL is opened, because `useBottomSheetModal()` throws outside the tab layout's provider.\n- **The rule that follows:** `src/app/` holds routes only; sheets, rows and helpers go in `src/projects/<slug>/` or `src/shared/`, and tests never go under `src/app/`.\n- **How you arrive at it:** doc 00 (Routing strategy and the failure mode \"A non-route component parked under src/app/\") has you park a component under `src/app/` on purpose, open its URL and watch the crash. Doing it once makes the rule stick.",
       links: [
         { title: "Expo Router: core concepts", url: "https://docs.expo.dev/router/basics/core-concepts" },
         { title: "Expo Router: src/app directory", url: "https://docs.expo.dev/router/reference/src-directory" },
@@ -123,7 +123,7 @@ QUIZ.register({
         "`Stack`",
       ],
       explain:
-        "Providers wrap whatever consumes them, so the order encodes dependencies.\n\n- `QueryProvider` is outermost so every route and the share-routing hook see one `QueryClient`. A second client anywhere would be a second cache (doc 00, rule 6 and Failure modes #8).\n- `ShareIntentProvider` sits above the navigator so the render-nothing `ShareIntentRouting` child can read its context.\n- `SafeAreaProvider` and `GestureHandlerRootView style={{ flex: 1 }}` wrap the navigator so insets and gestures work on every screen, launcher included.\n- `ThemeProvider` feeds the `Stack` a light or dark theme.\n\n**What fails if you reorder:** moving `QueryProvider` below a consumer throws \"No QueryClient set\"; a `GestureHandlerRootView` without `flex: 1` collapses to zero height.\n\n**How you arrive at it:** in doc 00 M4 you mount providers once at the root; list what each child needs and the order falls out.",
+        "Providers wrap whatever consumes them, so the order encodes dependencies.\n\n- `QueryProvider` is outermost so every route and the share-routing hook see one `QueryClient`. A second client anywhere would be a second cache (doc 00, rule 6 and the failure mode \"A second QueryProvider\").\n- `ShareIntentProvider` sits above the navigator so the render-nothing `ShareIntentRouting` child can read its context.\n- `SafeAreaProvider` and `GestureHandlerRootView style={{ flex: 1 }}` wrap the navigator so insets and gestures work on every screen, launcher included.\n- `ThemeProvider` feeds the `Stack` a light or dark theme.\n\n**What fails if you reorder:** moving `QueryProvider` below a consumer throws \"No QueryClient set\"; a `GestureHandlerRootView` without `flex: 1` collapses to zero height.\n\n**How you arrive at it:** in doc 00 M4 you mount providers once at the root; list what each child needs and the order falls out.",
       links: [
         { title: "React: passing data deeply with context", url: "https://react.dev/learn/passing-data-deeply-with-context" },
         { title: "React: useContext", url: "https://react.dev/reference/react/useContext" },
@@ -161,7 +161,7 @@ QUIZ.register({
         "The root layout needs `ThemeProvider`, `DarkTheme` and `DefaultTheme`, but this repo must never import `@react-navigation/*`. Find the import block of `src/app/_layout.tsx` and type the exact module specifier that `ThemeProvider`, `DarkTheme` and `DefaultTheme` come from.",
       accept: ["expo-router/react-navigation"],
       explain:
-        "Since SDK 56, expo-router carries its own copy of React Navigation and fails the **bundle** (not `tsc`) if app code imports `@react-navigation/*`. The supported entry is `expo-router/react-navigation` for themes and `useHeaderHeight`; hooks like `useIsFocused` and `useFocusEffect` come from `expo-router`.\n\n- **Failure mode:** an `@react-navigation/elements` import compiles and lints fine while those packages are installed, then breaks only at Metro bundle time, which is late and confusing.\n- **Why it matters across the repo:** every project shares one navigation runtime; a second copy would mean two navigation contexts.\n- **How you arrive at it:** doc 00, Failure modes #7, has you import `useHeaderHeight` from the old package on purpose. Search the root layout's import block for the module that provides `ThemeProvider`.",
+        "Since SDK 56, expo-router carries its own copy of React Navigation and fails the **bundle** (not `tsc`) if app code imports `@react-navigation/*`. The supported entry is `expo-router/react-navigation` for themes and `useHeaderHeight`; hooks like `useIsFocused` and `useFocusEffect` come from `expo-router`.\n\n- **Failure mode:** an `@react-navigation/elements` import compiles and lints fine while those packages are installed, then breaks only at Metro bundle time, which is late and confusing.\n- **Why it matters across the repo:** every project shares one navigation runtime; a second copy would mean two navigation contexts.\n- **How you arrive at it:** doc 00's failure mode \"An @react-navigation/* import\" has you import `useHeaderHeight` from the old package on purpose. Search the root layout's import block for the module that provides `ThemeProvider`.",
       links: [
         { title: "Expo Router: core concepts", url: "https://docs.expo.dev/router/basics/core-concepts" },
         { title: "Expo: TypeScript", url: "https://docs.expo.dev/guides/typescript" },
@@ -272,7 +272,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "Without a title, the native stack uses the route name, so the header would read `projects/tic-tac-toe/index`. The registry is plain data the navigator never sees, which is why the root destructures `title` in `PROJECTS.map` and passes it into `options`.\n\n- **The lesson:** Expo Router has no route-level `export const options`. Supported ways are the parent layout's `Stack.Screen options`, an inline `<Stack.Screen options>` inside the route (like `+not-found.tsx`), or `navigation.setOptions()`.\n- **Real failure mode:** the store's splash once exported `options` and looked configured while silently inheriting a visible header (doc 00, Failure modes #4).\n- **Why it matters:** a copied Next.js habit produces settings that do nothing and no error.\n- **How you arrive at it:** doc 00 M4 has you declare `singleScreen` projects with the registry `title`; try the route-level export and compare.",
+        "Without a title, the native stack uses the route name, so the header would read `projects/tic-tac-toe/index`. The registry is plain data the navigator never sees, which is why the root destructures `title` in `PROJECTS.map` and passes it into `options`.\n\n- **The lesson:** Expo Router has no route-level `export const options`. Supported ways are the parent layout's `Stack.Screen options`, an inline `<Stack.Screen options>` inside the route (like `+not-found.tsx`), or `navigation.setOptions()`.\n- **Real failure mode:** a route that exports `options` looks configured while silently inheriting a visible header (doc 00, failure mode \"Screen options that silently do nothing\").\n- **Why it matters:** a copied Next.js habit produces settings that do nothing and no error.\n- **How you arrive at it:** doc 00 M4 has you declare `singleScreen` projects with the registry `title`; try the route-level export and compare.",
       links: [
         { title: "Expo Router: Stack", url: "https://docs.expo.dev/router/advanced/stack" },
         { title: "Expo Router: core concepts", url: "https://docs.expo.dev/router/basics/core-concepts" },
@@ -408,7 +408,7 @@ QUIZ.register({
       prompt:
         "The repo mounts exactly **one** `QueryProvider` (at the root) and requires every project to prefix its query keys with its own root (`[\"store\", …]`, `[\"podcast\", …]`). Explain what would break if (a) a project mounted a second `QueryClientProvider` in its own layout, and (b) the podcast project used unprefixed keys like `[\"show\", id]`.",
       model:
-        "One provider means one cache. A second `QueryClientProvider` creates an independent cache: data fetched on one side of the boundary is invisible on the other. The restructure doc notes the store's login screen sat outside the tab layout, so it would have refetched everything. Worse, non-React code imports the module singleton directly (`podcast-player/utils/invalidate.ts`, the store's `cartSync.ts`). Its invalidations would hit the root client while screens under the nested provider read a different one through `useQueryClient()`, so they would never refresh. Prefixes matter because TanStack matches keys by prefix. `invalidateQueries({ queryKey: podcastKeys.all })`, the store's `setQueryDefaults(queryKeys.all, …)`, its persister's `isStoreKey` filter and its logout cleanup all depend on the root segment. Unprefixed keys could collide across projects, and blanket invalidations, defaults or persistence would leak into, or miss, another project's data.",
+        "One provider means one cache. A second `QueryClientProvider` creates an independent cache: data fetched on one side of the boundary is invisible on the other. A screen outside the nested provider (a login screen outside the tab layout, say) would refetch everything. Worse, non-React code imports the module singleton directly (`podcast-player/utils/invalidate.ts`, the store's `cartSync.ts`). Its invalidations would hit the root client while screens under the nested provider read a different one through `useQueryClient()`, so they would never refresh. Prefixes matter because TanStack matches keys by prefix. `invalidateQueries({ queryKey: podcastKeys.all })`, the store's `setQueryDefaults(queryKeys.all, …)`, its persister's `isStoreKey` filter and its logout cleanup all depend on the root segment. Unprefixed keys could collide across projects, and blanket invalidations, defaults or persistence would leak into, or miss, another project's data.",
       rubric: [
         "A second provider creates a separate cache, so data fetched under one is invisible under the other",
         "Mentions the divergence between the imported `queryClient` singleton (used by non-React code) and `useQueryClient()` under a nested provider",
@@ -416,7 +416,7 @@ QUIZ.register({
         "Unprefixed keys risk cross-project collisions or leaking defaults, persistence and invalidation",
       ],
       explain:
-        "A second `QueryClientProvider` is a second cache, so what one side fetches the other cannot see. Non-React code imports the module singleton directly, so its invalidations would hit the root client while screens under the nested provider read a different one. Unprefixed keys fail for a different reason: TanStack matches keys by prefix, and invalidation, `setQueryDefaults`, persistence filters and logout cleanup all depend on the root segment.\n\n- **Doc 00 connection:** Failure modes #8 (\"A second QueryProvider\") and rule 3 (each project owns prefixed keys). The store's login sits outside its tab layout, which is exactly where a second client would hide data.\n- **How you arrive at it:** do the Failure modes exercise: mount a provider in a project layout, then watch an `invalidateQueries` from `invalidate.ts` do nothing.",
+        "A second `QueryClientProvider` is a second cache, so what one side fetches the other cannot see. Non-React code imports the module singleton directly, so its invalidations would hit the root client while screens under the nested provider read a different one. Unprefixed keys fail for a different reason: TanStack matches keys by prefix, and invalidation, `setQueryDefaults`, persistence filters and logout cleanup all depend on the root segment.\n\n- **Doc 00 connection:** failure mode \"A second QueryProvider\" and rule 3 (each project owns prefixed keys). The store's login sits outside its tab layout, which is exactly where a second client would hide data.\n- **How you arrive at it:** do the Failure modes exercise: mount a provider in a project layout, then watch an `invalidateQueries` from `invalidate.ts` do nothing.",
       links: [
         { title: "TanStack Query: query invalidation", url: "https://tanstack.com/query/latest/docs/framework/react/guides/query-invalidation" },
         { title: "TanStack Query: query keys", url: "https://tanstack.com/query/latest/docs/framework/react/guides/query-keys" },
@@ -500,7 +500,7 @@ QUIZ.register({
         "Using `app.config.ts`, type the full iOS bundle identifier (Android package) produced by the **preview** EAS profile.",
       accept: ["org.imaginativeworld.whynotreactnative.preview"],
       explain:
-        "`bundleId` is the base id plus the variant's `idSuffix` (`.dev`, `.preview`, or empty). Distinct identifiers let development, preview and production install side by side, each with its own display name and API. The App Group string stays the same across variants.\n\n- **What breaks if suffixes were missing:** installing a preview build would overwrite the production app (and its data) on the same device.\n- **Build relevance:** the bundle id feeds the runtime-version fingerprint, so an `eas update` must run with the matching `APP_VARIANT` (doc 00 builds on the same config described in AGENTS.md).\n- **How you arrive at it:** open the `VARIANTS` table and compute the id for `preview` by hand before checking `eas.json` to see which profile selects it.",
+        "`bundleId` is the base id plus the variant's `idSuffix` (`.dev`, `.preview`, or empty). Distinct identifiers let development, preview and production install side by side, each with its own display name and API. The App Group string stays the same across variants.\n\n- **What breaks if suffixes were missing:** installing a preview build would overwrite the production app (and its data) on the same device.\n- **Build relevance:** the bundle id feeds the runtime-version fingerprint, so an `eas update` must run with the matching `APP_VARIANT`.\n- **How you arrive at it:** open the `VARIANTS` table and compute the id for `preview` by hand before checking `eas.json` to see which profile selects it.",
       links: [
         { title: "Expo tutorial: multiple app variants", url: "https://docs.expo.dev/tutorial/eas/multiple-app-variants" },
       ],
@@ -635,7 +635,7 @@ QUIZ.register({
         "`defineTask` must run at module evaluation, not inside a component or effect",
       ],
       explain:
-        "When the OS wakes the app for background work it may start JS headless: the entry evaluates the root layout, but a project's `_layout.tsx` only evaluates when the user opens that project. TaskManager looks the handler up by name at that moment; if nothing defined it, the work is dropped. It hides during development because you usually opened the project first.\n\n- **Why module scope:** `defineTask` must run while the bundle evaluates; components and effects never mount headless.\n- **Real incident:** this bug hit three projects in a row in this repo (see `.agents/lessons/_learned.md`). The checklist: grep `defineTask` and confirm the root imports it.\n- **Doc 00 connection:** \"Root-level side effects\" and Failure modes #9.\n- **How you arrive at it:** do #9 deliberately: move one import into a project layout, kill the app, trigger the task headless, and see nothing run.",
+        "When the OS wakes the app for background work it may start JS headless: the entry evaluates the root layout, but a project's `_layout.tsx` only evaluates when the user opens that project. TaskManager looks the handler up by name at that moment; if nothing defined it, the work is dropped. It hides during development because you usually opened the project first.\n\n- **Why module scope:** `defineTask` must run while the bundle evaluates; components and effects never mount headless.\n- **Checklist:** the bug is easy to repeat for every project with a background task, so grep `defineTask` and confirm the root imports it.\n- **Doc 00 connection:** \"Root-level side effects\" and the failure mode \"A background task defined in a project layout\".\n- **How you arrive at it:** provoke it deliberately: move one import into a project layout, kill the app, trigger the task headless, and see nothing run.",
       links: [
         { title: "Expo TaskManager", url: "https://docs.expo.dev/versions/latest/sdk/task-manager" },
         { title: "Apple: BackgroundTasks", url: "https://developer.apple.com/documentation/backgroundtasks" },
@@ -661,7 +661,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "Imports are evaluated before the importing module body. The journal's top-level `setNotificationHandler` runs during import, then the root body calls `startNotificationResponseListener()`, which calls `installNotificationHandler()` and **replaces** it. That is intended: the store's handler is a superset that still shows journal reminders.\n\n- **Why it matters:** `setNotificationHandler` is process-global, so whichever project installs it from the root must handle every project's payloads. Hence the `project` discriminator on payloads (doc 00, Failure modes #11).\n- **What breaks otherwise:** a handler that only knows its own payloads would suppress other projects' notifications or play the wrong sound/badge.\n- **How you arrive at it:** read the import order in `_layout.tsx`, then both handlers; the docs state only one handler can be active.",
+        "Imports are evaluated before the importing module body. The journal's top-level `setNotificationHandler` runs during import, then the root body calls `startNotificationResponseListener()`, which calls `installNotificationHandler()` and **replaces** it. That is intended: the store's handler is a superset that still shows journal reminders.\n\n- **Why it matters:** `setNotificationHandler` is process-global, so whichever project installs it from the root must handle every project's payloads. Hence the `project` discriminator on payloads (doc 00, failure mode \"Process-global state shared by accident\").\n- **What breaks otherwise:** a handler that only knows its own payloads would suppress other projects' notifications or play the wrong sound/badge.\n- **How you arrive at it:** read the import order in `_layout.tsx`, then both handlers; the docs state only one handler can be active.",
       links: [
         { title: "Expo Notifications", url: "https://docs.expo.dev/versions/latest/sdk/notifications" },
         { title: "Apple: UNUserNotificationCenterDelegate", url: "https://developer.apple.com/documentation/usernotifications/unusernotificationcenterdelegate" },
@@ -713,7 +713,7 @@ QUIZ.register({
         "Permission and token registration are session-scoped (signed-in store), not a launch-time prompt",
       ],
       explain:
-        "Both starters share process-global APIs, so each makes itself idempotent and selective.\n\n- **Dedupe:** a cold-start response can arrive via `getLastNotificationResponse()` and the listener; each keeps a `handledResponses` set keyed by identifier and action, and clears the last response.\n- **Filtering:** the journal follows only URLs under its prefix; the store acts only on payloads it can parse.\n- **Buffering:** the store parks the href with `setPendingIntent` because its session and `(app)` navigator may not be ready, then navigates to its prefix and the `(app)` layout replays it.\n- **Permission:** tied to a signed-in session (`usePushLifecycle`), not a first-launch prompt.\n\n**Doc 00 connection:** the root only listens; each project owns permission and parsing (Failure modes #11). **How you arrive at it:** read both handlers side by side and note what each skips.",
+        "Both starters share process-global APIs, so each makes itself idempotent and selective.\n\n- **Dedupe:** a cold-start response can arrive via `getLastNotificationResponse()` and the listener; each keeps a `handledResponses` set keyed by identifier and action, and clears the last response.\n- **Filtering:** the journal follows only URLs under its prefix; the store acts only on payloads it can parse.\n- **Buffering:** the store parks the href with `setPendingIntent` because its session and `(app)` navigator may not be ready, then navigates to its prefix and the `(app)` layout replays it.\n- **Permission:** tied to a signed-in session (`usePushLifecycle`), not a first-launch prompt.\n\n**Doc 00 connection:** the root only listens; each project owns permission and parsing (failure mode \"Process-global state shared by accident\"). **How you arrive at it:** read both handlers side by side and note what each skips.",
       links: [
         { title: "Expo Notifications", url: "https://docs.expo.dev/versions/latest/sdk/notifications" },
         { title: "Expo TaskManager", url: "https://docs.expo.dev/versions/latest/sdk/task-manager" },
@@ -790,7 +790,7 @@ QUIZ.register({
       type: "mcq",
       level: 3,
       topics: ["Expo Router", "Release & CI"],
-      files: ["src/app/_layout.tsx", "package.json", "AGENTS.md"],
+      files: ["src/app/_layout.tsx", "package.json", "docs/00-launcher.html"],
       prompt:
         "`package.json` no longer lists any `@react-navigation/*` package, yet the root layout still uses `ThemeProvider` and `DarkTheme`. A teammate writes `import { useHeaderHeight } from \"@react-navigation/elements\";` in a new screen. What happens, and where should the import come from?",
       choices: [
@@ -801,7 +801,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "Since SDK 56, expo-router bundles React Navigation as `expo-router/react-navigation`. The old `@react-navigation/*` entries were template leftovers, so they were removed from `package.json`; the import now fails type-checking (\"Cannot find module\") and lint. While they were installed it passed `tsc` and lint and failed only when Metro bundled, which is why AGENTS.md says a milestone is done only when both `expo export` platforms pass.\n\n- **Lesson:** removing unused packages turns a late bundle failure into an early type error.\n- **Doc 00 connection:** Routing strategy warnings, Failure modes #7, and M5 which runs the bundle export.\n- **How you arrive at it:** do the failure mode yourself and compare when each tool complains.",
+        "Since SDK 56, expo-router bundles React Navigation as `expo-router/react-navigation`. `@react-navigation/*` is not in `package.json`, so the import fails type-checking (\"Cannot find module\") and lint. If those packages were installed it would pass `tsc` and lint and fail only when Metro bundled, which is why a milestone is done only when both `expo export` platforms pass.\n\n- **Lesson:** not installing unused packages turns a late bundle failure into an early type error.\n- **Doc 00 connection:** Routing strategy warnings, the failure mode \"An @react-navigation/* import\", and M5 which runs the bundle export.\n- **How you arrive at it:** do the failure mode yourself and compare when each tool complains.",
       links: [
         { title: "Expo Router: core concepts", url: "https://docs.expo.dev/router/basics/core-concepts" },
         { title: "Expo: TypeScript", url: "https://docs.expo.dev/guides/typescript" },
@@ -812,9 +812,9 @@ QUIZ.register({
       type: "mcq",
       level: 3,
       topics: ["Architecture", "TypeScript"],
-      files: ["eslint.config.js", "tsconfig.json", "AGENTS.md"],
+      files: ["eslint.config.js", "tsconfig.json", "docs/00-launcher.html"],
       prompt:
-        "AGENTS.md's first isolation rule: nothing in `src/projects/camera-social/` may import from `src/projects/store/`. Look at `eslint.config.js`. If someone writes `import { formatMoney } from \"@/src/projects/store/utils/money\"` inside camera-social, what catches it?",
+        "The first isolation rule in doc 00: nothing in `src/projects/camera-social/` may import from `src/projects/store/`. Look at `eslint.config.js`. If someone writes `import { formatMoney } from \"@/src/projects/store/utils/money\"` inside camera-social, what catches it?",
       choices: [
         "`npm run lint`: `eslint.config.js` builds one `no-restricted-imports` block per folder in `src/projects/`, and each block rejects `@/src/(app/)?projects/<other slug>` and `../<other slug>/` imports for files in that slice",
         "`tsconfig.json` `paths` only exposes `@/src/shared/*` to project code, so `tsc` fails",

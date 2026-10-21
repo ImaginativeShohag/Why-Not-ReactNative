@@ -3,46 +3,113 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>02 · Camera &amp; Social Capture — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 02</div>
-
-<h1>02 · Camera &amp; Social Capture</h1>
-<p class="subtitle">A capture-edit-share app. Camera preview with modes, a gesture-driven photo editor, a media grid, and full inbound/outbound sharing with the OS.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html" aria-current="page"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 02</div>
+      <div class="lp-eyebrow">Project 02</div>
+      <h1>Camera &amp; Social Capture</h1>
+      <p class="subtitle">A capture-edit-share app. Camera preview with modes, a gesture-driven photo editor, a media grid, and full inbound/outbound sharing with the OS.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip green">Device I/O tier</span>
   <span class="chip amber">Needs a dev build</span>
   <span class="chip">~2–3 weeks</span>
   <span class="chip accent">Core skill: hardware, permissions, gestures</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/camera-social"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#launcher">How it sits in the launcher</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#pipeline">The media pipeline</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#launcher">How it sits in the launcher</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#pipeline">The media pipeline</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>Why this one second</strong>
   <p>Project 01 never left the sandbox. This one talks to hardware, the OS media store, and other apps — which means permissions, lifecycle, orientation, memory pressure, and platform divergence all show up at once. It's also where Reanimated stops being decoration and becomes the only way to build a 60fps editor.</p>
 </div>
 
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#ui">UI design &amp; screens</a></li>
-  <li><a href="#launcher">How it sits in the launcher</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#pipeline">The media pipeline</a></li>
-  <li><a href="#milestones">Build order (milestones)</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
-</ul>
-
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end you will have built, in <code>src/projects/camera-social/</code> and <code>src/app/projects/camera-social/</code>, a complete capture-edit-share app that you can compare against the working tree at every milestone. Each objective below maps to a milestone further down, and to a bank of search-the-code questions in <code>docs/training/</code>.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>Camera control</td><td>Preview, front/back, flash, torch, zoom, tap-to-focus, photo + video modes, barcode scanning.</td></tr>
@@ -58,7 +125,7 @@
 <tr><td>Persistence</td><td>A project-owned SQLite file with <code>PRAGMA user_version</code> migrations, relative file paths, and a hand-rolled live query driven by database change events.</td></tr>
 <tr><td>Testable architecture</td><td>Pure modules (operation reducer, crop math, history, link rewriter, trim policy, settings patching) with dependency-injected native calls, covered by Jest.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h2 id="ui">UI design &amp; screens</h2>
 
@@ -74,7 +141,7 @@
 
 <p>All routes are relative to <code>/projects/camera-social</code>.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>/(tab)/</code></td><td>Feed</td><td>Your captures as a two-column masonry; tap for the viewer.</td></tr>
@@ -85,7 +152,7 @@
 <tr><td><code>/share-inbound</code></td><td>Inbound share</td><td>A modal where content shared <em>into</em> your app lands: Add to feed, Edit, or Discard.</td></tr>
 <tr><td><code>/(tab)/profile</code></td><td>Profile</td><td>Stats, storage usage, capture settings, delete-all.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <div class="warn">
   <strong>Deep links carry the project prefix</strong>
@@ -185,7 +252,7 @@
 
 <p>This project is one vertical slice inside a launcher app that holds six isolated sample projects. Nothing in the launcher knows about camera features, and nothing here reaches into another project. The rules that shape the code:</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Concern</th><th>Where it lives</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td>Registry</td><td>An entry with slug <code>camera-social</code> in <code>src/shared/config/projects.ts</code></td><td>The launcher list and the root <code>Stack.Screen</code> (<code>projects/camera-social</code>, <code>headerShown: false</code>) are generated from it.</td></tr>
@@ -197,7 +264,7 @@
 <tr><td>External URLs</td><td><code>src/app/+native-intent.tsx</code> calls the pure <code>rewriteCameraSocialPath</code></td><td>The launcher owns the root, so every project supplies a pure rewriter and the first match wins.</td></tr>
 <tr><td>Isolation</td><td>ESLint <code>no-restricted-imports</code></td><td>No imports from other projects. The root layout and <code>+native-intent</code> are the composition root and may import one entry point per project.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <p>Two consequences for you as the builder. First, <code>useInboundShareRouting</code> is the one piece of this project that is mounted <em>outside</em> its layout, so it must depend on nothing the layout provides (no <code>useSQLiteContext</code>). Second, the Profile tab stays mounted underneath the camera modal, so any state both screens read must be shared, not per-hook (this is why settings live in a Zustand store).</p>
 
@@ -482,7 +549,7 @@ EXPORT    (utils/shareOut.ts)
 
 <p>These are the packages and call shapes the working project uses. Always confirm the current signatures in the official docs (the links on each row of the quiz bank point there) before copying — SDK 57 changed several of these APIs.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
 <tr><td>Camera</td><td><code>expo-camera</code></td><td><code>CameraView</code>, <code>useCameraPermissions</code>, <code>useMicrophonePermissions</code> (each returns <code>[permission, request, get]</code>). Props: <code>facing</code> <code>flash</code> <code>enableTorch</code> <code>zoom</code> (linear 0..1) <code>mode</code> (<code>"picture"</code> | <code>"video"</code>) <code>mute</code> <code>autofocus</code> <code>active</code> (iOS only) <code>selectedLens</code> <code>barcodeScannerSettings</code>. Callbacks: <code>onCameraReady</code> <code>onBarcodeScanned</code> <code>onMountError</code> <code>onAvailableLensesChanged</code>. Ref: <code>takePictureAsync({ quality, exif, shutterSound })</code>, <code>recordAsync({ maxDuration })</code> (resolves with <code>{ uri }</code> when stopped), <code>stopRecording()</code>. Photos and videos land in the cache directory.</td></tr>
@@ -505,7 +572,7 @@ EXPORT    (utils/shareOut.ts)
 <tr><td>Haptics</td><td><code>expo-haptics</code></td><td><code>Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)</code>.</td></tr>
 <tr><td>Orientation</td><td><code>expo-camera</code> (built in)</td><td>With the app orientation locked, <code>responsiveOrientationWhenOrientationLocked</code> and <code>onResponsiveOrientationChanged</code> tell you the device orientation so you can rotate overlay icons without unlocking. <code>expo-screen-orientation</code> is the general tool if you need to lock or unlock yourself.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h2 id="pitfalls">Failure modes to experience deliberately</h2>
 
@@ -541,8 +608,16 @@ EXPORT    (utils/shareOut.ts)
   <a href="03-commerce-platform.html">Project 03 · Commerce →</a>
 </div>
 
-<footer>Project 02 · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 02 · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

@@ -3,49 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>04 · Background Fitness Tracker — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 04</div>
-
-<h1>04 · Background Fitness Tracker</h1>
-<p class="subtitle">The project that pushes you past the JavaScript boundary: background geolocation, sensors, Android foreground services, a hand-written config plugin, a local Expo Module in Swift and Kotlin, an iOS Live Activity with an Android ongoing-notification counterpart, and home-screen widgets on both platforms.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html" aria-current="page"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 04</div>
+      <div class="lp-eyebrow">Project 04</div>
+      <h1>Background Fitness Tracker</h1>
+      <p class="subtitle">The project that pushes you past the JavaScript boundary: background geolocation, sensors, Android foreground services, a hand-written config plugin, a local Expo Module in Swift and Kotlin, an iOS Live Activity with an Android ongoing-notification counterpart, and home-screen widgets on both platforms.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip red">Native tier</span>
   <span class="chip red">Physical devices required</span>
   <span class="chip">~4–6 weeks</span>
   <span class="chip accent">Core skill: CNG, config plugins, native modules</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/fitness-tracker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#native">The native layer: CNG, plugins, modules</a></li>
+      <li><a href="#tracking">Tracking pipeline &amp; battery</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#verify">Verification &amp; tests</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#decisions">Architecture decisions</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#native">The native layer: CNG, plugins, modules</a></li>
+      <li><a href="#tracking">Tracking pipeline &amp; battery</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#verify">Verification &amp; tests</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#decisions">Architecture decisions</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>Why this one fourth — and why it's the most valuable</strong>
   <p>Everything so far stayed inside the JS sandbox. This project cannot. Reliable background tracking needs platform capabilities, entitlements, foreground-service declarations, and eventually your own native code. This is where you learn what <code>npx expo prebuild</code> actually does, how a config plugin mutates the native project, and how to write an Expo Module — the skills that separate "I use Expo" from "I understand Expo".</p>
 </div>
-
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#ui">UI design &amp; screens</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#native">The native layer: CNG, plugins, modules</a></li>
-  <li><a href="#tracking">Tracking pipeline &amp; battery</a></li>
-  <li><a href="#milestones">Build order (milestones)</a></li>
-  <li><a href="#verify">Verification &amp; tests</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#restructuring">Restructuring notes</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
-</ul>
 
 <h2 id="objectives">Learning objectives</h2>
 
 <p>You will build a workout recorder that keeps recording with the screen off and the app suspended, survives being killed mid-run, and shows live progress on the lock screen, in a notification and on the home screen. The finished system lives in four places: <code>src/projects/fitness-tracker/</code> (the app slice), <code>src/app/projects/fitness-tracker/</code> (routes), <code>modules/live-activity/</code> (the local Expo Module) and <code>plugins/</code> (the hand-written config plugin and the widget extension sources). Read this page top to bottom once, then build it milestone by milestone; every milestone ends with a checkpoint you can run.</p>
 <p><strong>Prerequisites:</strong> Projects 01–03 (Expo Router, SQLite, Zustand/TanStack basics), a Mac with Xcode for the iOS half, an Android device or emulator for the Android half, and at least one physical phone: simulators fake GPS and have no real sensors.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>Continuous Native Generation</td><td>Delete <code>ios/</code> and <code>android/</code>, regenerate them from config, and never hand-edit them again.</td></tr>
@@ -63,7 +132,7 @@
 <tr><td>Health integration</td><td>Write workouts (with route) to Apple HealthKit and Health Connect, and read heart-rate samples back.</td></tr>
 <tr><td>Battery discipline</td><td>Measure real consumption and tune accuracy/interval trade-offs against it.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h2 id="ui">UI design &amp; screens</h2>
 
@@ -80,7 +149,7 @@
 
 <p>All routes are relative to <code>/projects/fitness-tracker</code>.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>/(tab)/</code></td><td>Today</td><td>Rings/goals, step count, recent activity, weekly streak.</td></tr>
@@ -91,7 +160,7 @@
 <tr><td><code>/workout/[id]</code></td><td>Workout detail</td><td>Full map, splits table, charts, share card, export GPX.</td></tr>
 <tr><td><code>/settings/permissions</code></td><td>Permissions</td><td>A dedicated screen — this app needs four separate grants.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Wireframes</h3>
 
@@ -334,19 +403,19 @@
 
 <h3>Step 1 — Understand CNG</h3>
 <p>This repo takes the CNG decision for you: <code>/ios</code> and <code>/android</code> are both gitignored, so nothing native is tracked. Know what that commits you to:</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Approach</th><th>Meaning</th><th>Trade-off</th></tr></thead>
 <tbody>
 <tr><td><strong>CNG (what this repo does)</strong></td><td><code>ios/</code> and <code>android/</code> are gitignored and regenerated by <code>npx expo prebuild --clean</code>.</td><td>All native changes must be expressible as config plugins. Upgrades are trivial.</td></tr>
 <tr><td>Committed native</td><td>You edit Xcode/Gradle directly.</td><td>Full freedom, but SDK upgrades become manual merges and you lose the main reason to use Expo.</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>Stay on the CNG path. Anything you can't do with a plugin becomes the motivation to write one — and any local <code>android/</code> folder on your disk is disposable output that the next prebuild will overwrite.</p>
 
 <h3>Step 2 — Write a config plugin by hand</h3>
 <p>Don't just install someone's plugin — author one. A plugin is a function <code>(config) =&gt; config</code> composed of <em>mods</em>:</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Mod</th><th>What it edits</th><th>Use it here for</th></tr></thead>
 <tbody>
 <tr><td><code>withInfoPlist</code></td><td>ios/…/Info.plist</td><td><code>UIBackgroundModes: [location]</code>, <code>NSSupportsLiveActivities</code> (frequent updates off: updates are local and throttled), usage strings, and a <code>WorkoutAppGroup</code> key that Swift reads so app and widget cannot disagree about the group</td></tr>
@@ -356,7 +425,7 @@
 <tr><td><code>withXcodeProject</code></td><td>project.pbxproj</td><td>Add the <code>WorkoutWidget</code> app-extension target, its build phases and build settings, and the embed/dependency on the app target</td></tr>
 <tr><td><code>withDangerousMod</code></td><td>arbitrary filesystem</td><td>Copy Swift widget sources, the extension <code>Info.plist</code> and its entitlements file into <code>ios/WorkoutWidget</code>. Use sparingly: it is the escape hatch, it runs before the other mods and is not guaranteed idempotent.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <pre><code>// shape of the plugin (plugins/withWorkoutCapabilities.js)
 withWorkoutCapabilities(config, { appGroup })        // throws unless appGroup starts "group."
@@ -390,7 +459,7 @@ Test loop:
 <h3>Step 3 — Write a local Expo Module</h3>
 <pre><code>npx create-expo-module@latest --local</code></pre>
 <p>Modules under <code>modules/</code> are autolinked through <code>expo-module.config.json</code> (<code>apple.modules</code> lists the Swift class, <code>android.modules</code> the fully qualified Kotlin class). No <code>plugins</code> entry is involved. Then implement:</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Concept</th><th>Swift side</th><th>Kotlin side</th></tr></thead>
 <tbody>
 <tr><td>Module definition</td><td><code>ModuleDefinition { Name(...) }</code></td><td>same DSL in Kotlin</td></tr>
@@ -402,7 +471,7 @@ Test loop:
 <tr><td>JS not listening</td><td>The action stays in <code>UserDefaults</code> until <code>consumePendingAction()</code></td><td>The receiver parks it in SharedPreferences until <code>consumePendingAction()</code></td></tr>
 <tr><td>Widget data</td><td><code>setWidgetData(json)</code> writes the App Group and calls <code>WidgetCenter.reloadAllTimelines()</code></td><td><code>setWidgetData(json)</code> writes SharedPreferences and updates the <code>RemoteViews</code> widget</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>The JS side exposes one clean interface — <code>startLiveActivity(attrs, state)</code>, <code>updateLiveActivity(state)</code>, <code>endLiveActivity(state, dismissImmediately)</code>, <code>addActionListener</code>, <code>consumePendingAction</code>, <code>setWidgetData</code> — and each platform implements it its own way. That asymmetry is the lesson. Load the native module with <code>requireOptionalNativeModule</code> so that Expo Go, web and Jest get <code>null</code> and every wrapper degrades to a no-op instead of throwing at import time.</p>
 <p>Send a <code>timerStart</code> instant, not a per-second <code>elapsedSec</code>: <code>Text(timerInterval:)</code> on iOS and <code>setUsesChronometer(true).setWhen(timerStart)</code> on Android tick natively, so JS only pushes when distance, pace or status change.</p>
 
@@ -426,7 +495,7 @@ Test loop:
 <p>Rolling totals exist only for the live UI. <code>stopWorkout</code> recomputes distance, moving time, elevation, splits, calories and the thumbnail from the persisted points with the same pure functions the tests cover, so any drift in the incremental path never reaches history.</p>
 
 <h3>Configuration trade-offs to measure yourself</h3>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Setting</th><th>Accurate mode</th><th>Battery-saver mode</th></tr></thead>
 <tbody>
 <tr><td>Accuracy</td><td><code>BestForNavigation</code></td><td><code>Balanced</code></td></tr>
@@ -436,8 +505,8 @@ Test loop:
 <tr><td>Both modes</td><td colspan="2"><code>activityType: Fitness</code>, <code>pausesUpdatesAutomatically: false</code> (iOS would otherwise pause exactly when auto-pause needs to see you start again), <code>showsBackgroundLocationIndicator</code>, and a foreground service with <code>killServiceOnDestroy: false</code> so a swipe from recents does not end the recording.</td></tr>
 <tr><td>Typical drain</td><td>measure it</td><td>measure it</td></tr>
 </tbody>
-</table>
-<p>Run the same 30-minute route in both modes, record battery delta and route quality, and put the numbers in your lessons file. That measurement <em>is</em> the deliverable for this section.</p>
+</table></div>
+<p>Run the same 30-minute route in both modes, record battery delta and route quality, and write the numbers down. That measurement <em>is</em> the deliverable for this section.</p>
 
 <h3>Platform reality check</h3>
 <ul>
@@ -563,7 +632,7 @@ npx jest --no-watchman src/projects/fitness-tracker   # unit tests
 npx expo export --platform ios --output-dir /tmp/out  # bundle check
 npx expo export --platform android --output-dir /tmp/out
 npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugin landed?)</code></pre>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Test file</th><th>What it pins</th></tr></thead>
 <tbody>
 <tr><td><code>metrics.test.ts</code></td><td>Distance, pace, elevation hysteresis, splits and simplification against known values and the recorded GPX.</td></tr>
@@ -572,14 +641,14 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
 <tr><td><code>controller.test.ts</code></td><td>Recovery waits for an in-flight <code>startWorkout</code> instead of deleting its row as an orphan; real orphans are still discarded.</td></tr>
 <tr><td><code>configPlugin.test.ts</code></td><td>iOS/Android mods land, the wrapper is run-once, each mod is idempotent, a duplicated App Group collapses, a bad App Group fails fast.</td></tr>
 </tbody>
-</table>
-<p>Device-only checks (they cannot be unit tested): the background walk with the screen off, a force-kill mid-workout, the Live Activity Pause button, the widget after <code>prebuild --clean</code>, and a battery comparison between the two tracking modes. Record the numbers in <code>.agents/lessons/_learned.md</code>.</p>
+</table></div>
+<p>Device-only checks (they cannot be unit tested): the background walk with the screen off, a force-kill mid-workout, the Live Activity Pause button, the widget after <code>prebuild --clean</code>, and a battery comparison between the two tracking modes. Write the numbers down.</p>
 
 <h2 id="libraries">Library hints</h2>
 
 <p>Check each package's current docs before coding (the API surfaces below are what the finished app uses on Expo SDK 57):</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
 <tr><td>Location</td><td><code>expo-location</code></td><td><code>requestForegroundPermissionsAsync</code>, <code>requestBackgroundPermissionsAsync</code>, <code>watchPositionAsync</code>, <code>getForegroundPermissionsAsync</code>, <code>getBackgroundPermissionsAsync</code>, <code>startLocationUpdatesAsync(taskName, {accuracy, distanceInterval, timeInterval, deferredUpdatesDistance, deferredUpdatesInterval, activityType, foregroundService: {notificationTitle, notificationBody, killServiceOnDestroy}, pausesUpdatesAutomatically, showsBackgroundLocationIndicator})</code>, <code>hasStartedLocationUpdatesAsync</code>, <code>stopLocationUpdatesAsync</code>. Config plugin flags: <code>isIosBackgroundLocationEnabled</code>, <code>isAndroidBackgroundLocationEnabled</code>, <code>isAndroidForegroundServiceEnabled</code>.</td></tr>
@@ -598,7 +667,7 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
 <tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>openDatabaseAsync(name, { enableChangeListener: true })</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code>. WAL mode matters more here — you're writing from a background context while the UI reads.</td></tr>
 <tr><td>Battery</td><td><code>expo-battery</code></td><td><code>getBatteryLevelAsync</code>, <code>isLowPowerModeEnabledAsync</code> — stored on each workout (start and end) so you can correlate drain with the tracking mode.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <div class="warn">
   <strong>Expo Go cannot run this project at all</strong>
@@ -626,7 +695,7 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
   <li><strong>Foreground service killed on swipe.</strong> <code>killServiceOnDestroy: true</code> ends recording when the user swipes the app away; the final config keeps it false and relies on persisted state for the rest.</li>
 </ol>
 
-<h2 id="restructuring">Restructuring notes</h2>
+<h2 id="decisions">Architecture decisions</h2>
 <p>Decisions that look like clutter until a background launch breaks without them:</p>
 <ul>
   <li><strong>The task is defined from the root layout.</strong> A project layout only loads after the user opens the project, but the OS can relaunch the app headless to deliver locations. <code>src/app/_layout.tsx</code> imports <code>tracking/task.ts</code> (and calls <code>startPendingActionReplay()</code>) at module scope; the fitness <code>_layout.tsx</code> only builds the Stack. Journal and podcast follow the same rule for their own tasks.</li>
@@ -654,8 +723,16 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
   <a href="05-podcast-player.html">Project 05 · Podcast →</a>
 </div>
 
-<footer>Project 04 · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 04 · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

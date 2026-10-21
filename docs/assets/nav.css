@@ -1,0 +1,118 @@
+/* Why-Not-ReactNative — shared top navigation for every docs page and the training quiz.
+   It reads the host page's tokens: the docs names (--bg-soft, --accent, …) or, when those are
+   missing, the quiz names (--surface-3, --brand, …). Theme: [data-theme] on <html>, set before
+   first paint by each page's inline script and toggled by nav.js. */
+
+:root {
+  --nav-bg: var(--bg);
+  --nav-soft: var(--bg-soft, var(--surface-3));
+  --nav-card: var(--bg-card, var(--surface-solid));
+  --nav-line: var(--border-soft, var(--border));
+  --nav-border: var(--border);
+  --nav-accent: var(--accent, var(--brand));
+  --nav-accent-soft: var(--accent-soft, var(--brand-soft));
+}
+
+.skip {
+  position: absolute; left: 12px; top: -48px; z-index: 100;
+  background: var(--nav-accent); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem;
+}
+.skip:focus { top: 12px; text-decoration: none; }
+
+.topnav {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--nav-bg) 82%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--nav-line);
+}
+.topnav-in {
+  max-width: 1240px; margin: 0 auto; height: 60px; padding: 0 24px;
+  display: flex; align-items: center; gap: 14px;
+}
+.topnav a { text-decoration: none; }
+.topnav svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.topnav svg.solid { fill: currentColor; stroke: none; }
+
+.tn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px 0 9px; border-radius: 9px;
+  border: 1px solid var(--nav-border); color: var(--fg-dim); font-size: 0.85rem; font-weight: 550;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.tn-back:hover { color: var(--fg); border-color: var(--fg-faint); background: var(--nav-soft); }
+
+.tn-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); font-weight: 650; letter-spacing: -0.01em; font-size: 0.95rem; }
+.tn-brand:hover { color: var(--fg); }
+.tn-logo {
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(135deg, #6366f1, #22d3ee); box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+}
+.tn-logo svg { width: 15px; height: 15px; stroke: #fff; stroke-width: 3; }
+
+.tn-links { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.tn-links > a, .tn-menu > summary {
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 11px; border-radius: 9px;
+  color: var(--fg-dim); font-size: 0.88rem; font-weight: 550; cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+.tn-links > a:hover, .tn-menu > summary:hover, .tn-menu[open] > summary { color: var(--fg); background: var(--nav-soft); }
+.tn-links > a[aria-current="page"] { color: var(--fg); background: var(--nav-accent-soft); }
+
+.tn-menu { position: relative; }
+.tn-menu > summary { list-style: none; }
+.tn-menu > summary::-webkit-details-marker { display: none; }
+.tn-menu > summary .chev { width: 14px; height: 14px; transition: transform 0.15s; }
+.tn-menu[open] > summary .chev { transform: rotate(180deg); }
+.tn-pop {
+  position: absolute; right: 0; top: calc(100% + 8px); width: 300px; padding: 6px;
+  background: var(--nav-card); border: 1px solid var(--nav-border); border-radius: 12px;
+  box-shadow: 0 18px 48px -16px rgba(0, 0, 0, 0.45);
+}
+.tn-pop a {
+  display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 2px 10px;
+  padding: 8px 10px; border-radius: 8px; color: var(--fg); font-size: 0.88rem; font-weight: 550;
+}
+.tn-pop a:hover { background: var(--nav-soft); }
+.tn-pop a[aria-current="page"] { background: var(--nav-accent-soft); }
+.tn-pop .n { grid-row: span 2; font-family: var(--mono); font-size: 0.72rem; color: var(--nav-accent); border: 1px solid var(--nav-border); border-radius: 7px; height: 30px; display: grid; place-items: center; }
+.tn-pop small { color: var(--fg-faint); font-weight: 450; font-size: 0.76rem; }
+.tn-pop hr { margin: 6px 4px; }
+
+.tn-theme {
+  display: inline-grid; place-items: center; width: 36px; height: 36px; margin-left: 4px; padding: 0;
+  border-radius: 9px; border: 1px solid var(--nav-border); background: transparent; color: var(--fg-dim);
+  cursor: pointer; font: inherit; transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.tn-theme:hover { color: var(--fg); background: var(--nav-soft); }
+.tn-theme .sun { display: none; }
+:root[data-theme="dark"] .tn-theme .sun { display: block; }
+:root[data-theme="dark"] .tn-theme .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .tn-theme .sun { display: block; }
+  :root:not([data-theme]) .tn-theme .moon { display: none; }
+}
+
+@media (max-width: 760px) {
+  .topnav-in { padding: 0 12px; gap: 8px; }
+  .tn-back .lbl, .tn-brand .lbl, .tn-links .lbl { display: none; }
+  .tn-back { padding: 0 9px; }
+  .tn-links > a, .tn-menu > summary { padding: 0 9px; }
+  .tn-pop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
+}
+@media print { .topnav { display: none; } }
+
+/* Tablets: never wrap nav labels; drop the brand name, then the Back label, before anything wraps. */
+.tn-links > a, .tn-menu > summary, .tn-back, .tn-brand { white-space: nowrap; }
+@media (max-width: 1100px) { .tn-brand .lbl { display: none; } }
+@media (max-width: 900px) { .tn-back .lbl { display: none; } .tn-back { padding: 0 9px; } }
+
+/* Phones in landscape: a short screen, so the sticky bar gets slimmer. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .topnav-in { height: 48px; }
+  .tn-links > a, .tn-menu > summary { height: 32px; }
+  .tn-back, .tn-theme { height: 32px; }
+  .tn-theme { width: 32px; }
+  .tn-logo { width: 26px; height: 26px; }
+  .tn-pop { top: 52px; max-height: calc(100vh - 60px); overflow-y: auto; }
+}

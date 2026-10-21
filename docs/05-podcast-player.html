@@ -3,27 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>05 · Podcast Player &amp; Release Pipeline — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 05</div>
-
-<h1>05 · Podcast Player &amp; Release Pipeline</h1>
-<p class="subtitle">Build a podcast app with background audio, lock-screen controls and resumable offline downloads, then ship it the way a real team would: EAS Build profiles, EAS Update channels, fingerprint runtime versions, staged rollouts, rollback, Maestro e2e tests and CI/CD.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html" aria-current="page"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 05</div>
+      <div class="lp-eyebrow">Project 05</div>
+      <h1>Podcast Player &amp; Release Pipeline</h1>
+      <p class="subtitle">Build a podcast app with background audio, lock-screen controls and resumable offline downloads, then ship it the way a real team would: EAS Build profiles, EAS Update channels, fingerprint runtime versions, staged rollouts, rollback, Maestro e2e tests and CI/CD.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip pink">Ship-it tier</span>
   <span class="chip">EAS + CI</span>
   <span class="chip">~4 weeks</span>
   <span class="chip accent">Core skill: audio session + release engineering</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/podcast-player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#audio">Audio session model</a></li>
+      <li><a href="#downloads">Download manager</a></li>
+      <li><a href="#release">Release engineering</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#decisions">Architecture decisions</a></li>
+      <li><a href="#stretch">Next steps &amp; stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#audio">Audio session model</a></li>
+      <li><a href="#downloads">Download manager</a></li>
+      <li><a href="#release">Release engineering</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#decisions">Architecture decisions</a></li>
+      <li><a href="#stretch">Next steps &amp; stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>How to use this brief</strong>
-  <p>This page is a tutorial: read a section, build the matching milestone yourself in <code>src/projects/podcast-player/</code> and <code>src/app/projects/podcast-player/</code>, then compare with the working code. Every milestone ends with a <em>checkpoint</em> (what you should observe) and a <em>verify</em> line (a command or a file to open). Pair it with the quiz bank in <code>docs/training/</code> to practise finding the answers in the real code, and with <a href="release-05.html">the release runbook</a> for the exact commands.</p>
+  <p>This page is a tutorial: read a section, build the matching milestone yourself in <code>src/projects/podcast-player/</code> and <code>src/app/projects/podcast-player/</code>, then compare with the working code. Every milestone ends with a <em>checkpoint</em> (what you should observe) and a <em>verify</em> line (a command or a file to open). Pair it with the quiz bank in <code>docs/training/</code> to practise finding the answers in the real code, and with <a href="05-release.html">the release runbook</a> for the exact commands.</p>
 </div>
 
 <div class="note">
@@ -31,25 +114,11 @@
   <p>Two reasons. First, audio is the hardest media type to get right — interruptions, route changes, remote commands, and background sessions all have to work or the app is unusable. Second, by now you have four apps and zero release experience. This project is where you learn to ship: build profiles, over-the-air updates, percentage rollouts, rollback, and the runtime-version rules that decide whether an OTA update is even legal.</p>
 </div>
 
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#ui">UI design &amp; screens</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#audio">Audio session model</a></li>
-  <li><a href="#downloads">Download manager</a></li>
-  <li><a href="#release">Release engineering</a></li>
-  <li><a href="#milestones">Build order (milestones)</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#restructuring">Restructuring notes</a></li>
-  <li><a href="#stretch">Next steps &amp; stretch goals</a></li>
-</ul>
-
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end of this project you can: keep audio playing across navigation, backgrounding and interruptions; persist listening position and a queue without hammering the database; download large files resumably and survive a killed app; parse messy real-world RSS defensively; and take a JS fix from a pull request to a tester's phone without a store review, knowing exactly when an OTA is and isn't legal.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>Audio session</td><td>Background playback, silent-mode behaviour, interruption handling, ducking, audio-route changes, and mixing policy.</td></tr>
@@ -64,7 +133,7 @@
 <tr><td>E2E testing</td><td>Maestro flows that take the app id as a parameter and run against a real build on Maestro Cloud.</td></tr>
 <tr><td>Store readiness</td><td>Privacy manifest required-reason APIs, data-safety answers, screenshots from Maestro, review notes, phased release.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h2 id="ui">UI design &amp; screens</h2>
 
@@ -80,7 +149,7 @@
 
 <p>All routes are relative to <code>/projects/podcast-player</code>.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>/(tab)/</code></td><td>Home</td><td>Continue listening, new episodes, subscriptions grid.</td></tr>
@@ -92,7 +161,7 @@
 <tr><td><code>/player</code></td><td>Now playing</td><td>Full-screen player, presented as a modal over everything.</td></tr>
 <tr><td><code>/settings</code></td><td>Settings</td><td>Playback defaults, download rules, storage, build info (channel, runtime version, update id) and channel surfing (non-production variants only). Opened from the Home header.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Wireframes</h3>
 
@@ -287,7 +356,7 @@
 
 <h3>Data model (SQLite, one migration)</h3>
 <p>The podcast database is its own file, opened lazily by <code>db/client.ts</code> because the playback service, the download manager and the background task all run with no React tree. <code>migrate()</code> enables WAL and foreign keys, then applies forward-only steps keyed on <code>PRAGMA user_version</code>, each inside a transaction. Append new steps; never edit one that has shipped.</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Table</th><th>Holds</th><th>Detail worth copying</th></tr></thead>
 <tbody>
 <tr><td><code>podcasts</code></td><td>Feed, subscription flag, auto-download flag</td><td><code>etag</code> / <code>last_modified</code> validators for conditional GET; partial index on subscribed rows.</td></tr>
@@ -296,7 +365,7 @@
 <tr><td><code>downloads</code></td><td>State machine, attempts, <code>next_attempt_at</code>, <code>snapshot</code> (JSON)</td><td><code>relative_path</code> only, "NEVER an absolute URI".</td></tr>
 <tr><td><code>queue</code>, <code>kv</code></td><td>Up-next order; the resumable session</td><td>The playing episode is never in the queue.</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>User preferences are the exception: they live in a persisted Zustand store (<code>stores/settingsStore.ts</code>, AsyncStorage key <code>podcast-player/settings</code>) because they are tiny and the singletons need a <em>synchronous</em> <code>getSettings()</code>. The price is that it returns defaults until hydration finishes, so the headless background task awaits <code>ensureSettingsHydrated()</code> first.</p>
 
 <h3>Query keys and live state</h3>
@@ -306,7 +375,7 @@
 
 <p>Configure the session once, early (<code>PlaybackService.init()</code>, started from the project layout and idempotent), and understand each flag rather than copying a snippet:</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Concern</th><th>Setting</th><th>What it decides</th></tr></thead>
 <tbody>
 <tr><td>Silent switch</td><td><code>playsInSilentMode: true</code></td><td>Whether iOS's mute switch silences you. A podcast app must be <code>true</code>.</td></tr>
@@ -315,7 +384,7 @@
 <tr><td>Lock screen</td><td><code>player.setActiveForLockScreen(true, metadata, { showSeekForward, showSeekBackward })</code></td><td>Shows artwork, title, artist and wires the remote controls. On Android it is also what keeps audio alive past roughly 3 minutes in the background. The skip interval on these surfaces is fixed natively; the in-app 15/30/45 s setting does not reach them, and next/previous are disabled, so auto-advance happens on <code>didJustFinish</code>.</td></tr>
 <tr><td>Recording</td><td><code>allowsRecording: false</code></td><td>Not needed here, and the plugin is configured with <code>microphonePermission: false</code>. Enabling recording changes output routing on iOS.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Events you must handle (and who handles them)</h3>
 <pre><code>INTERRUPTION BEGAN     (phone call, Siri, alarm, another app)
@@ -391,18 +460,18 @@ STORAGE
 
 <h2 id="release">Release engineering</h2>
 
-<p>This half of the project has no UI. It is the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday." The exact commands are in <code>docs/release-05.html</code>; this section is the mental model.</p>
+<p>This half of the project has no UI. It is the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday." The exact commands are in <code>docs/05-release.html</code>; this section is the mental model.</p>
 
 <h3>Build profiles and app variants</h3>
 <p><code>eas.json</code> defines four profiles; each sets <code>APP_VARIANT</code> in its build <code>env</code>, and <code>app.config.ts</code> turns the variant into a distinct bundle id and name so all three install side by side.</p>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Profile</th><th>Distribution</th><th>Channel</th><th>Variant / id</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>development</code></td><td>internal, dev client, iOS simulator</td><td><code>development</code></td><td><code>development</code> / <code>….dev</code></td><td>Daily work with hot reload. <code>development-device</code> extends it for a physical iOS device.</td></tr>
 <tr><td><code>preview</code></td><td>internal (ad-hoc / APK)</td><td><code>preview</code></td><td><code>preview</code> / <code>….preview</code></td><td>Release-mode build for testers; catches things dev mode hides. CI's Maestro job builds this as an APK.</td></tr>
 <tr><td><code>production</code></td><td>store, <code>autoIncrement</code></td><td><code>production</code></td><td><code>production</code> / base id</td><td>What users get. <code>cli.appVersionSource</code> is <code>remote</code>.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Channels, branches, and runtime versions: the mental model</h3>
 <pre><code>BUILD  ──has──►  channel  (baked into the binary at build time: "production")
@@ -600,7 +669,7 @@ fingerprint.yml   nightly + manual
 
 <p>Check the current API before copying: the SDK 57 <code>expo-file-system</code> download API, for example, is the object-based <code>DownloadTask</code>, not the legacy <code>createDownloadResumable</code>.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
 <tr><td>Audio</td><td><code>expo-audio</code></td><td><code>createAudioPlayer(source, { updateInterval })</code> for the singleton (<code>useAudioPlayer</code> is for component-owned players), <code>player.addListener("playbackStatusUpdate", …)</code>, <code>setAudioModeAsync({playsInSilentMode, shouldPlayInBackground, interruptionMode, allowsRecording})</code>, <code>player.setActiveForLockScreen(true, {title, artist, albumTitle, artworkUrl}, {showSeekForward, showSeekBackward})</code>, <code>player.replace</code>, <code>player.seekTo</code>, <code>player.setPlaybackRate</code>. Plugin option: <code>enableBackgroundPlayback</code>.</td></tr>
@@ -619,7 +688,7 @@ fingerprint.yml   nightly + manual
 <tr><td>E2E</td><td>Maestro</td><td>YAML flows, <code>appId: ${APP_ID}</code> parameter, <code>testID</code> selectors, <code>takeScreenshot</code>; Maestro Cloud via <code>mobile-dev-inc/action-maestro-cloud</code>.</td></tr>
 <tr><td>CI</td><td>GitHub Actions or EAS Workflows</td><td>This repo uses GitHub Actions with <code>expo/expo-github-action@v8</code>; EAS Workflows (<code>.eas/workflows/*.yml</code>) is the EAS-native alternative.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Official documentation</h3>
 <ul>
@@ -648,8 +717,8 @@ fingerprint.yml   nightly + manual
   <li><strong>Unbounded storage.</strong> <em>Shows up as:</em> a full device after subscribing to a 500-episode show. <em>Handled by:</em> at most 2 auto-downloads per show per refresh, none on the first sync, and a cap that evicts only played episodes.</li>
 </ol>
 
-<h2 id="restructuring">Restructuring notes</h2>
-<p>These are the decisions that changed the shape of the code as the project grew. Make them early and the milestones stay small.</p>
+<h2 id="decisions">Architecture decisions</h2>
+<p>These decisions shape the code. Make them early and the milestones stay small.</p>
 <ul>
   <li><strong>Containers vs components.</strong> Components receive plain data and callbacks. The few files that must subscribe on their own live in <code>containers/</code>: <code>MiniPlayerHost</code> (player store + service), <code>LiveEpisodeRow</code> and <code>LiveTransferRow</code> (per-row download subscription). The folder makes the rule checkable: nothing in <code>components/</code> imports a store or a service. High-frequency values (playback position) are passed as a slot (<code>progressBar</code> holding <code>NowPlayingProgress</code>) so only the bar re-renders.</li>
   <li><strong>Mini-player host in the project layout.</strong> Scopes it to the project and hides it under the launcher. Because it sits outside the tab layout, the tab bar height is a shared constant (<code>constants/layout.ts</code>) and the host uses <code>useSegments()</code> to dock above the tabs or above the safe area.</li>
@@ -683,8 +752,16 @@ fingerprint.yml   nightly + manual
   <a href="06-tic-tac-toe.html">Project 06 · Tic-Tac-Toe →</a>
 </div>
 
-<footer>Project 05 · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 05 · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

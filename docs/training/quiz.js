@@ -619,23 +619,44 @@
 
   // ---------- theme ----------
 
+  // The theme is site-wide: localStorage["wnrn-theme"] is shared with every docs
+  // page and the theme button in the top nav (../assets/nav.js). Missing means
+  // "follow the system".
+  const THEME_KEY = "wnrn-theme";
+
+  function storedTheme() {
+    try {
+      const t = localStorage.getItem(THEME_KEY);
+      return t === "light" || t === "dark" ? t : "system";
+    } catch {
+      return "system";
+    }
+  }
+
   function applyTheme() {
-    const t = state.settings.theme;
+    const t = storedTheme();
+    state.settings.theme = t;
     document.documentElement.dataset.theme =
       t === "light" || t === "dark" ? t : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   }
 
   function setTheme(theme) {
-    state.settings.theme = theme;
-    save();
-    const swap = () => {
-      applyTheme();
-      renderTopbar(parseRoute());
-      const select = app.querySelector('[data-setting="theme"]');
-      if (select) select.value = theme;
-    };
-    if (document.startViewTransition && !reducedMotion()) document.startViewTransition(swap);
-    else swap();
+    if (window.WNRN_THEME) {
+      window.WNRN_THEME.set(theme); // applies it and fires "wnrn-themechange"
+      return;
+    }
+    try {
+      if (theme === "light" || theme === "dark") localStorage.setItem(THEME_KEY, theme);
+      else localStorage.removeItem(THEME_KEY);
+    } catch {}
+    applyTheme();
+    syncThemeSelect();
+  }
+
+  function syncThemeSelect() {
+    state.settings.theme = storedTheme();
+    const select = app.querySelector('[data-setting="theme"]');
+    if (select) select.value = state.settings.theme;
   }
 
   // ---------- rendering: top bar ----------
@@ -644,18 +665,15 @@
     const all = stats(allIds());
     const s = streak();
     const reviewing = route.view === "deck" && route.source.key === "review";
-    const dark = document.documentElement.dataset.theme !== "light";
     document.getElementById("topbar").innerHTML = `<div class="qz-wrap">
-      <a class="qz-brand" href="#/"><span class="qz-logo">${ic("code")}</span><span><small>Why-Not-ReactNative</small><b>React Native Training</b></span></a>
-      <nav class="qz-nav-links" aria-label="Primary">
-        <a href="#/" class="${route.view === "home" ? "active" : ""}">${ic("home")} Dashboard</a>
-        <a href="#/review" class="${reviewing ? "active" : ""}">${ic("repeat")} Review${all.due ? `<span class="count">${all.due}</span>` : ""}</a>
-        <a href="../learning-path.html">${ic("book")} Learning path</a>
+      <a class="qz-brand" href="#/"><span class="qz-logo">${ic("code")}</span><b>Training</b></a>
+      <nav class="qz-nav-links" aria-label="Training">
+        <a href="#/" class="${route.view === "home" ? "active" : ""}" title="Dashboard" aria-label="Dashboard">${ic("grid")}<span class="lbl">Dashboard</span></a>
+        <a href="#/review" class="${reviewing ? "active" : ""}" title="Review" aria-label="Review">${ic("repeat")}<span class="lbl">Review</span>${all.due ? `<span class="count">${all.due}</span>` : ""}</a>
       </nav>
       <div class="qz-top-right">
         <span class="qz-pill answered" title="Questions answered">${ic("check")} ${all.answered}/${all.total}</span>
         <span class="qz-pill streak ${s ? "hot" : ""}" title="Day streak">${ic("flame")} ${s}</span>
-        <button class="qz-icon-btn" data-act="theme" aria-label="Switch to ${dark ? "light" : "dark"} theme" title="Switch to ${dark ? "light" : "dark"} theme">${ic(dark ? "sun" : "moon")}</button>
       </div></div>`;
   }
 
@@ -1195,7 +1213,6 @@
     },
     "set-mode": (el) => setFilter({ mode: el.dataset.mode }),
     "clear-filters": () => setFilter({ mode: "all", levels: [], topic: "" }),
-    theme: () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"),
     topics() {
       showAllTopics = !showAllTopics;
       renderHome();
@@ -1404,10 +1421,10 @@
     }, { passive: true });
     onScroll();
 
-    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-      if (state.settings.theme !== "system") return;
-      applyTheme();
-      renderTopbar(parseRoute());
+    // The nav button (or another tab) changed the site theme.
+    document.addEventListener("wnrn-themechange", syncThemeSelect);
+    window.addEventListener("storage", (e) => {
+      if (e.key === THEME_KEY) syncThemeSelect();
     });
   }
 

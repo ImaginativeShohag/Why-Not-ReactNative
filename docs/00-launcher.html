@@ -3,42 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>00 · Build the Launcher &amp; Multi-Project Structure — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Step 00</div>
-
-<h1>00 · Build the Launcher &amp; Multi-Project Structure</h1>
-<p class="subtitle">Turn a single-app Expo repo into a home screen that lists every exercise, where each exercise lives in its own isolated vertical slice and opens from a registry-driven list. You build the skeleton once, so every later project has a slot and a set of rules.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html" aria-current="page"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Step 00</div>
+      <div class="lp-eyebrow">Step 00</div>
+      <h1>Build the Launcher &amp; Multi-Project Structure</h1>
+      <p class="subtitle">Build a home screen that lists every exercise, where each exercise lives in its own isolated vertical slice and opens from a registry-driven list. You build the skeleton once, so every later project has a slot and a set of rules.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip accent">Prerequisite</span>
   <span class="chip">Structural only — no new features</span>
   <span class="chip purple">Expo Router</span>
   <span class="chip green">TypeScript</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/launcher"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#target">The target shape</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#home">The Home / launcher screen</a></li>
+      <li><a href="#routing">Routing strategy</a></li>
+      <li><a href="#root">Root-level side effects</a></li>
+      <li><a href="#rules">Rules for keeping projects isolated</a></li>
+      <li><a href="#milestones">Build order</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience deliberately</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#target">The target shape</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#home">The Home / launcher screen</a></li>
+      <li><a href="#routing">Routing strategy</a></li>
+      <li><a href="#root">Root-level side effects</a></li>
+      <li><a href="#rules">Rules for keeping projects isolated</a></li>
+      <li><a href="#milestones">Build order</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience deliberately</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>Why do this before anything else</strong>
   <p>Six exercises will share one repo, one Metro bundle and one native app. If the first project owns the top of <code>src/app/</code> and dumps its code into flat <code>src/components</code>, <code>src/hooks</code> and <code>src/stores</code>, every later project either collides with it or gets bolted on awkwardly. Decide the shape once: a launcher at <code>/</code>, one directory per project, a small deliberate <code>shared</code> layer, and lint rules that make the boundaries real. Everything in Projects 01–06 assumes this skeleton.</p>
 </div>
-
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#target">The target shape</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#home">The Home / launcher screen</a></li>
-  <li><a href="#routing">Routing strategy</a></li>
-  <li><a href="#root">Root-level side effects</a></li>
-  <li><a href="#rules">Rules for keeping projects isolated</a></li>
-  <li><a href="#milestones">Build order</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience deliberately</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
-</ul>
 
 <h2 id="objectives">Learning objectives</h2>
 <ul>
@@ -123,13 +192,13 @@
 <p>Create <code>src/shared/config/projects.ts</code> exporting a typed <code>PROJECTS</code> array. Each entry has a <code>slug</code> (also the folder name), an <code>emoji</code>, <code>title</code>, <code>subtitle</code>, a <code>route</code> typed as expo-router's <code>Href</code>, and an optional <code>singleScreen</code> flag for a project that is one route file rather than a stack. Home maps over the array, and so does the root layout. Neither has hardcoded knowledge of "store" or any other project, so adding a seventh project means one new entry plus its folders.</p>
 
 <h3>Component split</h3>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Piece</th><th>Owns</th><th>Receives</th></tr></thead>
 <tbody>
 <tr><td>Home screen (<code>src/app/index.tsx</code>)</td><td>Reads the registry and calls <code>router.push</code>; no other state</td><td>—</td></tr>
 <tr><td><code>ProjectListItem</code> (<code>src/shared/components/project-list-item.tsx</code>)</td><td>Nothing — pure presentation</td><td>A <code>Project</code> object and an <code>onPress</code> callback</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>The row lives in <code>shared</code>, not in the route file: a route file's default export is the screen, and extra component exports from it turn into confusion about what is a route.</p>
 
 <h2 id="routing">Routing strategy</h2>
@@ -179,39 +248,39 @@
 
 <h2 id="milestones">Build order</h2>
 
-<p class="lead">Five milestones. If you start from a single-app repo (all code flat under <code>src/components</code>, <code>src/hooks</code>, <code>src/stores</code> and routes under <code>src/app/store/</code>), you move things; if you start from a fresh Expo template, you create the same folders. Either way, run typecheck and lint after each milestone.</p>
+<p class="lead">Five milestones, starting from a fresh Expo template. Run typecheck and lint after each one.</p>
 
 <div class="milestone">
-  <h3><span class="tag">M1</span> Carve out <code>src/shared/</code></h3>
-  <div class="goal">Goal: move the generic 20% first, so everything later imports from a stable foundation.</div>
+  <h3><span class="tag">M1</span> Create <code>src/shared/</code></h3>
+  <div class="goal">Goal: set up the generic layer first, so everything later imports from a stable foundation.</div>
   <ul>
     <li>Create <code>src/shared/{api,components,components/ui,config,constants,hooks,providers}</code>.</li>
-    <li>If you start from a single-app repo, move the generic files: <code>themed-text</code>, <code>themed-view</code>, <code>ui/icon-symbol(.ios)</code>, <code>ui/content-unavailable-view</code>, the colour-scheme and theme-colour hooks, <code>constants/theme.ts</code>, <code>QueryProvider</code>, and <code>axios.ts</code>. Everything that mentions a cart, product or order stays behind for M2.</li>
-    <li>Strip the axios module down to project-agnostic defaults: timeout and headers only.</li>
-    <li>Fix importers with the <code>@/src/...</code> alias.</li>
+    <li>Put only generic files here: <code>themed-text</code>, <code>themed-view</code>, <code>ui/icon-symbol(.ios)</code>, <code>ui/content-unavailable-view</code>, the colour-scheme and theme-colour hooks, <code>constants/theme.ts</code>, <code>QueryProvider</code>, and <code>axios.ts</code>. Anything that mentions a cart, product or order belongs in a project slice (M2).</li>
+    <li>Keep the axios module to project-agnostic defaults: timeout and headers only.</li>
+    <li>Import everything through the <code>@/src/...</code> alias.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — The app still boots with no import errors, and <code>npm run typecheck</code> is clean.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — The app boots with no import errors, and <code>npm run typecheck</code> is clean.</div>
 </div>
 
 <div class="milestone">
-  <h3><span class="tag">M2</span> Move the first project's feature code into a slice</h3>
-  <div class="goal">Goal: relocate non-route code into <code>src/projects/&lt;slug&gt;/</code>.</div>
+  <h3><span class="tag">M2</span> Create the first project's slice</h3>
+  <div class="goal">Goal: give non-route code a home in <code>src/projects/&lt;slug&gt;/</code>.</div>
   <ul>
     <li>Create only the subfolders you need: <code>api</code>, <code>components</code>, <code>hooks</code>, <code>stores</code>, <code>models</code>, <code>constants</code>, <code>utils</code>.</li>
-    <li>Move that project's query keys into <code>utils/queryKeys.ts</code> with a root prefix of its own.</li>
-    <li>A bottom-sheet body, list row or helper that used to sit beside routes becomes a component in the slice.</li>
+    <li>Put that project's query keys in <code>utils/queryKeys.ts</code> with a root prefix of its own.</li>
+    <li>Bottom-sheet bodies, list rows and helpers are components in the slice, never files beside the routes.</li>
   </ul>
-  <div class="checkpoint"><b>Checkpoint</b> — Nothing remains under the old flat <code>src/{components,hooks,stores,api,models,constants,utils}/</code>; those directories no longer exist.</div>
+  <div class="checkpoint"><b>Checkpoint</b> — There are no flat <code>src/{components,hooks,stores,api,models,constants,utils}/</code> directories; every non-route file is in <code>src/shared/</code> or a slice.</div>
 </div>
 
 <div class="milestone">
-  <h3><span class="tag">M3</span> Move the routes under <code>src/app/projects/&lt;slug&gt;/</code></h3>
-  <div class="goal">Goal: namespace every route and fix every reference.</div>
+  <h3><span class="tag">M3</span> Put the routes under <code>src/app/projects/&lt;slug&gt;/</code></h3>
+  <div class="goal">Goal: namespace every route and every reference to it.</div>
   <ul>
-    <li>Move the project's route tree to <code>src/app/projects/&lt;slug&gt;/</code>, naming each screen <code>&lt;folder&gt;/index.tsx</code>.</li>
-    <li>Add (or move) that project's <code>_layout.tsx</code>, which owns its inner Stack.</li>
-    <li>Grep for old route strings (<code>"/store/</code>, <code>href="/store</code>, template-literal forms) and rewrite them to <code>/projects/&lt;slug&gt;/…</code>. Typed routes only catch some of them.</li>
-    <li>Clear the Metro cache (<code>npx expo start -c</code>) before trusting any red-screen import error after a big move.</li>
+    <li>Create the project's route tree under <code>src/app/projects/&lt;slug&gt;/</code>, naming each screen <code>&lt;folder&gt;/index.tsx</code>.</li>
+    <li>Add that project's <code>_layout.tsx</code>, which owns its inner Stack.</li>
+    <li>Every href is <code>/projects/&lt;slug&gt;/…</code>, including template-literal forms. Typed routes only catch some mistakes, so grep for un-namespaced strings (<code>"/store/</code>, <code>href="/store</code>).</li>
+    <li>Clear the Metro cache (<code>npx expo start -c</code>) before trusting any red-screen import error after moving or renaming files.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Every button inside the project navigates to the right screen, and opening <code>whynotreactnative://projects/&lt;slug&gt;</code> (for example with <code>xcrun simctl openurl booted</code> on the iOS simulator) lands on it.</div>
 </div>
@@ -237,7 +306,6 @@
     <li>Prove it: temporarily import one project from another and confirm <code>npm run lint</code> fails with your message. Then confirm the root layout is not flagged.</li>
     <li>Run <code>npm run typecheck</code>, <code>npm run lint</code> and <code>npx expo export --platform ios --output-dir /tmp/out</code>; the export catches what <code>tsc</code> cannot (for example <code>@react-navigation/*</code> imports).</li>
     <li>Delete unused template leftovers rather than parking them in <code>shared</code>, and confirm there is exactly one <code>QueryProvider</code> and no duplicated hook files.</li>
-    <li>Write the structure rules into <code>AGENTS.md</code> and verify every path it names exists on disk.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Lint, typecheck and a bundle export all pass; <code>src/app/</code> contains routes only; a reviewer can predict the contents of every top-level folder.</div>
 </div>
@@ -256,9 +324,8 @@
 <h2 id="pitfalls">Failure modes to experience deliberately</h2>
 <p class="lead">Provoke each one on purpose in a scratch branch. Seeing the failure once makes the rule stick.</p>
 <ol>
-  <li><strong>Stale route strings.</strong> Move a route folder and leave one <code>router.push("/store/…")</code> behind. Typed routes catch some references, not template strings. Learn to grep for the old prefix after every move.</li>
-  <li><strong>Two copies of a moved file.</strong> Leave a duplicate hook in the old and new location. It orphans, adds type errors, and eventually diverges. The logic-level version is two login code paths (a mutation and a query) that coexist until one is deleted.</li>
-  <li><strong>Metro cache showing ghosts.</strong> After a large move, run with and without <code>npx expo start -c</code> and compare which red screens survive.</li>
+  <li><strong>Stale route strings.</strong> Rename a route folder and leave one <code>router.push("/store/…")</code> pointing at the old path. Typed routes catch some references, not template strings. Grep for the old prefix whenever a route path changes.</li>
+  <li><strong>Metro cache showing ghosts.</strong> After moving or renaming many files, run with and without <code>npx expo start -c</code> and compare which red screens survive.</li>
   <li><strong>Screen options that silently do nothing.</strong> Add <code>export const options = { headerShown: false }</code> to a route file. Nothing changes: Expo Router has no such convention, and the header keeps showing until the layout's <code>Stack.Screen</code> sets it.</li>
   <li><strong>Route-name drift.</strong> Name a route <code>orders/orders.tsx</code> and declare <code>name="projects/store/orders"</code>. The path is <code>orders/orders</code>, so the declaration does not apply. Use <code>&lt;folder&gt;/index.tsx</code>, and compare declarations against a <em>fresh</em> listing of the tree.</li>
   <li><strong>A non-route component parked under <code>src/app/</code>.</strong> Put a bottom-sheet body at <code>src/app/projects/store/profile/index.tsx</code> and import it as a component. The route <code>/projects/store/profile</code> exists anyway; opening it crashes with <code>'BottomSheetModalContext' cannot be null!</code> because it renders outside the modal provider. Not declaring a route is not the same as not having one. Move it into the slice.</li>
@@ -284,8 +351,16 @@
   <a href="03-commerce-platform.html">Project 03 · Commerce →</a>
 </div>
 
-<footer>Step 00 · Launcher &amp; multi-project structure</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Step 00 · Launcher &amp; multi-project structure</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>

@@ -3,49 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>03 · Production Commerce App — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/nav.css">
+<script>
+  // Apply the saved theme (or the system one) before first paint. See assets/nav.js.
+  try {
+    var t = localStorage.getItem("wnrn-theme");
+    document.documentElement.dataset.theme = t === "light" || t === "dark" ? t
+      : matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch (e) {}
+</script>
 </head>
 <body>
-<div class="wrap">
-
-<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 03</div>
-
-<h1>03 · Production Commerce App</h1>
-<p class="subtitle">Take a demo-grade store (splash, login, product list, bag) and make it production-shaped: real auth with token refresh, secure storage, push notifications, payments, universal links, environments, analytics, crash reporting, and tests. The finished result is in <code>src/projects/store/</code> and <code>src/app/projects/store/</code>; build your own version milestone by milestone, then compare.</p>
-
-<div class="meta-row">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <nav class="tn-links" aria-label="Site">
+      <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
+      <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
+      <details class="tn-menu">
+        <summary title="Write-ups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Write-ups</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="tn-pop">
+          <a href="00-launcher.html"><span class="n">00</span>Launcher &amp; structure<small>Registry, slices, isolation</small></a>
+          <hr>
+          <a href="01-offline-journal.html"><span class="n">01</span>Offline-first journal<small>SQLite, FTS, outbox sync</small></a>
+          <a href="02-camera-social.html"><span class="n">02</span>Camera &amp; social<small>Camera, editor, sharing</small></a>
+          <a href="03-commerce-platform.html" aria-current="page"><span class="n">03</span>Production commerce<small>Auth, checkout, push</small></a>
+          <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
+          <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
+          <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+        </div>
+      </details>
+      <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
+      <a href="https://github.com/ImaginativeShohag/Why-Not-ReactNative" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+      <button class="tn-theme" type="button" aria-label="Switch theme" title="Switch theme"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+    </nav>
+  </div>
+</header>
+<header class="lp-hero wu-hero">
+  <div class="lp-hero-in">
+    <div>
+      <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 03</div>
+      <div class="lp-eyebrow">Project 03</div>
+      <h1>Production Commerce App</h1>
+      <p class="subtitle">Build a store app (catalogue, product details, bag, checkout) to production standard: real auth with token refresh, secure storage, push notifications, payments, universal links, environments, analytics, crash reporting, and tests. The finished result is in <code>src/projects/store/</code> and <code>src/app/projects/store/</code>; build your own version milestone by milestone, then compare.</p>
+    </div>
+    <aside class="wu-panel" aria-label="About this step">
+      <b>At a glance</b>
+      <div class="meta-row">
   <span class="chip purple">Production tier</span>
   <span class="chip amber">Dev build + a backend</span>
   <span class="chip">~4 weeks</span>
   <span class="chip accent">Core skill: everything around the features</span>
 </div>
+      <div class="lp-cta">
+        <a class="btn primary" href="training/index.html#/quiz/store"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
+        <a class="btn" href="learning-path.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg> Learning path</a>
+      </div>
+    </aside>
+  </div>
+</header>
 
+<div class="lp-layout">
+  <nav class="lp-toc" aria-label="On this page">
+    <b>On this page</b>
+    <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#checklist">Production-readiness checklist</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#auth">Auth &amp; token refresh</a></li>
+      <li><a href="#push">Push &amp; deep-link routing</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#structure">Route structure rules</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+    </ol>
+  </nav>
+
+  <main class="lp-main wu-main" id="main">
+<details class="wu-toc-m">
+  <summary>On this page</summary>
+  <ol>
+      <li><a href="#objectives">Learning objectives</a></li>
+      <li><a href="#checklist">Production-readiness checklist</a></li>
+      <li><a href="#ui">UI design &amp; screens</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#auth">Auth &amp; token refresh</a></li>
+      <li><a href="#push">Push &amp; deep-link routing</a></li>
+      <li><a href="#milestones">Build order (milestones)</a></li>
+      <li><a href="#libraries">Library hints</a></li>
+      <li><a href="#pitfalls">Failure modes to experience</a></li>
+      <li><a href="#structure">Route structure rules</a></li>
+      <li><a href="#stretch">Stretch goals</a></li>
+  </ol>
+</details>
 <div class="note">
   <strong>Why this one third</strong>
   <p>Screens, a cart and product lists are the fun part, and the easy part. What makes an app <em>shippable</em> is everything around them: what happens when the token expires mid-checkout, when a push arrives during a cold start, when the API returns 500, when a user has two devices, when you need a staging build alongside production. This project is entirely about that layer.</p>
   <p>Work through the milestones in order. After each one, open the matching files in the finished code, and use the quiz bank (<code>docs/training/</code>, project 03) to test whether you can find and explain what you built.</p>
 </div>
 
-<ul class="toc">
-  <li><a href="#objectives">Learning objectives</a></li>
-  <li><a href="#audit">Start with an audit</a></li>
-  <li><a href="#ui">UI design &amp; screens</a></li>
-  <li><a href="#architecture">Architecture</a></li>
-  <li><a href="#auth">Auth &amp; token refresh</a></li>
-  <li><a href="#push">Push &amp; deep-link routing</a></li>
-  <li><a href="#milestones">Build order (milestones)</a></li>
-  <li><a href="#libraries">Library hints</a></li>
-  <li><a href="#pitfalls">Failure modes to experience</a></li>
-  <li><a href="#restructure">Restructuring notes</a></li>
-  <li><a href="#stretch">Stretch goals</a></li>
-</ul>
-
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end you can build, explain and test each of the following. Each row names where the finished implementation lives, so you can check your work against it.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Skill</th><th>What you'll actually do</th></tr></thead>
 <tbody>
 <tr><td>Auth architecture</td><td>Session context, secure token storage, silent refresh with a single-flight coordinator, logout-on-refresh-failure, biometric re-auth. (<code>auth/</code>, <code>api/interceptors.ts</code>, <code>api/refreshCoordinator.ts</code>)</td></tr>
@@ -60,43 +129,51 @@
 <tr><td>Testing</td><td>Unit tests for pure logic, interceptor tests through a custom axios <code>adapter</code>, a real <code>QueryClient</code> for cache behaviour, and a Maestro smoke flow. (<code>__tests__/</code>, <code>.maestro/store-checkout.yaml</code>)</td></tr>
 <tr><td>Accessibility &amp; i18n</td><td>Screen-reader labels and roles, dynamic type, and locale-aware currency formatting through <code>Intl.NumberFormat</code>; RTL and a real VoiceOver/TalkBack pass are device checks.</td></tr>
 </tbody>
-</table>
+</table></div>
 
-<h2 id="audit">Start with an audit</h2>
+<h2 id="checklist">Production-readiness checklist</h2>
 
-<p>Before writing anything, read the code you are about to change and write down honest answers. This is the first exercise, and it is a method you will reuse on every codebase you inherit: turn "is this production-ready?" into a list of concrete questions, find the evidence for each in the code, then rank the gaps.</p>
+<p>"Is this production-ready?" is too vague to answer. Break it into concrete questions, find the evidence for each one in the code, then rank the gaps. You can reuse this method on any codebase.</p>
 
 <h3>The method</h3>
 <ol>
-  <li><strong>Pick the failure, not the file.</strong> Start from an event that will happen in production (token expires, user deep-links while signed out, app is killed mid-payment) and ask what the code does.</li>
-  <li><strong>Find the evidence.</strong> Open the file that would handle it, or grep for it (<code>grep -rn "interceptors" src/</code>, <code>grep -rn "AsyncStorage" src/ | grep -i token</code>). If nothing handles it, that is the finding.</li>
-  <li><strong>Write the gap down</strong> with what production requires, a priority (P0 not shippable, P1 you lose users or data, P2 polish), and the milestone that closes it.</li>
+  <li><strong>Start from a failure, not a file.</strong> Pick something that will happen in production (the token expires, the user opens a deep link while signed out, the app is killed mid-payment) and ask what the code does.</li>
+  <li><strong>Find the evidence.</strong> Open the file that would handle it, or grep for it (<code>grep -rn "interceptors" src/</code>, <code>grep -rn "AsyncStorage" src/ | grep -i token</code>). If nothing handles it, that's the finding.</li>
+  <li><strong>Rank the gap:</strong> P0 means not shippable, P1 means you lose users or data, P2 is polish. Note which milestone closes it.</li>
   <li><strong>Check ownership.</strong> In a repo that holds several projects, ask whether each fix belongs to the slice or to <code>src/shared/</code>.</li>
 </ol>
 
-<p>The starting point is a demo-grade store on FakeStoreAPI: a timed splash, a login screen, a flat route list (<code>splash/</code>, <code>login/</code>, <code>main/(tab)/</code>, <code>orders/</code>, <code>place-order/</code>, <code>product-details/[productId]</code>, <code>products/[categoryId]</code>), a few hooks, an in-memory cart and a shared axios instance. Run the audit against whatever you start from; this is what the questions find in an app of that shape, and where the finished code answers each one.</p>
+<p>Go through these questions before M1 and again after M8.</p>
 
-<table>
-<thead><tr><th>Question</th><th>How to find out</th><th>What a demo-grade app shows</th><th>Where the finished code answers it</th></tr></thead>
+<div class="wu-scroll"><table>
+<thead><tr><th>#</th><th>Question</th><th>How to find out</th><th>What production requires</th><th>Priority</th><th>Where the finished code answers it</th></tr></thead>
 <tbody>
-<tr><td>What happens on a 401?</td><td>Read <code>src/shared/api/axios.ts</code>; search for <code>interceptors.response</code>.</td><td>A commented-out request-interceptor stub and no response interceptor: the first expired token is a dead session. Production needs refresh once, replay once.</td><td><code>api/interceptors.ts</code>, <code>api/refreshCoordinator.ts</code>, installed on store-owned instances from <code>api/client.ts</code>. Test: <code>__tests__/refresh.test.ts</code>.</td></tr>
-<tr><td>Where does a token live?</td><td>Follow the login hook's return value; grep for <code>AsyncStorage</code> and <code>SecureStore</code>.</td><td>The login mutation returns a token and drops it. Anything you add must go to Keychain/Keystore via <code>expo-secure-store</code>, never AsyncStorage.</td><td><code>auth/tokenStorage.ts</code> (secure-store with <code>WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, access token mirrored in memory).</td></tr>
-<tr><td>Is the login screen actually gated?</td><td>Open the splash and login routes; then try a deep link straight to an inner route.</td><td>The splash redirects on a timer and login <code>router.replace</code>s on success, so nothing stops a deep link going past both. Production needs protected routes.</td><td><code>src/app/projects/store/_layout.tsx</code> (<code>Stack.Protected</code>), <code>navigation/pendingIntent.ts</code>, <code>navigation/useIntentReplay.ts</code>.</td></tr>
-<tr><td>Are credentials hardcoded?</td><td><code>grep -rni "password" src/projects/</code></td><td>A constants file with the demo user's credentials (acceptable for a demo, a leak in production). Delete it and give development a dev-only fill button.</td><td>No credentials file; <code>(auth)/sign-in.tsx</code> shows a "fill demo user" button only when <code>env.variant !== "production"</code>.</td></tr>
-<tr><td>Is the cart durable?</td><td>Open the cart store; look for <code>persist</code>.</td><td>Plain in-memory Zustand, so the bag empties on relaunch. Persist locally, then reconcile with a server cart on sign-in.</td><td><code>stores/cartStore.ts</code> (persist + <code>partialize</code>), <code>stores/cartMath.ts</code> (<code>mergeCarts</code>), <code>stores/cartSync.ts</code>.</td></tr>
-<tr><td>Are query keys collision-safe?</td><td>Open the key file; ask whether one <code>invalidateQueries</code> call can reach "everything product-shaped" and nothing else.</td><td>Flat keys like <code>["products"]</code> and <code>["product", id]</code>, with no shared prefix. Worse, this app shares <em>one</em> <code>QueryClient</code> with five other projects.</td><td><code>utils/queryKeys.ts</code>: a nested factory rooted at <code>"store"</code>.</td></tr>
-<tr><td>Is a credentials object in a query key?</td><td>Grep the key file for <code>login</code>.</td><td>A leftover key factory that takes the credentials object. A password must never be part of a cache key (keys are logged, persisted and shown in devtools). Login is a mutation.</td><td>No login key exists; <code>SessionProvider.signIn</code> calls the API directly.</td></tr>
-<tr><td>How is the base URL chosen?</td><td>Grep for <code>https://</code> in <code>src/</code> and <code>app.json</code>.</td><td>A hardcoded host in the shared axios file. It should come from <code>expo-constants</code> <code>extra</code>, driven by a dynamic config per environment.</td><td><code>app.config.ts</code> sets <code>extra.storeApiUrl</code>; <code>src/shared/constants/env.ts</code> reads it; the shared axios has no base URL.</td></tr>
-<tr><td>What does the orders screen do offline?</td><td>Turn on airplane mode and cold-start.</td><td>A spinner or an error screen. Production serves cached data with an offline indicator.</td><td><code>query/storeQuery.ts</code> (scoped persistence, <code>useIsOnline</code>), <code>components/ui/OfflineBanner.tsx</code>.</td></tr>
-<tr><td>Is the orders hook N+1?</td><td>Count requests in the network log for one screen.</td><td>It fetches the cart, then each product individually. Fine as a demo, wrong at scale; note the fix even if the fake API forces the workaround.</td><td><code>hooks/useOrders.ts</code> resolves lines from the cached catalogue with <code>ensureQueryData</code>: one request instead of N.</td></tr>
-<tr><td>Does the shared axios belong to this project?</td><td>Read it, then ask who else imports it.</td><td>It is shared infra that carried store-shaped comments and a base URL. Anything added there must stay project-agnostic; store logic is injected from the slice. This is the first real test of the isolation rule in <code>AGENTS.md</code>.</td><td><code>src/shared/api/axios.ts</code> holds timeout and headers only; <code>api/client.ts</code> derives four instances with <code>create({ baseURL })</code>.</td></tr>
+<tr><td>1</td><td>What happens on a 401?</td><td>Search for <code>interceptors.response</code>.</td><td>Refresh once and replay the request once. If the refresh fails, sign out. Without this, the first expired token kills the session.</td><td>P0</td><td><code>api/interceptors.ts</code>, plus <code>api/refreshCoordinator.ts</code> (single-flight), installed on store-owned instances from <code>api/client.ts</code>. Test: <code>__tests__/refresh.test.ts</code>, where six concurrent 401s cause one refresh.</td></tr>
+<tr><td>2</td><td>Where does a token live?</td><td>Follow the login call's return value; grep for <code>AsyncStorage</code> and <code>SecureStore</code>.</td><td>Keychain/Keystore via <code>expo-secure-store</code>. Never AsyncStorage.</td><td>P0</td><td><code>auth/tokenStorage.ts</code> (secure-store with <code>WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>; the access token is also kept in memory).</td></tr>
+<tr><td>3</td><td>Is sign-in actually gated?</td><td>Try a deep link straight to an inner route while signed out.</td><td>Protected routes, not redirects on a timer or <code>router.replace</code> after login. The page the user was trying to reach is restored after sign-in.</td><td>P0</td><td><code>src/app/projects/store/_layout.tsx</code> (<code>Stack.Protected</code>), <code>navigation/pendingIntent.ts</code>, <code>navigation/useIntentReplay.ts</code>.</td></tr>
+<tr><td>4</td><td>Are credentials hardcoded?</td><td><code>grep -rni "password" src/projects/</code></td><td>No credentials in source. Development gets a dev-only "fill demo user" button.</td><td>P0</td><td><code>(auth)/sign-in.tsx</code> shows the button only when <code>env.variant !== "production"</code>.</td></tr>
+<tr><td>5</td><td>Is the cart durable?</td><td>Open the cart store; look for <code>persist</code>.</td><td>Persisted locally, then reconciled with a server cart on sign-in.</td><td>P1</td><td><code>stores/cartStore.ts</code> (persist + <code>partialize</code>), <code>stores/cartMath.ts</code> (<code>mergeCarts</code>), <code>stores/cartSync.ts</code>. Test: <code>__tests__/cartMath.test.ts</code>.</td></tr>
+<tr><td>6</td><td>Are query keys collision-safe?</td><td>Open the key file; ask whether one <code>invalidateQueries</code> call can reach "everything product-shaped" and nothing else.</td><td>A nested factory under one root, because a single <code>QueryClient</code> is shared with five other projects.</td><td>P1</td><td><code>utils/queryKeys.ts</code>, rooted at <code>"store"</code>.</td></tr>
+<tr><td>7</td><td>Is a credentials object in a query key?</td><td>Grep the key file for <code>login</code>.</td><td>Never. Keys are logged, persisted and shown in devtools. Login is a mutation.</td><td>P0</td><td>No login key exists; <code>SessionProvider.signIn</code> calls the API directly.</td></tr>
+<tr><td>8</td><td>How is the base URL chosen?</td><td>Grep for <code>https://</code> in <code>src/</code> and the app config.</td><td>From <code>expo-constants</code> <code>extra</code>, driven by a dynamic config per environment.</td><td>P1</td><td><code>app.config.ts</code> sets <code>extra.storeApiUrl</code>; <code>src/shared/constants/env.ts</code> reads it; the shared axios has no base URL.</td></tr>
+<tr><td>9</td><td>What does the orders screen do offline?</td><td>Turn on airplane mode and cold-start.</td><td>Cached data with an offline indicator, not a spinner forever.</td><td>P1</td><td><code>query/storeQuery.ts</code> (scoped persistence, <code>useIsOnline</code>), <code>components/ui/OfflineBanner.tsx</code>.</td></tr>
+<tr><td>10</td><td>Is the orders hook N+1?</td><td>Count requests in the network log for one screen.</td><td>One request for the screen. A real backend returns order lines with product snapshots.</td><td>P2</td><td><code>hooks/useOrders.ts</code> resolves lines from the cached catalogue with <code>ensureQueryData</code> (FakeStoreAPI has no join endpoint).</td></tr>
+<tr><td>11</td><td>Does the shared axios belong to this project?</td><td>Read it, then ask who else imports it.</td><td>Shared infra stays project-agnostic; store logic is injected from the slice.</td><td>P1</td><td><code>src/shared/api/axios.ts</code> holds timeout and headers only; <code>api/client.ts</code> derives four instances with <code>create({ baseURL })</code>.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <div class="tip">
-  <strong>Deliverable for this step</strong>
-  <p>Write <code>docs/audit-03.html</code>: a table of gaps with a priority and the milestone that closes each one. Do it before coding. Then compare yours with the repo's <code>docs/audit-03.html</code>, and note any gap you missed and why you missed it. Writing the audit before the code is itself the senior-engineer habit being taught.</p>
+  <strong>Exercise</strong>
+  <p>Before writing code, write your own version of this table for your starting point, with a priority and a milestone for each gap. Doing it before the code is the habit being taught.</p>
 </div>
+
+<h3>Still open (needs accounts or infrastructure)</h3>
+<ul>
+  <li><strong>Crash reporting with source maps:</strong> pick a vendor (Sentry, Bugsnag) and connect it in <code>utils/monitoring.ts</code>. The source-map upload belongs in the release pipeline.</li>
+  <li><strong>Real backend:</strong> refresh tokens, a server cart, orders, payment intents and push registration all run against <code>api/mockServer.ts</code> until <code>EXPO_PUBLIC_STORE_BACKEND_URL</code> points at a real server.</li>
+  <li><strong>Universal links:</strong> host the two files in <code>docs/well-known/</code> with the real Team ID and signing fingerprints.</li>
+  <li><strong>Accessibility:</strong> the manual VoiceOver/TalkBack pass, plus RTL and dynamic-type checks, needs a device.</li>
+</ul>
 
 <h2 id="ui">UI design &amp; screens</h2>
 
@@ -112,7 +189,7 @@
 
 <p>All routes are relative to <code>/projects/store</code>, and the group segments <code>(auth)</code> / <code>(app)</code> / <code>(tab)</code> don't appear in the URL. So <code>/(app)/(tab)/bag</code> resolves to <code>/projects/store/bag</code>. The last column says what each screen is there to teach, so you know where to spend effort.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>What it demonstrates</th></tr></thead>
 <tbody>
 <tr><td><code>/onboarding</code></td><td>Onboarding</td><td>First branch of the guard tree: shown only until the per-device <code>onboarded</code> flag is set</td></tr>
@@ -134,7 +211,7 @@
 <tr><td><code>/(app)/orders</code></td><td>Order history</td><td>Status filter, cached offline</td></tr>
 <tr><td><code>/(app)/wishlist</code></td><td>Wishlist</td><td>Optimistic toggles with rollback</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <h3>Wireframes</h3>
 
@@ -397,7 +474,7 @@ response interceptor on a rejected request (installed on storeApi + backendApi o
 <p>Verify it two ways. Automated: <code>__tests__/refresh.test.ts</code> drives six concurrent requests through a fake axios <code>adapter</code> and asserts one refresh and zero sign-outs. By hand: on the Account tab (non-production builds) turn on "Force 401 on first attempt" and tap "Fire 6 requests at once"; the result line reports how many refreshes hit the network.</p>
 
 <h3>Storage rules</h3>
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Data</th><th>Where</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td>Refresh token</td><td><code>expo-secure-store</code>, with <code>keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY</code></td><td>Keychain/Keystore-backed; readable only while unlocked, never in a backup or device migration.</td></tr>
@@ -407,7 +484,7 @@ response interceptor on a rejected request (installed on storeApi + backendApi o
 <tr><td>Query cache</td><td>AsyncStorage through the TanStack persister, <code>["store", …]</code> keys with status <code>success</code> only, never <code>["store","user",…]</code></td><td>Cold start in airplane mode shows last-known data; profile PII is never written.</td></tr>
 <tr><td>Anything else sensitive</td><td>Nowhere</td><td>Don't cache PII you don't need.</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>If you later need synchronous storage (no hydration flash), <code>react-native-mmkv</code> is a drop-in adapter for Zustand <code>persist</code>. This project instead waits for hydration at boot (<code>stores/hydration.ts</code>), which is what you will meet in the cold-start section below.</p>
 
 <h3>Sign-out is a wipe, not a flag flip</h3>
@@ -469,18 +546,18 @@ TEARDOWN
 <p>Each milestone ends with a <strong>checkpoint</strong> you can demonstrate and a <strong>verify</strong> step you can run. Don't move on until both pass. After every milestone run <code>npm run typecheck</code>, <code>npm run lint</code> and <code>npx jest --no-watchman</code>; after M1, M2 and M7 also run <code>npx expo export --platform ios --output-dir /tmp/out</code>, because the bundler catches route and import mistakes that <code>tsc</code> can't.</p>
 
 <div class="milestone">
-  <h3><span class="tag">M1</span> Audit &amp; foundations</h3>
+  <h3><span class="tag">M1</span> Checklist &amp; foundations</h3>
   <div class="goal">Goal: know what you have, and make config real.</div>
   <ul>
-    <li>Write the audit doc (see above).</li>
-    <li>Regroup the store's routes into <code>(auth)</code> / <code>(app)</code> and re-derive every <code>Stack.Screen name=</code> in the store's layouts to match the new tree (see <a href="#restructure">Restructuring notes</a>).</li>
-    <li>Replace <code>app.json</code> with <code>app.config.ts</code> and three variants driven by <code>APP_VARIANT</code>.</li>
+    <li>Write your readiness checklist (see <a href="#checklist">above</a>).</li>
+    <li>Lay out the store's routes in <code>(auth)</code> / <code>(app)</code> groups and make every <code>Stack.Screen name=</code> in the store's layouts match the tree (see <a href="#structure">Route structure rules</a>).</li>
+    <li>Use a dynamic <code>app.config.ts</code> (not <code>app.json</code>) and three variants driven by <code>APP_VARIANT</code>.</li>
     <li>Typed env access in <code>src/shared/constants/env.ts</code>; the base URL comes from config, not a hardcoded string.</li>
     <li>Normalise API errors into one <code>ApiError</code> (<code>api/errors.ts</code>) with a <code>kind</code>, a user-facing message and an <code>isTransient</code> flag that retry policy can read.</li>
-    <li>Rebuild <code>utils/queryKeys.ts</code> as a nested factory under a <code>"store"</code> root; leave no login key.</li>
+    <li>Build <code>utils/queryKeys.ts</code> as a nested factory under a <code>"store"</code> root; leave no login key.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Dev, preview, and production builds installed side-by-side on one device, each pointing at its own API.</div>
-  <p><b>Verify</b> — <code>npm run lint</code> and <code>npm run typecheck</code> are clean after the route move; grep <code>name="</code> in the layouts and confirm each hit has a file; <code>npx expo export</code> succeeds.</p>
+  <p><b>Verify</b> — <code>npm run lint</code> and <code>npm run typecheck</code> are clean; grep <code>name="</code> in the layouts and confirm each hit has a file; <code>npx expo export</code> succeeds.</p>
 </div>
 
 <div class="milestone">
@@ -488,7 +565,7 @@ TEARDOWN
   <div class="goal">Goal: a session that survives everything.</div>
   <ul>
     <li><code>SessionProvider</code> + <code>useSession</code>; the native splash is held until the session resolves.</li>
-    <li>Secure token storage (<code>auth/tokenStorage.ts</code>); sign-in / sign-up / sign-out. Remove any hardcoded demo credentials and give development a dev-only fill button.</li>
+    <li>Secure token storage (<code>auth/tokenStorage.ts</code>); sign-in / sign-up / sign-out. No hardcoded credentials; development gets a dev-only fill button.</li>
     <li><code>Stack.Protected</code> guards for onboarding, <code>(app)</code> and <code>(auth)</code>, declared in the store's own <code>_layout.tsx</code>, not the root one. Add the inner <code>signedIn</code> guard for checkout and orders so guests can browse.</li>
     <li>Redirect-after-login: deep-link to a protected route while signed out, sign in, land on the original destination (intent buffer).</li>
     <li>Refresh coordinator and interceptors, installed from the store's slice onto store-owned axios instances, not baked into <code>src/shared/api/axios.ts</code>.</li>
@@ -590,7 +667,7 @@ TEARDOWN
 
 <p>Check each library's current docs before you write against it (APIs move between SDKs). Notes below were checked against the Expo SDK 57 docs and TanStack Query v5.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
 <tr><td>Secure storage</td><td><code>expo-secure-store</code></td><td><code>setItemAsync</code>, <code>getItemAsync</code>, <code>deleteItemAsync</code>, <code>keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, <code>requireAuthentication</code>. Keys may only contain alphanumerics, <code>.</code>, <code>-</code> and <code>_</code>.</td></tr>
@@ -614,7 +691,7 @@ TEARDOWN
 <tr><td>Testing</td><td><code>jest-expo</code>, <code>@testing-library/react-native</code>, Maestro</td><td>Pure-module unit tests; a custom axios <code>adapter</code> instead of an HTTP mocking library; a real <code>QueryClient</code> for cache behaviour. MSW is a reasonable alternative for hook tests.</td></tr>
 <tr><td>Forms</td><td>(plain React state + <code>checkout/validation.ts</code>)</td><td>The finished code validates with small pure functions per step. <code>react-hook-form</code> + <code>zod</code> is a fine alternative if forms grow.</td></tr>
 </tbody>
-</table>
+</table></div>
 
 <div class="note">
   <strong>Backend options if you don't want to write one</strong>
@@ -625,7 +702,7 @@ TEARDOWN
 
 <p>Reproduce each failure before you fix it, so you recognise its symptom in production. The last column says how the finished code handles it, and where to look.</p>
 
-<table>
+<div class="wu-scroll"><table>
 <thead><tr><th>Failure mode</th><th>How it shows up</th><th>How the final code handles it</th></tr></thead>
 <tbody>
 <tr><td><strong>The refresh stampede</strong></td><td>Random logouts when several screens load at once and the access token has just expired.</td><td>Single-flight promise in <code>api/refreshCoordinator.ts</code>, cleared in <code>finally</code>; replay once via <code>_isRetry</code>; proven in <code>refresh.test.ts</code> and by the dev menu.</td></tr>
@@ -643,21 +720,21 @@ TEARDOWN
 <tr><td><strong>Unsymbolicated crashes</strong></td><td>You try to read <code>index.android.bundle:1:284736</code>.</td><td>Facade ready for a vendor adapter; source-map upload belongs in the release pipeline.</td></tr>
 <tr><td><strong>Hardcoded currency</strong></td><td>A locale where the symbol goes after the number and the separator is a comma looks wrong; float math drifts.</td><td>Integer cents and one <code>Intl.NumberFormat</code> formatter (<code>utils/money.ts</code>).</td></tr>
 </tbody>
-</table>
+</table></div>
 
-<h2 id="restructure">Restructuring notes</h2>
+<h2 id="structure">Route structure rules</h2>
 
-<p>The store began as a flat slice of routes inside the launcher. These are the moves that regrouped it behind guards, in the order that keeps the app running.</p>
+<p>These rules shape the store's route tree behind its guards. Each one prevents a specific bug.</p>
 
 <ol>
-  <li><strong>Move, don't rewrite.</strong> Create <code>(auth)</code> and <code>(app)</code> and move files with <code>git mv</code> so history follows: login becomes <code>(auth)/sign-in</code>, <code>main/(tab)</code> becomes <code>(app)/(tab)</code>, <code>product-details/[productId]</code> becomes <code>(app)/product/[id]</code>, <code>place-order</code> becomes <code>(app)/checkout/*</code>. Parameter names change with the file name, so update <code>useLocalSearchParams</code> callers too.</li>
-  <li><strong>Hoist the guards one level.</strong> The store layout (not the root) owns <code>Stack.Protected</code>, so the root only knows "there is a project called store". Give each group its own <code>_layout.tsx</code> with its own <code>ErrorBoundary</code> and <code>unstable_settings.initialRouteName</code>.</li>
-  <li><strong>Remember URLs lose group segments.</strong> <code>(app)/(tab)/bag</code> is <code>/projects/store/bag</code>. Every hardcoded href, notification payload mapping and link rewriter must target the namespaced URL.</li>
-  <li><strong>Declare order matters.</strong> The first available group is where the bare URL lands, so <code>(app)</code> goes before <code>(auth)</code> and a guest can reach both.</li>
-  <li><strong>Move session state out of screens.</strong> The splash timer and per-screen redirects go away; <code>SessionProvider</code> plus guards replace them. Sign-out becomes "change state", never <code>router.replace</code>.</li>
-  <li><strong>Keep shared code project-agnostic.</strong> Anything the store needs that the journal can't use (interceptors, session) stays in the slice and is installed from there. Only genuinely cross-project pieces (typed <code>env</code>, the single <code>QueryClient</code> and its managers) are promoted to <code>src/shared/</code>.</li>
-  <li><strong>Prefix before you share.</strong> One <code>QueryClient</code> serves all projects, so root every key at <code>"store"</code> before adding persistence or defaults, otherwise they leak onto other projects.</li>
-  <li><strong>Re-verify mechanically.</strong> After the move run typecheck, lint, tests and <code>npx expo export</code> for both platforms, and grep for the old path strings.</li>
+  <li><strong>Group routes by who may see them.</strong> <code>(auth)</code> holds sign-in, sign-up and forgot-password; <code>(app)</code> holds everything else. A screen is <code>&lt;folder&gt;/index.tsx</code> or a named file, and parameter names follow the file name (<code>product/[id]</code> is read with <code>useLocalSearchParams&lt;{ id: string }&gt;()</code>).</li>
+  <li><strong>The guards live one level down.</strong> The store layout (not the root) owns <code>Stack.Protected</code>, so the root only knows "there is a project called store". Each group has its own <code>_layout.tsx</code> with its own <code>ErrorBoundary</code> and <code>unstable_settings.initialRouteName</code>.</li>
+  <li><strong>URLs lose group segments.</strong> <code>(app)/(tab)/bag</code> is <code>/projects/store/bag</code>. Every hardcoded href, notification payload mapping and link rewriter must target the namespaced URL.</li>
+  <li><strong>Declaration order matters.</strong> The bare URL lands on the first available group, so <code>(app)</code> goes before <code>(auth)</code> and a guest can reach both.</li>
+  <li><strong>Session state stays out of screens.</strong> No splash timer and no per-screen redirects: <code>SessionProvider</code> plus guards decide what is reachable. Signing out changes state; it never calls <code>router.replace</code>.</li>
+  <li><strong>Shared code stays project-agnostic.</strong> Anything the store needs that the journal can't use (interceptors, session) stays in the slice and is installed from there. Only genuinely cross-project pieces (typed <code>env</code>, the single <code>QueryClient</code> and its managers) live in <code>src/shared/</code>.</li>
+  <li><strong>Prefix before you share.</strong> One <code>QueryClient</code> serves every project, so every key is rooted at <code>"store"</code> before persistence or defaults are added. Otherwise they leak onto other projects.</li>
+  <li><strong>Verify mechanically.</strong> After any change to the route tree, run typecheck, lint, tests and <code>npx expo export</code> for both platforms, and check that every <code>Stack.Screen name=</code> matches a file.</li>
 </ol>
 
 <h2 id="stretch">Stretch goals</h2>
@@ -676,8 +753,16 @@ TEARDOWN
   <a href="04-fitness-tracker.html">Project 04 · Fitness →</a>
 </div>
 
-<footer>Project 03 · targets Expo SDK 57 / RN 0.86</footer>
-
+  </main>
 </div>
+
+<footer class="lp-foot">
+  <div class="lp-foot-in">
+    <span>Project 03 · targets Expo SDK 57 / RN 0.86</span>
+    <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
+  </div>
+</footer>
+
+<script src="assets/nav.js" defer></script>
 </body>
 </html>
