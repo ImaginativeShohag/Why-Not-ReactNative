@@ -9,7 +9,7 @@
 <body>
 <div class="wrap">
 
-<div class="crumb"><a href="index.html">← Learning path</a> / Project 05</div>
+<div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 05</div>
 
 <h1>05 · Podcast Player &amp; Release Pipeline</h1>
 <p class="subtitle">Build a podcast app with background audio, lock-screen controls and resumable offline downloads, then ship it the way a real team would: EAS Build profiles, EAS Update channels, fingerprint runtime versions, staged rollouts, rollback, Maestro e2e tests and CI/CD.</p>
@@ -23,7 +23,7 @@
 
 <div class="note">
   <strong>How to use this brief</strong>
-  <p>This page is a tutorial: read a section, build the matching milestone yourself in <code>src/projects/podcast-player/</code> and <code>src/app/projects/podcast-player/</code>, then compare with the working code. Every milestone ends with a <em>checkpoint</em> (what you should observe) and a <em>verify</em> line (a command or a file to open). Pair it with the quiz bank in <code>docs/training/</code> to practise finding the answers in the real code, and with <a href="release-05.md">the release runbook</a> for the exact commands.</p>
+  <p>This page is a tutorial: read a section, build the matching milestone yourself in <code>src/projects/podcast-player/</code> and <code>src/app/projects/podcast-player/</code>, then compare with the working code. Every milestone ends with a <em>checkpoint</em> (what you should observe) and a <em>verify</em> line (a command or a file to open). Pair it with the quiz bank in <code>docs/training/</code> to practise finding the answers in the real code, and with <a href="release-05.html">the release runbook</a> for the exact commands.</p>
 </div>
 
 <div class="note">
@@ -391,7 +391,7 @@ STORAGE
 
 <h2 id="release">Release engineering</h2>
 
-<p>This half of the project has no UI. It is the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday." The exact commands are in <code>docs/release-05.md</code>; this section is the mental model.</p>
+<p>This half of the project has no UI. It is the part that turns "an app on my phone" into "an app I can ship on a Tuesday and fix on a Wednesday." The exact commands are in <code>docs/release-05.html</code>; this section is the mental model.</p>
 
 <h3>Build profiles and app variants</h3>
 <p><code>eas.json</code> defines four profiles; each sets <code>APP_VARIANT</code> in its build <code>env</code>, and <code>app.config.ts</code> turns the variant into a distinct bundle id and name so all three install side by side.</p>

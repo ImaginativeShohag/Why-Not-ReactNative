@@ -505,16 +505,26 @@
     return "";
   }
 
+  // Served from GitHub Pages (or any http host) there is no local checkout, so source paths
+  // link to the repo on GitHub instead of an editor. Paths without an extension are folders.
+  const GITHUB = "https://github.com/ImaginativeShohag/Why-Not-ReactNative";
+  const encPath = (p) => p.split("/").map(encodeURIComponent).join("/");
+  const githubUrl = (f) => `${GITHUB}/${/\.[^/]+$/.test(f) ? "blob" : "tree"}/main/${encPath(f)}`;
+
   function filesHtml(files) {
     const root = repoRoot();
     const editor = state.settings.editor;
     const rows = files
       .map((f) => {
+        // Write-ups live in docs/, one level up from this page both locally and on Pages
+        // (where docs/ is the site root).
         const open =
-          /\.html?$/i.test(f)
-            ? `<a class="qz-mini" href="../../${esc(f.split("/").map(encodeURIComponent).join("/"))}" target="_blank" rel="noopener noreferrer">${ic("external")} Open</a>`
+          /^docs\/.+\.html?$/i.test(f)
+            ? `<a class="qz-mini" href="../${esc(encPath(f.slice(5)))}" target="_blank" rel="noopener noreferrer">${ic("external")} Open</a>`
             : root && editor !== "none"
             ? `<a class="qz-mini" href="${editor}://file${encodeURI(`${root}/${f}`)}">${ic("external")} ${EDITORS[editor]}</a>`
+            : location.protocol !== "file:"
+            ? `<a class="qz-mini" href="${esc(githubUrl(f))}" target="_blank" rel="noopener noreferrer">${ic("external")} GitHub</a>`
             : "";
         return `<li>${ic("file")}<code>${esc(f)}</code><span class="acts"><button class="qz-mini" data-act="copy" data-path="${esc(f)}">${ic("copy")} Copy</button>${open}</span></li>`;
       })
@@ -640,7 +650,7 @@
       <nav class="qz-nav-links" aria-label="Primary">
         <a href="#/" class="${route.view === "home" ? "active" : ""}">${ic("home")} Dashboard</a>
         <a href="#/review" class="${reviewing ? "active" : ""}">${ic("repeat")} Review${all.due ? `<span class="count">${all.due}</span>` : ""}</a>
-        <a href="../index.html">${ic("book")} Learning path</a>
+        <a href="../learning-path.html">${ic("book")} Learning path</a>
       </nav>
       <div class="qz-top-right">
         <span class="qz-pill answered" title="Questions answered">${ic("check")} ${all.answered}/${all.total}</span>

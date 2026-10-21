@@ -13,8 +13,10 @@ out the answer from the real code, then the explanation tells you why.
   dark and light themes (top-bar toggle, or "Match system" in settings), per-module colours and
   icons from `LOOKS` in `quiz.js`, and motion that respects `prefers-reduced-motion`. No external
   fonts or libraries, so `file://` still works offline.
-- **Editor links:** when the page is opened from disk, "Open in VS Code" links point at the repo
-  automatically. When it's served over http, set the repo root on the dashboard.
+- **Source links:** when the page is opened from disk, "Open in VS Code" links point at the repo
+  automatically. When it's served over http (GitHub Pages), they link to the file on GitHub
+  (`main`) instead, unless a repo root is set on the dashboard. `docs/*.html` paths open the
+  sibling write-up, which resolves the same way locally and on Pages.
 
 ## Checking the banks
 

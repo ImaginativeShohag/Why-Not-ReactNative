@@ -1,15 +1,15 @@
 # Why-Not-ReactNative
 
 A hands-on Expo + React Native learning path. The app is a **launcher**: open it and pick one of
-six isolated projects. Each one implements a write-up in [`docs/`](docs/index.html).
+six isolated projects. Each one implements a write-up in [`docs/`](docs/learning-path.html). The docs are also published on GitHub Pages: <https://imaginativeshohag.github.io/Why-Not-ReactNative/>.
 
 | # | Project | What it teaches |
 | --- | --- | --- |
 | 01 | [Offline Journal](docs/01-offline-journal.html) | SQLite migrations, FTS search, outbox sync, background task, local notifications, biometric lock |
 | 02 | [Camera & Social](docs/02-camera-social.html) | Camera and permissions, Reanimated/Gesture editor with Skia filters, media library, inbound/outbound sharing, video |
-| 03 | [Commerce](docs/03-commerce-platform.html) | Protected routes, token refresh, secure storage, OAuth, checkout, Stripe, push, universal links ([audit](docs/audit-03.md)) |
+| 03 | [Commerce](docs/03-commerce-platform.html) | Protected routes, token refresh, secure storage, OAuth, checkout, Stripe, push, universal links ([audit](docs/audit-03.html)) |
 | 04 | [Fitness Tracker](docs/04-fitness-tracker.html) | Background location, sensors, maps, a config plugin, a Swift/Kotlin Expo Module, Live Activity, widgets, health sync |
-| 05 | [Podcast Player](docs/05-podcast-player.html) | Background audio, lock screen, downloads, EAS Build/Update, rollouts, CI/CD ([runbook](docs/release-05.md)) |
+| 05 | [Podcast Player](docs/05-podcast-player.html) | Background audio, lock screen, downloads, EAS Build/Update, rollouts, CI/CD ([runbook](docs/release-05.html)) |
 | 06 | [Tic-Tac-Toe](docs/06-tic-tac-toe.html) | Zustand with TypeScript (warm-up) |
 
 Built with Expo SDK 57, React Native 0.86, React 19.2 + React Compiler, Expo Router,

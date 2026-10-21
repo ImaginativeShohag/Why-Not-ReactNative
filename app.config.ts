@@ -66,7 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     usesAppleSignIn: true,
     // Required-reason APIs the app itself touches (Expo modules ship their
-    // own manifests). See docs/release-05.md for why each reason applies.
+    // own manifests). See docs/release-05.html for why each reason applies.
     privacyManifests: {
       NSPrivacyAccessedAPITypes: [
         {

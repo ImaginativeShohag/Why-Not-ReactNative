@@ -54,7 +54,7 @@ QUIZ.register({
       type: "mcq",
       level: 1,
       topics: ["Auth & Security"],
-      files: ["src/projects/store/auth/tokenStorage.ts", "docs/audit-03.md"],
+      files: ["src/projects/store/auth/tokenStorage.ts", "docs/audit-03.html"],
       prompt:
         "In `auth/tokenStorage.ts`, both tokens are written with expo-secure-store using `keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY`. What does that option buy you? Check Expo's SecureStore reference for the constant, rather than relying on the option name.",
       choices: [

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · Release Runbook — Expo Learning Path</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="crumb"><a href="learning-path.html">← Learning path</a> / <a href="05-podcast-player.html">Project 05</a> / Release runbook</div>
+
+<h1>Project 05 · Release runbook</h1>
+<p class="subtitle">How this repo is built, updated over the air, rolled out, rolled back and checked in CI. Every command below was checked against the current EAS CLI docs.</p>
+
+<div class="warn">
+  <strong>The rule that applies throughout</strong>
+  <p>An OTA may only carry JavaScript and assets.</p>
+</div>
+
+<h2>Build profiles (<code>eas.json</code>)</h2>
+
+<table>
+<thead><tr><th>Profile</th><th>Distribution</th><th>Channel</th><th><code>APP_VARIANT</code></th><th>Installs as</th></tr></thead>
+<tbody>
+<tr><td><code>development</code></td><td>internal, dev client, simulator</td><td><code>development</code></td><td>development</td><td><code>org.imaginativeworld.whynotreactnative.dev</code></td></tr>
+<tr><td><code>development-device</code></td><td>internal, dev client, device</td><td><code>development</code></td><td>development</td><td>same as above</td></tr>
+<tr><td><code>preview</code></td><td>internal (APK / ad-hoc)</td><td><code>preview</code></td><td>preview</td><td><code>….preview</code></td></tr>
+<tr><td><code>production</code></td><td>store, <code>autoIncrement</code></td><td><code>production</code></td><td>production</td><td>base id</td></tr>
+</tbody>
+</table>
+
+<p>All three variants can be installed side by side, because <code>app.config.ts</code> gives each one its own bundle id and name.</p>
+
+<pre><code>eas build --profile preview --platform android            # QR / link for testers
+eas build --profile production --platform ios --local     # compare with the cloud build
+eas submit --profile production --platform ios            # TestFlight</code></pre>
+
+<h2>Channels, branches, runtime versions</h2>
+
+<div class="ascii">build  ──has──►  channel   (baked into the binary: "production")
+                    │  mapped server-side, can change at any time
+                    ▼
+                 branch    ("preview", "release-1.4")
+                    │
+                    ▼
+                 update    (JS bundle + assets)</div>
+
+<ul>
+  <li><strong>Runtime version.</strong> <code>app.config.ts</code> uses <code>runtimeVersion: { policy: "fingerprint" }</code>. The fingerprint hashes the native inputs: dependencies with native code, config plugins and <code>app.config.ts</code>. Add a native module or change a plugin and the runtime version changes, so older binaries stop receiving new updates. That's correct behaviour, and it's what makes "OTA with a missing native module" impossible.</li>
+  <li><strong>Channel → branch mapping.</strong> It lives on the server, not in the binary. The first build (or <code>eas update --channel</code>) for a channel creates the channel pointing at a branch with the same name, so out of the box <code>preview</code> reads <code>preview</code> and <code>production</code> reads <code>production</code>. This repo has exactly the three channels from <code>eas.json</code>: <code>development</code>, <code>preview</code>, <code>production</code>. There is no <code>staging</code> channel.</li>
+</ul>
+
+<pre><code>eas channel:view production                       # which branch does production read?
+eas channel:edit production --branch release-1.4  # repoint it (e.g. for a release branch)</code></pre>
+
+<p>Publishing to a branch that no channel points at is the classic way to have "nobody got the update". CI avoids it by publishing with <code>--channel preview</code> (the update goes to whatever branch that channel reads) instead of a hardcoded <code>--branch</code>. When you publish by branch yourself, check <code>eas channel:view</code> first.</p>
+
+<ul>
+  <li><strong><code>APP_VARIANT</code> when publishing.</strong> <code>eas.json</code>'s <code>env</code> only applies to builds. <code>app.config.ts</code> changes the bundle id and name per variant, and the app config feeds the fingerprint, so <code>eas update</code> must run with the same <code>APP_VARIANT</code> as the target builds (<code>release.yml</code> sets it), or the update is stamped with the development runtime version and reaches nobody.</li>
+</ul>
+
+<h2>Publishing and staged rollout (M7)</h2>
+
+<pre><code># 1. Publish to the release branch at 10%.
+APP_VARIANT=production eas update --branch release-1.4 --environment production \
+  --message "fix scrubber jump" --rollout-percentage 10
+
+# 2. Watch the crash-free rate and errors, then widen.
+eas update:edit &lt;GROUP_ID&gt; --rollout-percentage 50
+eas update:edit &lt;GROUP_ID&gt; --rollout-percentage 100</code></pre>
+
+<p>Users outside the rollout keep getting the previous latest update on the branch.</p>
+
+<div class="tip">
+  <strong>To check on a device</strong>
+  <p>Relaunch twice. The first launch downloads the update and the second applies it. That's the default <code>checkAutomatically: "ON_LOAD"</code> with <code>fallbackToCacheTimeout: 0</code> in <code>app.config.ts</code>.</p>
+</div>
+
+<h3>Rollback drill</h3>
+
+<pre><code># The bad group must be the latest on its branch + runtime version.
+eas update:rollback &lt;BAD_GROUP_ID&gt; --message "roll back scrubber change"
+# → republishes the previous group, or rolls back to the embedded bundle if none.
+
+# Mid-rollout alternative: undo the rollout itself.
+eas update:revert-update-rollout</code></pre>
+
+<p>Practise this on purpose: publish a visible but non-crashing change, roll it back, and confirm both phones come back to the good bundle.</p>
+
+<h3>Branch rollout (whole-branch canary)</h3>
+
+<pre><code>eas channel:rollout production        # move a channel to a new branch gradually</code></pre>
+
+<h2>In-app update experience (<code>src/projects/podcast-player/lib/updates.ts</code>)</h2>
+
+<table>
+<thead><tr><th>Mode</th><th>Where</th><th>Use for</th></tr></thead>
+<tbody>
+<tr><td>Silent (default)</td><td>expo-updates downloads on launch and applies on the next one</td><td>Most fixes</td></tr>
+<tr><td>Prompt to restart</td><td><code>UpdateBanner</code> ("Update ready · Restart", <code>reloadAsync()</code>)</td><td>Visible fixes</td></tr>
+<tr><td>Channel surfing (testers only)</td><td>Podcast <strong>Settings → Channel surfing</strong>, using <code>switchChannel()</code> → <code>Updates.setUpdateRequestHeadersOverride({ "expo-channel-name": … })</code>. The chips offer the real channels (<code>development</code>, <code>preview</code>, <code>production</code>); a free-text field covers any other channel you create</td><td>Test a preview bundle on another build with the same runtime version</td></tr>
+</tbody>
+</table>
+
+<h2>CI/CD (<code>.github/workflows/</code>)</h2>
+
+<table>
+<thead><tr><th>Workflow</th><th>Trigger</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td><code>ci.yml</code></td><td>every PR, pushes to <code>main</code>/<code>dev</code></td><td><code>npm ci</code> → typecheck → lint → jest → <code>expo export</code> for iOS and Android. The Maestro job runs only on PRs labelled <code>e2e</code>: it builds a preview APK on EAS, downloads it and runs every flow in <code>.maestro/</code> on Maestro Cloud with <code>APP_ID=org.imaginativeworld.whynotreactnative.preview</code>.</td></tr>
+<tr><td><code>release.yml</code></td><td>push to <code>main</code></td><td><code>ota-preview</code>: <code>APP_VARIANT=preview eas update --channel preview --environment preview</code> (OTA to testers on preview builds)</td></tr>
+<tr><td><code>release.yml</code></td><td>tag <code>v*</code></td><td><code>eas build --profile production --platform all --auto-submit</code>, then a GitHub release with notes</td></tr>
+<tr><td><code>fingerprint.yml</code></td><td>nightly / manual</td><td>Compares the local fingerprint (<code>APP_VARIANT=production</code>, <code>--environment production</code>) with the last finished production build, per platform. <strong>Warn-only by design:</strong> drift is a <code>::warning::</code> and the job stays green, because it means "the next release needs a store build, not an OTA", not that something broke. Real errors (auth, <code>build:list</code>, <code>fingerprint:compare</code>, bad JSON) fail the job. <code>fingerprint:compare</code> exits 0 on drift, so drift is read from its <code>--json</code> hashes.</td></tr>
+</tbody>
+</table>
+
+<p><strong>Maestro locally:</strong> the flows take the app id as a parameter, because each variant installs under its own id:</p>
+
+<pre><code>maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/podcast-smoke.yaml</code></pre>
+
+<p><strong>Secrets:</strong> <code>EXPO_TOKEN</code>, and <code>MAESTRO_CLOUD_API_KEY</code> for the e2e job. Apple and Google credentials stay in EAS (<code>eas credentials</code>), never in GitHub.</p>
+
+<p><strong>Source maps:</strong> when a crash reporter is chosen (see <a href="audit-03.html">the store audit</a>), add its upload step after <code>eas update</code> / <code>eas build</code> in <code>release.yml</code>. A production stack trace you can't read is one of the doc's failure modes.</p>
+
+<h2>Store readiness (M8)</h2>
+
+<ul>
+  <li><strong>iOS privacy manifest.</strong> Expo adds the SDK modules' manifests; the app declares its own required-reason APIs in <code>app.config.ts</code> under <code>ios.privacyManifests</code>:</li>
+</ul>
+
+<table>
+<thead><tr><th>API category</th><th>Reason</th><th>Why this app uses it</th></tr></thead>
+<tbody>
+<tr><td><code>NSPrivacyAccessedAPICategoryUserDefaults</code></td><td><code>CA92.1</code></td><td>AsyncStorage / settings</td></tr>
+<tr><td><code>NSPrivacyAccessedAPICategoryFileTimestamp</code></td><td><code>C617.1</code></td><td>Download manager and media files</td></tr>
+<tr><td><code>NSPrivacyAccessedAPICategoryDiskSpace</code></td><td><code>E174.1</code></td><td>Storage bar and download storage cap</td></tr>
+<tr><td><code>NSPrivacyAccessedAPICategorySystemBootTime</code></td><td><code>35F9.1</code></td><td>React Native timing</td></tr>
+</tbody>
+</table>
+
+<ul>
+  <li>Collected data types: none are sent off the device by the podcast player. The store and fitness projects declare their own (purchase history, health and fitness data, precise location).</li>
+  <li><strong>Android data safety:</strong> location (fitness), photos and videos (camera), health data (Health Connect), purchase history (store). No data is sold, and everything is encrypted in transit.</li>
+  <li><strong>Screenshots:</strong> have the Maestro flows end in <code>takeScreenshot</code>, then run them per device size.</li>
+  <li><strong>Phased release:</strong> App Store Connect's 7-day phased release, or Play's staged rollout. This sits on top of the OTA rollout above, which only covers JS.</li>
+</ul>
+
+<h2>Failure-mode checklist</h2>
+
+<ul style="list-style: none; padding-left: 0">
+  <li>☐ Ship without <code>playsInSilentMode</code>. Mute-switch users get silence. (<code>playback/service.ts</code> sets it.)</li>
+  <li>☐ Resume after every interruption. Only resume if <em>we</em> paused, and only when the hint allows it.</li>
+  <li>☐ Unplug headphones and hear speaker blast. Route change must pause.</li>
+  <li>☐ Scrubber fight. Position updates must not overwrite the user's drag: <code>Scrubber.tsx</code> owns the position while dragging (<code>scrub</code>) and until the player confirms the seek (<code>settling</code>).</li>
+  <li>☐ Absolute paths in the DB. Downloads store <code>podcasts/&lt;show&gt;/&lt;ep&gt;.mp3</code> relative to Documents (<code>downloads/paths.ts</code>, tested).</li>
+  <li>☐ OTA with a missing native module. Prevented by the fingerprint runtime version; prove it once on a test channel.</li>
+  <li>☐ Channel/branch confusion. <code>eas channel:view</code> before every publish.</li>
+  <li>☐ Unbounded storage. The storage cap evicts played episodes only (<code>downloads/policy.ts</code>, tested).</li>
+</ul>
+
+<div class="nav-links">
+  <a href="05-podcast-player.html">← Project 05 · Podcast Player</a>
+  <a href="learning-path.html">Learning path</a>
+</div>
+
+<footer>Project 05 · release runbook · targets Expo SDK 57 / RN 0.86</footer>
+
+</div>
+</body>
+</html>

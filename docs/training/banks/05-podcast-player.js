@@ -181,9 +181,9 @@ QUIZ.register({
       type: "text",
       level: 1,
       topics: ["Expo Config & EAS", "Release & CI"],
-      files: ["app.config.ts", "docs/release-05.md"],
+      files: ["app.config.ts", "docs/release-05.html"],
       prompt:
-        "Which `runtimeVersion` policy does `app.config.ts` use? (Type the policy name.)\n\nSearch: open `app.config.ts` and find the `runtimeVersion` key. Then read `docs/release-05.md` for what the policy hashes.",
+        "Which `runtimeVersion` policy does `app.config.ts` use? (Type the policy name.)\n\nSearch: open `app.config.ts` and find the `runtimeVersion` key. Then read `docs/release-05.html` for what the policy hashes.",
       accept: ["fingerprint", /policy:\s*["']?fingerprint/i, /^\{?\s*policy\s*:\s*["']?fingerprint["']?\s*\}?$/i],
       links: [
         { title: "EAS Update: runtime versions", url: "https://docs.expo.dev/eas-update/runtime-versions" },
@@ -531,7 +531,7 @@ QUIZ.register({
       files: [
         ".github/workflows/ci.yml",
         ".github/workflows/release.yml",
-        "docs/release-05.md",
+        "docs/release-05.html",
       ],
       prompt:
         "Put this repo's release pipeline in order, from a pull request to the stores.\n\nSearch: read the `on:` and `if:` conditions in `ci.yml` and `release.yml`, and `channel` in `eas.json`.",
@@ -581,7 +581,7 @@ QUIZ.register({
       topics: ["Gesture Handler", "Media"],
       files: [
         "src/projects/podcast-player/components/player/Scrubber.tsx",
-        "docs/release-05.md",
+        "docs/release-05.html",
       ],
       prompt:
         "`Scrubber.tsx` keeps two pieces of local state, `scrub` and `settling`, and displays `scrub ?? settling ?? position`. What problem does `settling` solve?\n\nSearch: read `Scrubber.tsx` and find where `scrub` and `settling` are set and cleared. What happens if you remove `settling`?",
@@ -766,9 +766,9 @@ QUIZ.register({
       type: "multi",
       level: 3,
       topics: ["Release & CI", "Expo Config & EAS"],
-      files: ["app.config.ts", "docs/release-05.md", ".github/workflows/release.yml"],
+      files: ["app.config.ts", "docs/release-05.html", ".github/workflows/release.yml"],
       prompt:
-        "Select all that apply. Which of these changes need a new store build rather than an `eas update` OTA?\n\nSearch: read `docs/release-05.md` for the \"OTA may only carry\" rule, then check which of these options appear in `app.config.ts` or only in `src/`.",
+        "Select all that apply. Which of these changes need a new store build rather than an `eas update` OTA?\n\nSearch: read `docs/release-05.html` for the \"OTA may only carry\" rule, then check which of these options appear in `app.config.ts` or only in `src/`.",
       choices: [
         "Adding a dependency with native code (for example, a new `expo-*` module)",
         "Changing `expo-audio` plugin options in `app.config.ts` (for example `enableBackgroundPlayback`)",
@@ -876,7 +876,7 @@ QUIZ.register({
         ".github/workflows/release.yml",
         "eas.json",
         "app.config.ts",
-        "docs/release-05.md",
+        "docs/release-05.html",
         "src/app/projects/podcast-player/settings.tsx",
       ],
       prompt:
@@ -986,7 +986,7 @@ QUIZ.register({
       type: "mcq",
       level: 3,
       topics: ["Release & CI", "Expo Config & EAS"],
-      files: [".github/workflows/fingerprint.yml", "docs/release-05.md", "app.config.ts"],
+      files: [".github/workflows/fingerprint.yml", "docs/release-05.html", "app.config.ts"],
       prompt:
         "`fingerprint.yml` runs `eas fingerprint:compare --build-id … --environment production --json`, compares `fingerprint1.hash` with `fingerprint2.hash`, and emits a `::warning::` on drift. The step also sets `APP_VARIANT: production` and starts with `set -euo pipefail`. Which statement matches how the job behaves?\n\nSearch: read the `env:` and `run:` of the compare step in `fingerprint.yml` and the `fingerprint:compare` entry in the EAS CLI reference.",
       choices: [

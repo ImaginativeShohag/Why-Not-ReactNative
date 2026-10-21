@@ -5,16 +5,16 @@ This file gives AI agents detailed guidance for working on the code in this repo
 ## Project Overview
 
 This is a React Native learning repo: a **launcher app** that holds six isolated sample projects,
-one for each write-up in `docs/` (see `docs/index.html`). Each project is a vertical slice of
+one for each write-up in `docs/` (see `docs/learning-path.html`). Each project is a vertical slice of
 routes, components, hooks, stores, API calls and models, kept under its own directories.
 
 | # | Project | Slug | Doc |
 | --- | --- | --- | --- |
 | 01 | Offline-first journal (SQLite, FTS, outbox sync, biometric lock) | `offline-journal` | `docs/01-offline-journal.html` |
 | 02 | Camera & social capture (camera, editor, media library, sharing) | `camera-social` | `docs/02-camera-social.html` |
-| 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html`, `docs/audit-03.md` |
+| 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html`, `docs/audit-03.html` |
 | 04 | Background fitness tracker (location task, sensors, native module, widgets) | `fitness-tracker` | `docs/04-fitness-tracker.html` |
-| 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/release-05.md` |
+| 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/release-05.html` |
 | 06 | Tic-tac-toe with Zustand (warm-up) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
 
 **Key Tech Stack:**
@@ -72,7 +72,10 @@ modules/live-activity/  local Expo Module, Swift + Kotlin (Project 04)
 plugins/            hand-written config plugins (Project 04)
 .github/workflows/  ci.yml, release.yml, fingerprint.yml (Project 05)
 .maestro/           e2e flows: store-checkout.yaml, podcast-smoke.yaml
-docs/               learning-path write-ups, audit, release runbook, well-known templates
+docs/               GitHub Pages site (Settings → Pages → main, /docs; `.nojekyll`, so files are
+                    served as-is): index.html front page, learning-path.html curriculum,
+                    write-ups 00–06, audit-03.html, release-05.html, well-known templates.
+                    Keep it plain HTML: a .md here is served as raw text.
 docs/training/      code-reading quizzes, one bank per project (static page, see its README;
                     standalone quiz.css, no external deps, must keep working over file://)
 ```
