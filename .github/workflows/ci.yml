@@ -1,10 +1,18 @@
-# Project 05 · M8 — every pull request: typecheck, lint, unit tests.
+# Project 05 · M8 — manual checks: typecheck, lint, unit tests.
 name: CI
 
 on:
-  pull_request:
-  push:
-    branches: [main, dev]
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Build a preview APK and run Maestro Cloud flows
+        type: boolean
+        default: false
+  # In real use, enable the following events to check every pull request
+  # and every push to the main development branches automatically.
+  # pull_request:
+  # push:
+  #   branches: [main, dev]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -41,9 +49,12 @@ jobs:
           npx expo export --platform android --output-dir dist/android
 
   maestro-smoke:
-    # E2E against a real build is slow and needs an EAS account, so it runs
-    # only when the PR is labelled `e2e`.
-    if: contains(github.event.pull_request.labels.*.name, 'e2e')
+    # E2E against a real build is slow and needs EAS and Maestro credentials,
+    # so enable it explicitly when starting a manual run.
+    # In real use, with pull_request enabled, use the following condition
+    # to opt PRs into E2E with the `e2e` label:
+    # if: contains(github.event.pull_request.labels.*.name, 'e2e')
+    if: inputs.run_e2e
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 60

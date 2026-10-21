@@ -1,4 +1,4 @@
-# Project 05 · nightly — has the native contract drifted from the last build?
+# Project 05 · manual — has the native contract drifted from the last build?
 # A changed fingerprint means the next OTA would need a NEW runtime version,
 # i.e. a store build first. Surfacing it nightly beats discovering it mid-release.
 #
@@ -11,9 +11,11 @@
 name: Fingerprint drift
 
 on:
-  schedule:
-    - cron: "0 2 * * *"
   workflow_dispatch:
+  # In real use, enable the following schedule to detect native drift daily
+  # at 02:00 UTC (08:00 Bangladesh time) before preparing a release.
+  # schedule:
+  #   - cron: "0 2 * * *"
 
 jobs:
   fingerprint:

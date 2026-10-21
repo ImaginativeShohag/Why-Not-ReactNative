@@ -1,14 +1,26 @@
 # Project 05 · M7/M8 — release pipeline.
-#   push to main   → OTA update to the `preview` channel (internal testers on preview builds)
-#   tag v*         → production build for both platforms + store submission
+#   manual preview    → OTA update for internal testers on preview builds
+#   manual production → production builds + store submission; run against a v* tag
 #
 # Secrets: EXPO_TOKEN (eas login token). Store credentials live in EAS, not here.
 name: Release
 
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release_target:
+        description: Preview OTA, or production build and submission (requires a v* tag ref)
+        type: choice
+        default: preview
+        options:
+          - preview
+          - production
+  # In real use, enable the following events to publish a preview OTA on
+  # pushes to main and build/submit production apps on version tags (e.g. v1.0.0).
+  # Restore the commented job conditions below when restoring these events.
+  # push:
+  #   branches: [main]
+  #   tags: ["v*"]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -16,7 +28,9 @@ concurrency:
 
 jobs:
   ota-preview:
-    if: github.ref == 'refs/heads/main'
+    # In real use, with push enabled, use the following condition:
+    # if: github.ref == 'refs/heads/main'
+    if: inputs.release_target == 'preview'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,13 +60,17 @@ jobs:
       - name: Publish OTA to the preview channel
         env:
           APP_VARIANT: preview
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || format('Manual preview update {0}', github.sha) }}
         run: >
           eas update --channel preview --environment preview
           --message "$COMMIT_MESSAGE" --non-interactive
 
   build-and-submit:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Dispatch against an existing v* tag so the GitHub Release has a tag.
+    # Example: gh workflow run release.yml --ref v1.0.0 -f release_target=production
+    # In real use, with push enabled, use the following condition:
+    # if: startsWith(github.ref, 'refs/tags/v')
+    if: inputs.release_target == 'production' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
