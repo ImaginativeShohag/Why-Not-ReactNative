@@ -101,14 +101,14 @@
     String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
   function inline(text) {
-    return esc(text)
-      .split(/(`[^`]+`)/)
-      .map((part) =>
-        part.length > 1 && part.startsWith("`") && part.endsWith("`")
-          ? `<code>${part.slice(1, -1)}</code>`
-          : part.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>"),
-      )
-      .join("");
+    // Match code as a whole so its contents stay literal, including inside bold.
+    return esc(text).replace(
+      /`([^`]+)`|\*\*((?:`[^`]+`|[^`])+?)\*\*/g,
+      (_, code, bold) =>
+        code !== undefined
+          ? `<code>${code}</code>`
+          : `<strong>${bold.replace(/`([^`]+)`/g, "<code>$1</code>")}</strong>`,
+    );
   }
 
   // Light markup: blank line = paragraph, "- " lines = bullets, `code`, **bold**.
