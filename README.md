@@ -1,7 +1,11 @@
+![Why-Not-ReactNative — six Expo and React Native sample apps](docs/assets/covers/readme-cover-editorial-dark.png)
+
 # Why-Not-ReactNative
 
 A hands-on Expo + React Native learning path. The app is a **launcher**: open it and pick one of
-six isolated projects. Each one implements a write-up in [`docs/`](docs/learning-path.html). The docs are also published on GitHub Pages: <https://imaginativeshohag.github.io/Why-Not-ReactNative/>.
+six isolated projects. Each one implements a write-up in [`docs/`](docs/learning-path.html).
+
+[![Read the docs](docs/assets/buttons/docs-gradient.svg)](https://imaginativeshohag.github.io/Why-Not-ReactNative/)
 
 | # | Project | What it teaches |
 | --- | --- | --- |
