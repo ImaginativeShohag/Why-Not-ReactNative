@@ -3,6 +3,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as Linking from "expo-linking";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
+import { Platform } from "react-native";
 
 import type { Capture } from "@/src/projects/camera-social/models/Asset";
 import { env } from "@/src/shared/constants/env";
@@ -75,13 +76,23 @@ export async function copyImage(
 }
 
 /**
- * Save into the dedicated album. Write-only permission is enough (and on iOS
- * a much less scary prompt than full library read access).
+ * Save into the dedicated album. Write-only permission is enough to add the
+ * file (and on iOS a much less scary prompt than full library read access),
+ * but on iOS reading or creating an album needs *full* access. With write-only
+ * or limited access the photo still lands in Recents, just not in the album.
  */
 export async function saveToGallery(uri: string) {
   const permission = await MediaLibrary.requestPermissionsAsync(true);
   if (!permission.granted) {
     throw new Error("Allow photo library access to save to your gallery");
+  }
+  if (Platform.OS === "ios") {
+    // A read check never prompts; it only tells us whether albums are usable.
+    const read = await MediaLibrary.getPermissionsAsync(false);
+    if (read.accessPrivileges !== "all") {
+      await MediaLibrary.Asset.create(uri);
+      return;
+    }
   }
   const album = await MediaLibrary.Album.get(GALLERY_ALBUM);
   if (album) {

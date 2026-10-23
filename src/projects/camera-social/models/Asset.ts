@@ -39,7 +39,8 @@ export type NormRect = { x: number; y: number; width: number; height: number };
 
 export type Size = { width: number; height: number };
 
-export type AspectPreset = "free" | "1:1" | "4:5" | "16:9";
+/** `9:16` and `5:4` only arise from rotating a `16:9` / `4:5` crop. */
+export type AspectPreset = "free" | "1:1" | "4:5" | "5:4" | "16:9" | "9:16";
 
 export type FilterName = "none" | "mono" | "warm" | "cool" | "fade" | "vivid";
 

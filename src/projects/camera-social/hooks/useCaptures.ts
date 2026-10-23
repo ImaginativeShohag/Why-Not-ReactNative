@@ -26,18 +26,33 @@ function useCapturesQuery<T>(
   initial: T,
 ) {
   const db = useSQLiteContext();
-  const [state, setState] = useState<{ data: T; loading: boolean }>({
-    data: initial,
-    loading: true,
-  });
+  const [fallback] = useState(initial);
+  // `source` records which query produced the data, so a new `select` (a new
+  // id) reads as loading at once instead of returning the previous row.
+  const [state, setState] = useState<{
+    data: T;
+    loading: boolean;
+    source: typeof select | null;
+  }>({ data: initial, loading: true, source: null });
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const load = () => {
       select(db)
-        .then((data) => !cancelled && setState({ data, loading: false }))
-        .catch(() => !cancelled && setState((s) => ({ ...s, loading: false })));
+        .then(
+          (data) =>
+            !cancelled && setState({ data, loading: false, source: select }),
+        )
+        .catch(
+          () =>
+            !cancelled &&
+            setState((s) =>
+              s.source === select
+                ? { ...s, loading: false }
+                : { data: fallback, loading: false, source: select },
+            ),
+        );
     };
     load();
     const sub = addDatabaseChangeListener(({ tableName, databaseFilePath }) => {
@@ -52,9 +67,11 @@ function useCapturesQuery<T>(
       if (timer) clearTimeout(timer);
       sub.remove();
     };
-  }, [db, select]);
+  }, [db, fallback, select]);
 
-  return state;
+  return state.source === select
+    ? { data: state.data, loading: state.loading }
+    : { data: fallback, loading: true };
 }
 
 /** Feed grid rows — thumbnail-level columns only. */

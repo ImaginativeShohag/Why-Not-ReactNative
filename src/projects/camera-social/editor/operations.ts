@@ -1,5 +1,6 @@
 import type {
   Adjustments,
+  AspectPreset,
   NormRect,
   Op,
   ResolvedEdit,
@@ -75,6 +76,22 @@ export function flipRect(
     : { ...rect, y: 1 - rect.y - rect.height };
 }
 
+/** The preset a crop frame has after a quarter turn (16:9 ↔ 9:16, 4:5 ↔ 5:4). */
+export function rotateAspect(preset: AspectPreset): AspectPreset {
+  switch (preset) {
+    case "4:5":
+      return "5:4";
+    case "5:4":
+      return "4:5";
+    case "16:9":
+      return "9:16";
+    case "9:16":
+      return "16:9";
+    default:
+      return preset;
+  }
+}
+
 /**
  * Reduce an operation list to its canonical form:
  * output = crop(flip(rotate(source))).
@@ -95,6 +112,8 @@ export function resolveOperations(ops: readonly Op[]): ResolvedEdit {
           flipH: state.flipV,
           flipV: state.flipH,
           crop: rotateRect(state.crop, op.degrees),
+          // The rect turns with the image, so its preset turns too.
+          aspect: rotateAspect(state.aspect),
         };
         break;
       }
@@ -164,6 +183,29 @@ export function sameRect(a: NormRect, b: NormRect, epsilon = 1e-4): boolean {
 
 export function isFullRect(rect: NormRect, epsilon = 1e-4): boolean {
   return sameRect(rect, FULL_RECT, epsilon);
+}
+
+/**
+ * Whether two resolved edits produce the same output. The aspect preset is
+ * only a crop-session hint, and intensity is moot without a filter.
+ */
+export function sameEdit(a: ResolvedEdit, b: ResolvedEdit): boolean {
+  return (
+    a.rotation === b.rotation &&
+    a.flipH === b.flipH &&
+    a.flipV === b.flipV &&
+    sameRect(a.crop, b.crop) &&
+    a.filter === b.filter &&
+    (a.filter === "none" || Math.abs(a.intensity - b.intensity) < 1e-4) &&
+    a.adjust.brightness === b.adjust.brightness &&
+    a.adjust.contrast === b.adjust.contrast &&
+    a.adjust.saturation === b.adjust.saturation
+  );
+}
+
+/** Whether two operation lists render the same image (not just the same length). */
+export function sameOutput(a: readonly Op[], b: readonly Op[]): boolean {
+  return sameEdit(resolveOperations(a), resolveOperations(b));
 }
 
 export function hasGeometry(edit: ResolvedEdit): boolean {
@@ -264,8 +306,12 @@ export function aspectValue(preset: ResolvedEdit["aspect"]): number | null {
       return 1;
     case "4:5":
       return 4 / 5;
+    case "5:4":
+      return 5 / 4;
     case "16:9":
       return 16 / 9;
+    case "9:16":
+      return 9 / 16;
     default:
       return null;
   }

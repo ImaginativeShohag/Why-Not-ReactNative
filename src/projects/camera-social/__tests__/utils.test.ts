@@ -12,6 +12,7 @@ import {
 } from "@/src/projects/camera-social/media/exif";
 import {
   extensionOf,
+  libraryGridUri,
   mimeForExtension,
   resolveRelativePath,
   toRelativePath,
@@ -162,5 +163,22 @@ describe("format", () => {
     expect(formatBytes(0)).toBe("0 B");
     expect(formatBytes(3.2 * 1024 * 1024)).toBe("3.2 MB");
     expect(formatDuration(72.4)).toBe("1:12");
+  });
+});
+
+describe("libraryGridUri", () => {
+  it("doesn't double the ph:// scheme of SDK 57 iOS ids", () => {
+    expect(libraryGridUri("ph://ABC-123/L0/001", "ios")).toBe(
+      "ph://ABC-123/L0/001",
+    );
+  });
+
+  it("adds the scheme to a bare iOS local identifier", () => {
+    expect(libraryGridUri("ABC-123/L0/001", "ios")).toBe("ph://ABC-123/L0/001");
+  });
+
+  it("passes Android content URIs through", () => {
+    const id = "content://media/external/images/media/42";
+    expect(libraryGridUri(id, "android")).toBe(id);
   });
 });

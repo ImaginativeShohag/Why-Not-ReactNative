@@ -19,4 +19,13 @@ describe("trimLoopSeek", () => {
   it("loops an untrimmed clip from the beginning", () => {
     expect(trimLoopSeek(12, 0, null, true)).toBe(0);
   });
+
+  it("clamps a position before the trim start back to it", () => {
+    expect(trimLoopSeek(0, 3, 8)).toBe(3);
+    expect(trimLoopSeek(1.5, 3, null)).toBe(3);
+  });
+
+  it("tolerates a seek landing just short of the trim start", () => {
+    expect(trimLoopSeek(2.95, 3, 8)).toBeNull();
+  });
 });

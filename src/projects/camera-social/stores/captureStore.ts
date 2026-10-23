@@ -17,8 +17,12 @@ type CaptureSession = {
   beginCapture: () => void;
   finishCapture: (id: string, thumbUri: string) => void;
   failCapture: (message: string) => void;
+  /** Drop the last-shot button if it points at a deleted capture (no id: all deleted). */
+  forgetCapture: (id?: string) => void;
   startRecording: () => void;
   stopRecording: () => void;
+  /** Toast an error that isn't a failed capture (pending is unchanged). */
+  showError: (message: string) => void;
   clearError: () => void;
 };
 
@@ -39,8 +43,15 @@ export const useCaptureStore = create<CaptureSession>()((set) => ({
     })),
   failCapture: (message) =>
     set((s) => ({ pending: Math.max(0, s.pending - 1), error: message })),
+  forgetCapture: (id) =>
+    set((s) =>
+      id == null || s.lastCaptureId === id
+        ? { lastCaptureId: null, lastThumbUri: null }
+        : s,
+    ),
   startRecording: () =>
     set({ isRecording: true, recordingStartedAt: Date.now() }),
   stopRecording: () => set({ isRecording: false, recordingStartedAt: null }),
+  showError: (message) => set({ error: message }),
   clearError: () => set({ error: null }),
 }));

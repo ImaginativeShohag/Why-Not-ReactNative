@@ -37,7 +37,11 @@ function CameraSocialStack() {
           headerBackButtonDisplayMode: "minimal",
         }}
       >
-        <Stack.Screen name="(tab)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(tab)"
+          // Pushed screens' back menus show this instead of the "(tab)" segment.
+          options={{ headerShown: false, title: "Feed" }}
+        />
         <Stack.Screen
           name="camera"
           options={{

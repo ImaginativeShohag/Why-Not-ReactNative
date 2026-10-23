@@ -51,9 +51,25 @@ function wrap(
  * Bake a colour matrix with Skia on the GPU. The only bytes that cross into
  * JS are the *encoded* JPEG on its way to disk — never raw pixels.
  */
+async function decodeForSkia(uri: string) {
+  const image = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(uri));
+  if (image) return image;
+  // Skia can't decode every format the camera writes (HEIC on a filter-only
+  // edit, where no geometry pass re-encoded it first). Transcode to JPEG
+  // through the platform decoder and try once more.
+  const ctx = ImageManipulator.manipulate(uri);
+  const rendered = await ctx.renderAsync();
+  const jpeg = await rendered.saveAsync({
+    format: SaveFormat.JPEG,
+    compress: 1,
+  });
+  rendered.release();
+  ctx.release();
+  return Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(jpeg.uri));
+}
+
 async function applyColorMatrix(uri: string, matrix: ColorMatrix) {
-  const data = await Skia.Data.fromURI(uri);
-  const image = Skia.Image.MakeImageFromEncoded(data);
+  const image = await decodeForSkia(uri);
   if (!image) throw new Error("Could not decode image for the filter pass");
 
   const srcW = image.width();

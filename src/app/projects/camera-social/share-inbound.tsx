@@ -61,7 +61,9 @@ export default function ShareInboundScreen() {
 
   const discard = () => {
     share.reset();
-    router.back();
+    // Cold start from the share extension: nothing underneath to go back to.
+    if (router.canGoBack()) router.back();
+    else router.replace("/projects/camera-social");
   };
 
   if (!share.isReady) {

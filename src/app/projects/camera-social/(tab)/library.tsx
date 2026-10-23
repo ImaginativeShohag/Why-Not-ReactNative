@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IconButton } from "@/src/projects/camera-social/components/common/IconButton";
 import { PermissionGate } from "@/src/projects/camera-social/components/PermissionGate";
 import { AlbumPickerSheet } from "@/src/projects/camera-social/components/library/AlbumPickerSheet";
 import { AssetGrid } from "@/src/projects/camera-social/components/library/AssetGrid";
@@ -133,7 +134,16 @@ export default function LibraryScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Library</Text>
+        <View style={styles.headerLeft}>
+          <IconButton
+            icon="chevron-back"
+            // Same exit as the Feed tab's header. `back()` from a non-first
+            // tab would only switch to Feed, so pop the root stack instead.
+            onPress={() => router.navigate("/")}
+            accessibilityLabel="Back to projects"
+          />
+          <Text style={styles.title}>Library</Text>
+        </View>
         <View style={styles.headerRight}>
           {library.granted ? (
             <Pressable
@@ -250,10 +260,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingLeft: 4,
+    paddingRight: 16,
     paddingVertical: 10,
   },
   title: { color: Palette.text, fontSize: 28, fontWeight: "800" },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 4 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 16 },
   albumButton: {
     flexDirection: "row",

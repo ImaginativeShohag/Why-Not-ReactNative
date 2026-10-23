@@ -69,3 +69,17 @@ export function extensionForMime(mime: string, fallback = "jpg"): string {
   };
   return map[mime.toLowerCase()] ?? fallback;
 }
+
+const PH_SCHEME = "ph://";
+
+/**
+ * A grid-renderable URI for a media-library asset id, without resolving the
+ * original file. On iOS, `ph://<localIdentifier>` makes expo-image request a
+ * sized thumbnail from PhotoKit. SDK 57's expo-media-library already returns
+ * ids in that form; a bare local identifier (older API) gets the scheme
+ * added. On Android the id already *is* a content:// URI.
+ */
+export function libraryGridUri(id: string, platform: string): string {
+  if (platform !== "ios" || id.startsWith(PH_SCHEME)) return id;
+  return `${PH_SCHEME}${id}`;
+}

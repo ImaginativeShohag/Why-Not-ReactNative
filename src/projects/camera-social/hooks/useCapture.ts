@@ -13,6 +13,9 @@ import { probeVideoDurationMs } from "@/src/projects/camera-social/media/videoIn
 import { useCaptureStore } from "@/src/projects/camera-social/stores/captureStore";
 import { saveToGallery } from "@/src/projects/camera-social/utils/shareOut";
 
+const STOP_RETRY_MS = 250;
+const STOP_RETRY_LIMIT = 20;
+
 /**
  * takePicture / record orchestration.
  *
@@ -28,6 +31,14 @@ export function useCapture(
   const db = useSQLiteContext();
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const recordStartedAt = useRef<number | null>(null);
+  // A stop tapped before the native recorder has started is a silent no-op
+  // (iOS configures the output first), so it's retried until recordAsync settles.
+  const stopRetry = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const cancelStopRetry = useCallback(() => {
+    if (stopRetry.current) clearInterval(stopRetry.current);
+    stopRetry.current = null;
+  }, []);
 
   const afterIngest = useCallback(
     async (id: string) => {
@@ -35,8 +46,17 @@ export function useCapture(
       if (!capture) return;
       useCaptureStore.getState().finishCapture(id, capture.thumbUri);
       if (settings.saveToGallery) {
-        saveToGallery(capture.uri).catch(() => {
-          // Gallery save is best-effort; the capture is safe in the app.
+        // Best-effort: the capture is safe in the app, so a failed gallery
+        // save is a toast rather than a failed capture.
+        saveToGallery(capture.uri).catch((e: unknown) => {
+          console.warn("[camera-social] gallery save failed", e);
+          useCaptureStore
+            .getState()
+            .showError(
+              e instanceof Error
+                ? `Not saved to gallery: ${e.message}`
+                : "Not saved to gallery",
+            );
         });
       }
     },
@@ -89,6 +109,9 @@ export function useCapture(
       const result = await camera.recordAsync({
         maxDuration: settings.maxVideoSeconds,
       });
+      // Settle the stop queue now, before ingest: a new recording may start
+      // while this clip is still being ingested.
+      cancelStopRetry();
       // Wall clock is only the fallback: it includes session start/stop lag.
       const wallClockMs = recordStartedAt.current
         ? Date.now() - recordStartedAt.current
@@ -105,6 +128,7 @@ export function useCapture(
       });
       await afterIngest(id);
     } catch (e) {
+      cancelStopRetry();
       useCaptureStore.getState().stopRecording();
       useCaptureStore
         .getState()
@@ -112,11 +136,24 @@ export function useCapture(
     } finally {
       recordStartedAt.current = null;
     }
-  }, [afterIngest, cameraRef, db, settings.maxVideoSeconds]);
+  }, [afterIngest, cameraRef, cancelStopRetry, db, settings.maxVideoSeconds]);
 
   const stopRecording = useCallback(() => {
     cameraRef.current?.stopRecording();
-  }, [cameraRef]);
+    if (recordStartedAt.current == null || stopRetry.current) return;
+    let attempts = 0;
+    stopRetry.current = setInterval(() => {
+      attempts += 1;
+      // startRecording cancels this once recordAsync settles.
+      if (recordStartedAt.current == null || attempts > STOP_RETRY_LIMIT) {
+        cancelStopRetry();
+        return;
+      }
+      cameraRef.current?.stopRecording();
+    }, STOP_RETRY_MS);
+  }, [cameraRef, cancelStopRetry]);
+
+  useEffect(() => cancelStopRetry, [cancelStopRetry]);
 
   // Backgrounding mid-recording: stop cleanly so the partial clip is kept
   // rather than letting the OS tear the session down under us.

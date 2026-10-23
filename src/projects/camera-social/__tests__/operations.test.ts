@@ -6,7 +6,9 @@ import {
   outputSize,
   previewSteps,
   resolveOperations,
+  rotateAspect,
   rotateRect,
+  sameOutput,
 } from "@/src/projects/camera-social/editor/operations";
 import type { NormRect, Op } from "@/src/projects/camera-social/models/Asset";
 
@@ -182,5 +184,93 @@ describe("previewSteps", () => {
     const p = applySteps(steps, { x: 10, y: 20 });
     close(p.x, 390);
     close(p.y, 20);
+  });
+});
+
+describe("rotating a preset crop", () => {
+  it("swaps portrait and landscape presets", () => {
+    expect(rotateAspect("16:9")).toBe("9:16");
+    expect(rotateAspect("9:16")).toBe("16:9");
+    expect(rotateAspect("4:5")).toBe("5:4");
+    expect(rotateAspect("5:4")).toBe("4:5");
+    expect(rotateAspect("1:1")).toBe("1:1");
+    expect(rotateAspect("free")).toBe("free");
+  });
+
+  it("keeps the preset matching the rotated rect", () => {
+    // A centred 16:9 crop of a 1600×1200 image, then a quarter turn.
+    const rect = { x: 0, y: 0.125, width: 1, height: 0.75 };
+    const edit = resolveOperations([
+      { type: "crop", rect, aspect: "16:9" },
+      { type: "rotate", degrees: 90 },
+    ]);
+    expect(edit.aspect).toBe("9:16");
+    // Oriented size is now 1200×1600; the rect's pixel ratio is 9:16.
+    const ratio = (edit.crop.width * 1200) / (edit.crop.height * 1600);
+    close(ratio, 9 / 16);
+  });
+
+  it("returns to the original preset after a full turn", () => {
+    const ops: Op[] = [
+      {
+        type: "crop",
+        rect: { x: 0.1, y: 0.1, width: 0.8, height: 0.5 },
+        aspect: "4:5",
+      },
+      { type: "rotate", degrees: 90 },
+      { type: "rotate", degrees: -90 },
+    ];
+    expect(resolveOperations(ops).aspect).toBe("4:5");
+  });
+});
+
+describe("sameOutput", () => {
+  const base: Op[] = [
+    { type: "filter", name: "warm", intensity: 0.5 },
+    { type: "rotate", degrees: 90 },
+  ];
+
+  it("treats an untouched re-edit as unchanged", () => {
+    expect(sameOutput(base, base)).toBe(true);
+    expect(sameOutput(structuredClone(base), base)).toBe(true);
+    expect(sameOutput([], [])).toBe(true);
+  });
+
+  it("compares contents, not lengths", () => {
+    const other: Op[] = [
+      { type: "filter", name: "cool", intensity: 0.5 },
+      { type: "rotate", degrees: 90 },
+    ];
+    expect(sameOutput(other, base)).toBe(false);
+    expect(
+      sameOutput(
+        [{ type: "rotate", degrees: 90 }],
+        [{ type: "rotate", degrees: -90 }],
+      ),
+    ).toBe(false);
+  });
+
+  it("sees through ops that cancel out", () => {
+    const roundTrip: Op[] = [
+      ...base,
+      { type: "rotate", degrees: -90 },
+      { type: "rotate", degrees: 90 },
+    ];
+    expect(sameOutput(roundTrip, base)).toBe(true);
+  });
+
+  it("ignores intensity when no filter is applied", () => {
+    expect(
+      sameOutput([{ type: "filter", name: "none", intensity: 0.3 }], []),
+    ).toBe(true);
+  });
+
+  it("notices a crop change", () => {
+    const crop: Op = {
+      type: "crop",
+      rect: { x: 0.1, y: 0, width: 0.9, height: 1 },
+      aspect: "free",
+    };
+    expect(sameOutput([...base, crop], base)).toBe(false);
   });
 });

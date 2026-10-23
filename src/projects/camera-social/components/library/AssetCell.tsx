@@ -38,6 +38,16 @@ export const AssetCell = memo(function AssetCell({
       onPress={() => onPress(id)}
       onLongPress={() => onLongPress(id)}
       accessibilityRole="imagebutton"
+      accessibilityLabel={
+        isVideo
+          ? durationSec != null
+            ? `Video, ${formatDuration(durationSec)}`
+            : "Video"
+          : "Photo"
+      }
+      accessibilityHint={
+        selecting ? undefined : "Long press to select multiple items"
+      }
       accessibilityState={{ selected }}
       style={{ width: size, height: size, padding: 1 }}
     >

@@ -46,6 +46,8 @@ import {
   FULL_RECT,
   isFullRect,
   orientedSize,
+  rotateAspect,
+  sameOutput,
   sameRect,
 } from "@/src/projects/camera-social/editor/operations";
 import { useCaptureItem } from "@/src/projects/camera-social/hooks/useCaptures";
@@ -172,6 +174,9 @@ function PhotoEditor({
   // Crop session state: the preset and the rect the overlay last reported.
   const [cropAspect, setCropAspect] = useState<AspectPreset>(edit.aspect);
   const draftRect = useRef<NormRect>(edit.crop);
+  // The overlay reports when a gesture settles, so this re-renders once per
+  // drag — enough to enable Save only after the frame actually moved.
+  const [cropMoved, setCropMoved] = useState(false);
 
   const previewEdit = useMemo(
     () => ({
@@ -191,31 +196,53 @@ function PhotoEditor({
     [previewEdit],
   );
 
+  const unchanged = sameOutput(operations, initialOps);
+
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setArea({ width, height });
   };
 
+  /** The crop session as an op, or null if it changes nothing. */
+  const pendingCrop = (): Op | null => {
+    if (tool !== "crop") return null;
+    const rect = draftRect.current;
+    if (sameRect(rect, edit.crop) && cropAspect === edit.aspect) return null;
+    return { type: "crop", rect, aspect: cropAspect };
+  };
+
   const selectTool = (next: Tool) => {
-    if (next === "crop") {
+    // Leaving the crop tool keeps the crop, same as Done.
+    const pending = pendingCrop();
+    if (pending) history.push(pending);
+    if (next === "crop" && tool !== "crop") {
       setCropAspect(edit.aspect);
       draftRect.current = edit.crop;
+      setCropMoved(false);
     }
     setTool((current) => (current === next ? null : next));
   };
 
   /** Push the crop session as one op; returns it so Save can include it. */
   const commitCrop = (): Op | null => {
-    const rect = draftRect.current;
+    const op = pendingCrop();
     setTool(null);
-    if (sameRect(rect, edit.crop) && cropAspect === edit.aspect) return null;
-    const op: Op = { type: "crop", rect, aspect: cropAspect };
-    history.push(op);
+    if (op) history.push(op);
     return op;
   };
 
+  /** Rotating mid-crop keeps the frame: commit it, then turn it with the image. */
+  const rotateInCrop = (degrees: 90 | -90) => {
+    const pending = pendingCrop();
+    if (pending) history.push(pending);
+    history.push({ type: "rotate", degrees });
+    setCropAspect(rotateAspect(cropAspect));
+  };
+
   const cancel = () => {
-    if (operations.length === initialOps.length && !saving) {
+    const pending = pendingCrop();
+    const ops = pending ? [...operations, pending] : operations;
+    if (!saving && sameOutput(ops, initialOps)) {
       router.back();
       return;
     }
@@ -229,7 +256,8 @@ function PhotoEditor({
     // `operations` is this render's snapshot — add a crop committed just now.
     const pending = tool === "crop" ? commitCrop() : null;
     const ops = pending ? [...operations, pending] : operations;
-    if (ops.length === 0) {
+    // Re-opening an edit and saving it untouched must not write a duplicate.
+    if (ops.length === 0 || sameOutput(ops, initialOps)) {
       router.back();
       return;
     }
@@ -298,8 +326,9 @@ function PhotoEditor({
           )}
           onChange={(rect) => {
             draftRect.current = rect;
+            setCropMoved(!sameRect(rect, edit.crop));
           }}
-          onRotate={(degrees) => history.push({ type: "rotate", degrees })}
+          onRotate={rotateInCrop}
         />
       );
     }
@@ -458,7 +487,10 @@ function PhotoEditor({
         onCancel={cancel}
         onSave={save}
         saving={saving}
-        saveDisabled={operations.length === 0 && tool !== "crop"}
+        saveDisabled={
+          unchanged &&
+          !(tool === "crop" && (cropMoved || cropAspect !== edit.aspect))
+        }
       />
       <View style={styles.stage} onLayout={onLayout}>
         {renderStage()}

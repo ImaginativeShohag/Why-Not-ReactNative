@@ -33,6 +33,7 @@ import {
   createPhotoThumbnail,
   createVideoThumbnail,
 } from "@/src/projects/camera-social/media/thumbnails";
+import { useCaptureStore } from "@/src/projects/camera-social/stores/captureStore";
 import { newId } from "@/src/projects/camera-social/utils/id";
 
 /**
@@ -182,11 +183,13 @@ export async function ingestVideo(
 export async function removeCapture(db: SQLiteDatabase, id: string) {
   const paths = await getCapturePaths(db, id);
   await deleteCaptureRow(db, id);
+  useCaptureStore.getState().forgetCapture(id);
   deleteMedia(paths?.path);
   deleteMedia(paths?.thumb_path);
 }
 
 export async function removeAllCaptures(db: SQLiteDatabase) {
   await deleteAllCaptureRows(db);
+  useCaptureStore.getState().forgetCapture();
   clearAllMedia();
 }

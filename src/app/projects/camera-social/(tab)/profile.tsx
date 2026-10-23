@@ -17,6 +17,7 @@ import { useCaptureStats } from "@/src/projects/camera-social/hooks/useCaptures"
 import { useSettings } from "@/src/projects/camera-social/hooks/useSettings";
 import { removeAllCaptures } from "@/src/projects/camera-social/media/ingest";
 import { storageUsage } from "@/src/projects/camera-social/media/storage";
+import { alertError } from "@/src/projects/camera-social/utils/alertError";
 import { formatBytes } from "@/src/projects/camera-social/utils/format";
 
 const VIDEO_LIMITS = [15, 30, 60];
@@ -45,8 +46,13 @@ export default function ProfileScreen() {
           text: "Delete all",
           style: "destructive",
           onPress: async () => {
-            await removeAllCaptures(db);
-            setUsage(storageUsage());
+            try {
+              await removeAllCaptures(db);
+            } catch (e) {
+              alertError("Couldn't delete captures", e);
+            } finally {
+              setUsage(storageUsage());
+            }
           },
         },
       ],

@@ -9,6 +9,7 @@ import {
 } from "@/src/projects/camera-social/media/ingest";
 import {
   extensionOf,
+  libraryGridUri,
   mimeForExtension,
 } from "@/src/projects/camera-social/media/paths";
 import type {
@@ -19,17 +20,10 @@ import type {
 const PAGE_SIZE = 90;
 
 /**
- * A grid-renderable URI without resolving the original file. iOS asset ids
- * are PHAsset local identifiers (`ph://` makes expo-image request a sized
- * thumbnail from PhotoKit); on Android the id already *is* a content:// URI.
  * Resolving the real file per cell would be one native round-trip — and on
- * iOS possibly an iCloud download — per thumbnail.
+ * iOS possibly an iCloud download — per thumbnail, so the grid uses a
+ * PhotoKit / content:// URI built from the id instead.
  */
-function gridUri(id: string): string {
-  if (Platform.OS === "ios") return `ph://${id}`;
-  return id;
-}
-
 function toLibraryAsset(m: MediaLibrary.AssetMetadata): LibraryAsset | null {
   if (
     m.mediaType !== MediaLibrary.MediaType.IMAGE &&
@@ -39,7 +33,7 @@ function toLibraryAsset(m: MediaLibrary.AssetMetadata): LibraryAsset | null {
   }
   return {
     id: m.id,
-    uri: gridUri(m.id),
+    uri: libraryGridUri(m.id, Platform.OS),
     mediaType: m.mediaType === MediaLibrary.MediaType.VIDEO ? "video" : "photo",
     width: m.width ?? 0,
     height: m.height ?? 0,
