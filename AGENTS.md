@@ -34,6 +34,7 @@ npm run android        # expo run:android
 npm run web
 npm run typecheck      # tsc --noEmit
 npm run lint           # expo lint — exit code 0 and no output when clean
+                       # (cached in .expo/cache/eslint; add --no-cache if an import error looks stale)
 npm test               # jest (in this sandbox: npx jest --no-watchman)
 npx expo export --platform ios --output-dir /tmp/out   # bundle check — catches what tsc can't
 node docs/training/validate.mjs   # quiz banks: shape, answers, and that every referenced file exists
@@ -160,7 +161,10 @@ and each router ignores payloads that aren't its own.
 - **SQLite:** each project opens its own database file and runs its own `PRAGMA user_version`
   migrations in WAL mode. The journal and camera use `SQLiteProvider onInit` in their layouts
   (the journal's sync task uses a lazy `getDb()`; both paths go through `migrateOnce`, because
-  expo-sqlite shares one native connection for the same name and options). Fitness and podcast open the
+  expo-sqlite shares one native connection for the same name and options). Only camera uses
+  `useSuspense`: suspense mode keeps **one** database for the whole app and closes the previous
+  one when another suspense provider mounts, so a second suspense provider breaks the first.
+  Fitness and podcast open the
   database lazily from a module-scope `db/client.ts`, because their background tasks write
   with no screen mounted.
 
@@ -199,6 +203,15 @@ and each router ignores payloads that aren't its own.
 - Don't call `setState` synchronously in a `useEffect` body. Derive the value during render, or
   refresh it in `useFocusEffect`.
 - `StyleSheet.absoluteFillObject` no longer exists in RN 0.86. Use `StyleSheet.absoluteFill`.
+- In a `"worklet"` function, don't reference module constants only from a default parameter
+  (`max = MAX_ZOOM_FACTOR`): the worklets plugin doesn't capture them, the value is undefined on
+  the UI runtime, and a Release build aborts. Resolve the default in the body. Jest won't catch
+  it — it runs on the JS thread.
+- Never call `Appearance.setColorScheme` to theme one project: it is process-wide and resetting it
+  to `"unspecified"` leaves a stale scheme behind. Give the project its own palette and
+  `ThemeProvider` (see the journal's `useJournalScheme`).
+- A horizontal `ScrollView` inside a flex column grows to fill it; give chip rows
+  `style={{ flexGrow: 0 }}`.
 
 ## Expo Configuration (`app.config.ts`)
 
@@ -226,6 +239,9 @@ and each router ignores payloads that aren't its own.
   `./plugins/withWorkoutCapabilities`, expo-share-intent.
 - **Plugin order matters:** mods of *later* plugins run *first*. `withWorkoutCapabilities` is
   listed before `expo-share-intent` so that it runs after it and dedupes the shared App Group.
+- **One usage string per permission:** iOS keeps a single `NSCameraUsageDescription` /
+  `NSPhotoLibraryUsageDescription` for the app and the first plugin that sets it wins. Several
+  projects need them, so every plugin gets the shared `CAMERA_PERMISSION` / `PHOTOS_PERMISSION`.
 - New Architecture is on by default, React Compiler and typed routes are enabled, and there is
   no `newArchEnabled` flag.
 
@@ -234,11 +250,13 @@ and each router ignores payloads that aren't its own.
 `/ios` and `/android` are gitignored build output. Every native change must be expressible in
 `app.config.ts`, a config plugin or a local module. To verify a plugin:
 `npx expo prebuild --platform ios --no-install --clean`, then inspect the generated project.
-Two cautions:
+Cautions:
 - `prebuild` rewrites the `ios` script in package.json to `expo run:ios`. Restore that one line
   with a targeted edit. **Never `git checkout package.json`**, which also throws away
   uncommitted dependency changes.
 - Back up a local `android/` folder before running `prebuild --clean` on it.
+- `prebuild` can leave `ios/` without `Pods/`, `Podfile.lock` and the `.xcworkspace`; the next
+  `pod install` needs `cmake` and GitHub access (Hermes). Don't prebuild just to test a JS change.
 
 ## Testing
 
