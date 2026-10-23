@@ -17,11 +17,13 @@ tags:
     id: "podcast-search-input"
 - inputText: "Syntax"
 - hideKeyboard
+# Match the result row ("<title> by <author>"), not the search field, whose
+# value "Syntax" a bare "Syntax.*" would also match.
 - extendedWaitUntil:
-    visible: "Syntax.*"
+    visible: "Syntax.* by .*"
     timeout: 15000
 - tapOn:
-    text: "Syntax.*"
+    text: "Syntax.* by .*"
     index: 0
 - tapOn:
     id: "podcast-subscribe"

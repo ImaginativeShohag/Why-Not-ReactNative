@@ -84,6 +84,13 @@ type ActiveTransfer = {
   lastLiveStep: number;
 };
 
+/**
+ * A concurrency slot claimed synchronously by start(), before its first
+ * await, so a second pump can't start the same episode during
+ * ensureCapacity(). remove() flips `cancelled` to stop a start in progress.
+ */
+type StartSlot = { cancelled: boolean };
+
 /** Serialized snapshot: the pause state with fileUri made relative. */
 type StoredSnapshot = Omit<DownloadPauseState, "fileUri"> & {
   relativePath: string;
@@ -91,6 +98,8 @@ type StoredSnapshot = Omit<DownloadPauseState, "fileUri"> & {
 
 class DownloadManager {
   private active = new Map<string, ActiveTransfer>();
+  /** Starts past the slot check but not yet in `active` (see StartSlot). */
+  private starting = new Map<string, StartSlot>();
   private initialized: Promise<void> | null = null;
   private pumpScheduled = false;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -238,9 +247,21 @@ class DownloadManager {
   }
 
   /** remove() for several ids: one DELETE, one invalidate, one pump. */
-  async removeMany(episodeIds: string[]): Promise<void> {
+  async removeMany(requested: string[]): Promise<void> {
+    // Never delete the file the player is reading. The playback service moves
+    // the episode onto the stream first (releaseLocalFile), after which
+    // isLocal is false and the removal goes through.
+    const np = usePlayerStore.getState().nowPlaying;
+    const episodeIds = np?.isLocal
+      ? requested.filter((id) => id !== np.episodeId)
+      : requested;
     if (episodeIds.length === 0) return;
     for (const id of episodeIds) {
+      const slot = this.starting.get(id);
+      if (slot) {
+        slot.cancelled = true;
+        this.starting.delete(id);
+      }
       const t = this.active.get(id);
       if (t) {
         t.stopReason = "user";
@@ -341,16 +362,22 @@ class DownloadManager {
     if (this.network !== "ok") return;
     const records = await listDownloads();
     const now = Date.now();
+    const max = getSettings().maxConcurrentDownloads;
+    const busy = (id: string) => this.active.has(id) || this.starting.has(id);
     const toStart = pickDownloadsToStart(
-      records.filter((r) => !this.active.has(r.episodeId)),
-      this.active.size,
-      getSettings().maxConcurrentDownloads,
+      records.filter((r) => !busy(r.episodeId)),
+      this.active.size + this.starting.size,
+      max,
       now,
     );
     if (toStart.length > 0) {
       // One played-state read for the whole batch, not one per start.
       const playedAt = await listPlayedAt();
-      for (const r of toStart) void this.start(r, records, playedAt);
+      // Re-check after the await: another pump may have claimed slots.
+      for (const r of toStart) {
+        if (this.active.size + this.starting.size >= max) break;
+        void this.start(r, records, playedAt);
+      }
     }
 
     // Wake up for the earliest backoff gate.
@@ -406,9 +433,26 @@ class DownloadManager {
     all: DownloadRecord[],
     playedAt: Map<string, number>,
   ): Promise<void> {
-    if (this.active.has(record.episodeId)) return;
+    const id = record.episodeId;
+    if (this.active.has(id) || this.starting.has(id)) return;
+    // Claim the slot before the first await (see StartSlot).
+    const slot: StartSlot = { cancelled: false };
+    this.starting.set(id, slot);
+    try {
+      await this.run(record, all, playedAt, slot);
+    } finally {
+      if (this.starting.get(id) === slot) this.starting.delete(id);
+    }
+  }
 
+  private async run(
+    record: DownloadRecord,
+    all: DownloadRecord[],
+    playedAt: Map<string, number>,
+    slot: StartSlot,
+  ): Promise<void> {
     const capacityError = await this.ensureCapacity(record, all, playedAt);
+    if (slot.cancelled) return;
     if (capacityError) {
       await updateDownload(record.episodeId, {
         state: "failed",
@@ -459,6 +503,18 @@ class DownloadManager {
       firstOp = task.downloadAsync();
     }
 
+    if (slot.cancelled) {
+      // Removed while we were setting up: drop the task we just started.
+      firstOp.catch(() => {});
+      try {
+        task.cancel();
+        task.release();
+      } catch {
+        // already finished or released
+      }
+      return;
+    }
+
     const transfer: ActiveTransfer = {
       task,
       record,
@@ -466,6 +522,7 @@ class DownloadManager {
       lastLiveStep: Number.NaN,
     };
     this.active.set(record.episodeId, transfer);
+    this.starting.delete(record.episodeId);
     await updateDownload(record.episodeId, {
       state: "downloading",
       error: null,
@@ -516,7 +573,10 @@ class DownloadManager {
         await this.onFailure(record.episodeId, e);
       }
     } finally {
-      this.active.delete(record.episodeId);
+      // After remove() + re-enqueue a NEW transfer may own this id already.
+      if (this.active.get(record.episodeId) === transfer) {
+        this.active.delete(record.episodeId);
+      }
       try {
         task.release();
       } catch {
@@ -628,9 +688,11 @@ class DownloadManager {
           t.checkpoint = undefined;
           // Re-read: TS narrowed `state` before the awaits above.
           const state = t.task.state as DownloadTaskState;
-          cp.resolve(
-            state === "paused" ? t.task.resumeAsync() : Promise.resolve(null),
-          );
+          // A user pause (or the network rule) that landed during the
+          // checkpoint found the task already paused; resuming here would
+          // undo it. Resolve null so the runner ends as a real pause.
+          const resume = state === "paused" && !t.stopReason;
+          cp.resolve(resume ? t.task.resumeAsync() : Promise.resolve(null));
         }
       }),
     );

@@ -32,9 +32,14 @@ import {
 } from "@/src/projects/podcast-player/playback/nowPlaying";
 import {
   createProgressWriter,
+  isAtEnd,
   resolveResumePosition,
 } from "@/src/projects/podcast-player/playback/progress";
 import * as Queue from "@/src/projects/podcast-player/playback/queue";
+import {
+  clampRate,
+  resolveStartRate,
+} from "@/src/projects/podcast-player/playback/rate";
 import {
   createSleepTimer,
   shouldAdvanceAfterFinish,
@@ -43,7 +48,10 @@ import {
   INITIAL_STATUS,
   usePlayerStore,
 } from "@/src/projects/podcast-player/stores/playerStore";
-import { getSettings } from "@/src/projects/podcast-player/stores/settingsStore";
+import {
+  ensureSettingsHydrated,
+  getSettings,
+} from "@/src/projects/podcast-player/stores/settingsStore";
 import { invalidateProgress } from "@/src/projects/podcast-player/utils/invalidate";
 
 /**
@@ -76,6 +84,15 @@ class PlaybackService {
    * again. Stops a finish event that races the timer from auto-advancing.
    */
   private sleepFired = false;
+  /**
+   * Bumped by every load(); a load whose token is no longer the latest stops
+   * after its next await, so rapid taps always end on the last episode tapped.
+   */
+  private loadSeq = 0;
+  /** The current item reached its end; play() must rewind before playing. */
+  private finished = false;
+  /** A speed the user picked this run; null means "use the Default speed". */
+  private userRate: number | null = null;
 
   private progress = createProgressWriter(
     async ({ episodeId, position, duration, played }) => {
@@ -141,10 +158,12 @@ class PlaybackService {
 
     const session = await kvGet<Session>(SESSION_KEY);
     if (session?.episodeId) {
-      usePlayerStore.setState((s) => ({
-        status: { ...s.status, rate: session.rate || 1 },
-      }));
-      await this.load(session.episodeId, { autoplay: false }).catch(() => {});
+      // loadEpisode, not load(): load() awaits init(), which is this very
+      // promise, so calling it here would never settle.
+      await this.loadEpisode(session.episodeId, ++this.loadSeq, {
+        autoplay: false,
+        rate: session.rate,
+      }).catch(() => {});
     }
     usePlayerStore.setState({ ready: true });
   }
@@ -156,22 +175,31 @@ class PlaybackService {
     episodeId: string,
     options: { autoplay?: boolean; startAt?: number } = {},
   ): Promise<void> {
+    const token = ++this.loadSeq;
     await this.init();
-    const player = this.player!;
+    if (token !== this.loadSeq) return;
+    await this.loadEpisode(episodeId, token, options);
+  }
+
+  private async loadEpisode(
+    episodeId: string,
+    token: number,
+    options: { autoplay?: boolean; startAt?: number; rate?: number },
+  ): Promise<void> {
     const autoplay = options.autoplay ?? true;
+    const stale = () => token !== this.loadSeq;
 
     if (this.current?.id === episodeId) {
       if (options.startAt != null) await this.seekTo(options.startAt);
+      if (stale()) return;
+      // play() rewinds first if this episode already finished.
       if (autoplay) this.play();
       return;
     }
 
     const episode = await getEpisode(episodeId);
+    if (stale()) return;
     if (!episode) throw new Error(`Episode ${episodeId} not found`);
-
-    this.flushProgress();
-    this.progress.reset();
-    this.tracker.reset();
 
     // The episode row already carries progress and download state; only a
     // finished download needs its file path looked up.
@@ -179,10 +207,24 @@ class PlaybackService {
       episode.downloadState === "done"
         ? await downloadManager.localUriFor(episodeId)
         : null;
+    if (stale()) return;
+    const settings = await ensureSettingsHydrated();
+    if (stale()) return;
+
+    this.flushProgress();
+    this.progress.reset();
+    this.tracker.reset();
+
     const start =
       options.startAt ?? resolveResumePosition(episode, episode.duration);
+    const rate = resolveStartRate({
+      explicit: options.rate,
+      userRate: this.userRate,
+      defaultRate: settings.defaultRate,
+    });
 
     this.current = episode;
+    this.finished = false;
     this.durationLearned = !!episode.duration;
     this.pendingSeek = start > 0 ? start : null;
     this.autoplayOnLoad = autoplay;
@@ -205,18 +247,16 @@ class PlaybackService {
         ...INITIAL_STATUS,
         position: start,
         duration: episode.duration ?? 0,
-        rate:
-          usePlayerStore.getState().status.rate || getSettings().defaultRate,
+        rate,
       },
       queue,
       pausedExternally: false,
     });
     void saveQueue(queue);
 
-    player.replace({ uri: localUri ?? episode.audioUrl, name: episode.title });
-    player.setPlaybackRate(usePlayerStore.getState().status.rate);
-    player.volume = 1;
-    await this.ensureLockScreen(episode);
+    this.replaceSource(localUri ?? episode.audioUrl, episode.title, rate);
+    await this.ensureLockScreen(episode, token);
+    if (stale()) return;
 
     if (autoplay) {
       if (this.pendingSeek == null) {
@@ -228,10 +268,7 @@ class PlaybackService {
         this.sleepFired = false;
       }
     }
-    void kvSet(SESSION_KEY, {
-      episodeId,
-      rate: usePlayerStore.getState().status.rate,
-    } satisfies Session);
+    void kvSet(SESSION_KEY, { episodeId, rate } satisfies Session);
 
     // podcast:chapters JSON is fetched lazily; patch it in when it arrives.
     if (episode.chapters.length === 0 && episode.chaptersUrl) {
@@ -244,13 +281,48 @@ class PlaybackService {
     }
   }
 
-  private async ensureLockScreen(episode: EpisodeDetail) {
+  /**
+   * Swaps the player's source without starting it. Native replace() resumes
+   * on its own when the old item was playing, which would play the new one
+   * from 0:00 until the resume seek lands; pausing first leaves the start to
+   * the caller (or to the pending-seek handler in onStatus).
+   */
+  private replaceSource(uri: string, name: string, rate: number) {
+    const player = this.player!;
+    player.pause();
+    player.replace({ uri, name });
+    player.setPlaybackRate(rate);
+    player.volume = 1;
+  }
+
+  /**
+   * Moves the current episode off its downloaded file onto the stream, at the
+   * same position, so the file can be deleted under it. No-op otherwise.
+   */
+  releaseLocalFile(episodeId: string) {
+    const np = usePlayerStore.getState().nowPlaying;
+    const cur = this.current;
+    if (!this.player || !cur || cur.id !== episodeId || !np?.isLocal) return;
+    const { position, playing, rate } = usePlayerStore.getState().status;
+    this.pendingSeek = position > 0 ? position : null;
+    this.autoplayOnLoad = playing;
+    this.replaceSource(cur.audioUrl, cur.title, rate);
+    usePlayerStore.setState((s) => ({
+      nowPlaying: { ...np, isLocal: false },
+      status: { ...s.status, loaded: false },
+    }));
+    if (playing && this.pendingSeek == null) this.play();
+  }
+
+  private async ensureLockScreen(episode: EpisodeDetail, token: number) {
     const player = this.player!;
     if (Platform.OS === "android" && !this.askedNotificationPermission) {
       // Android 13+ needs POST_NOTIFICATIONS for the media notification.
       this.askedNotificationPermission = true;
       await requestNotificationPermissionsAsync().catch(() => {});
     }
+    // A newer load owns the lock screen now; don't overwrite its metadata.
+    if (token !== this.loadSeq) return;
     activateLockScreen(
       player,
       metadataFor(
@@ -272,8 +344,23 @@ class PlaybackService {
     this.sleepFired = false;
     // If a load is still pending, the status handler starts playback once loaded.
     this.autoplayOnLoad = true;
-    this.player.play();
     usePlayerStore.setState({ pausedExternally: false });
+
+    const { position, duration, loaded } = usePlayerStore.getState().status;
+    if (this.finished || (loaded && isAtEnd(position, duration))) {
+      // Parked at the end: both native players ignore play() there, so the
+      // button would do nothing. Rewind, then start (unless paused meanwhile).
+      this.finished = false;
+      usePlayerStore.setState((s) => ({
+        status: { ...s.status, position: 0 },
+      }));
+      const player = this.player;
+      void player.seekTo(0).then(() => {
+        if (this.autoplayOnLoad && player === this.player) player.play();
+      });
+      return;
+    }
+    this.player.play();
   }
 
   pause() {
@@ -292,6 +379,7 @@ class PlaybackService {
 
   async seekTo(seconds: number) {
     if (!this.player || !this.current) return;
+    this.finished = false;
     const { duration } = usePlayerStore.getState().status;
     const target = Math.max(
       0,
@@ -322,7 +410,9 @@ class PlaybackService {
   }
 
   setRate(rate: number) {
-    const clamped = Math.max(0.5, Math.min(3, rate));
+    const clamped = clampRate(rate);
+    // An explicit choice: it carries over to the next episodes this run.
+    this.userRate = clamped;
     this.player?.setPlaybackRate(clamped);
     usePlayerStore.setState((s) => ({
       status: { ...s.status, rate: clamped },
@@ -337,9 +427,9 @@ class PlaybackService {
 
   /** Skip to the next queued episode (marks nothing as played). */
   async next() {
-    const { next, rest } = Queue.takeNext(usePlayerStore.getState().queue);
+    const { next } = Queue.takeNext(usePlayerStore.getState().queue);
     if (!next) return;
-    usePlayerStore.setState({ queue: rest });
+    // load() drops it from the queue once it actually starts.
     await this.load(next, { autoplay: true });
   }
 
@@ -439,8 +529,11 @@ class PlaybackService {
 
     if (s.isLoaded && this.pendingSeek != null) {
       const target = this.pendingSeek;
+      const token = this.loadSeq;
       this.pendingSeek = null;
       void this.player.seekTo(target).then(() => {
+        // A newer load starts its own source; don't start it early.
+        if (token !== this.loadSeq || this.current !== cur) return;
         if (this.autoplayOnLoad && !this.player?.playing) this.player?.play();
       });
     }
@@ -463,7 +556,8 @@ class PlaybackService {
     // Lock screen / headphone play after the timer paused: the user is back.
     if (kind === "externalPlay") this.sleepFired = false;
     if (kind === "finished") {
-      void this.onFinished(cur.id);
+      this.finished = true;
+      void this.onFinished(cur.id).catch(() => {});
     }
   }
 
@@ -488,10 +582,12 @@ class PlaybackService {
     // A sleep timer that ended this episode, or already paused us, wins over
     // the queue.
     if (!shouldAdvanceAfterFinish(optionAtFinish, this.sleepFired)) return;
-    const { next, rest } = Queue.takeNext(usePlayerStore.getState().queue);
+    const { next } = Queue.takeNext(usePlayerStore.getState().queue);
     if (next) {
-      this.setQueue(rest);
-      await this.load(next, { autoplay: true });
+      // load() removes `next` from the queue (and persists it) only once the
+      // episode is found. Shortening the queue first lost the item when the
+      // load threw, and raced load()'s own saveQueue.
+      await this.load(next, { autoplay: true }).catch(() => {});
     }
   }
 }

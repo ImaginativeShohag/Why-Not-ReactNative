@@ -22,6 +22,9 @@ export function OptionChips<T>({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      // A horizontal ScrollView inside a flex column grows to fill it
+      // (flexGrow: 1), stretching the chips into tall pills.
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       {options.map((o) => {
@@ -48,6 +51,7 @@ export function OptionChips<T>({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flexGrow: 0 },
   row: { gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
   chip: {
     paddingHorizontal: 14,

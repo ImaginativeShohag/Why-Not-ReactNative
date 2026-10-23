@@ -87,3 +87,14 @@ export function resolveResumePosition(
   // Rewind a couple of seconds so the listener regains context.
   return Math.max(0, saved.position - 2);
 }
+
+/** Within this many seconds of the end the player is treated as parked there. */
+export const AT_END_EPSILON_SEC = 0.5;
+
+/**
+ * True when the playhead sits at the end of a known duration. Both native
+ * players ignore play() there, so the service rewinds to 0 first.
+ */
+export function isAtEnd(position: number, duration: number): boolean {
+  return duration > 0 && position >= duration - AT_END_EPSILON_SEC;
+}

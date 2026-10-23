@@ -13,6 +13,7 @@ import type {
   QueueItem,
 } from "@/src/projects/podcast-player/models/Episode";
 import { hashString } from "@/src/projects/podcast-player/utils/format";
+import { createSerialQueue } from "@/src/projects/podcast-player/utils/serial";
 
 // ---------------------------------------------------------------- row types
 
@@ -76,6 +77,21 @@ type DownloadRow = {
   completed_at: number | null;
   error: string | null;
 };
+
+/**
+ * expo-sqlite's withTransactionAsync is a plain BEGIN … COMMIT on the one
+ * shared connection. Two overlapping calls fail at the second BEGIN, and that
+ * call's ROLLBACK then undoes the first one's writes. Every write transaction
+ * goes through this queue so they never overlap.
+ */
+const transactions = createSerialQueue();
+
+function writeTransaction(
+  db: SQLiteDatabase,
+  task: () => Promise<void>,
+): Promise<void> {
+  return transactions.run(() => db.withTransactionAsync(task));
+}
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback;
@@ -345,7 +361,7 @@ export async function upsertEpisodes(
   const inserted: string[] = [];
   const now = Date.now();
 
-  await db.withTransactionAsync(async () => {
+  await writeTransaction(db, async () => {
     const stmt = await db.prepareAsync(
       `INSERT INTO episodes (id, podcast_id, guid, title, notes, notes_html, audio_url, mime_type,
          enclosure_length, duration, published_at, artwork_url, season, episode_number, chapters,
@@ -558,7 +574,7 @@ export async function loadQueue(): Promise<QueueItem[]> {
 
 export async function saveQueue(items: QueueItem[]): Promise<void> {
   const db = await getDb();
-  await db.withTransactionAsync(async () => {
+  await writeTransaction(db, async () => {
     await db.runAsync("DELETE FROM queue");
     for (let i = 0; i < items.length; i++) {
       await db.runAsync(
@@ -667,7 +683,7 @@ export async function updateDownloads(
 ): Promise<void> {
   if (updates.length === 0) return;
   const db = await getDb();
-  await db.withTransactionAsync(async () => {
+  await writeTransaction(db, async () => {
     for (const u of updates) await runDownloadUpdate(db, u.episodeId, u.patch);
   });
 }

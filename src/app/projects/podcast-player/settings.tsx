@@ -209,6 +209,7 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onChange}
+        accessibilityLabel={label}
         trackColor={{ true: PodcastTheme.accent }}
       />
     </View>

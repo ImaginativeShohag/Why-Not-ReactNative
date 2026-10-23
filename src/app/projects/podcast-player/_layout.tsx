@@ -26,7 +26,15 @@ export default function PodcastPlayerLayout() {
           contentStyle: { backgroundColor: PodcastTheme.background },
         }}
       >
-        <Stack.Screen name="(tab)" options={{ headerShown: false }} />
+        {/* Title doubles as the back label, so pushed screens never show "(tab)". */}
+        <Stack.Screen
+          name="(tab)"
+          options={{
+            headerShown: false,
+            title: "Podcasts",
+            headerBackTitle: "Podcasts",
+          }}
+        />
         <Stack.Screen name="podcast/[id]" options={{ title: "" }} />
         <Stack.Screen name="episode/[id]" options={{ title: "Episode" }} />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />

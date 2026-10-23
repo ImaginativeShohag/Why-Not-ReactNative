@@ -96,7 +96,11 @@ export function useEpisodeActions() {
           {
             label: "Remove download",
             destructive: true,
-            run: () => void downloadManager.remove(episodeId),
+            run: () => {
+              // If it's playing from this file, move it onto the stream first.
+              playbackService.releaseLocalFile(episodeId);
+              void downloadManager.remove(episodeId);
+            },
           },
         ]);
         return;

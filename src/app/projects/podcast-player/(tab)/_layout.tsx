@@ -27,6 +27,23 @@ export default function PodcastTabLayout() {
         headerTintColor: PodcastTheme.text,
         headerShadowVisible: false,
         sceneStyle: { backgroundColor: PodcastTheme.background },
+        // The root stack hides its header for this project, so without this
+        // there is no way back to the launcher from inside the tabs.
+        headerLeft: () => (
+          <Pressable
+            onPress={() => router.navigate("/")}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back to projects"
+            style={{ paddingHorizontal: 16 }}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={PodcastTheme.accent}
+            />
+          </Pressable>
+        ),
         headerRight: () => (
           <Pressable
             onPress={() => router.push("/projects/podcast-player/settings")}

@@ -148,6 +148,7 @@ export default function PodcastDetailScreen() {
           <Switch
             value={autoDl.data ?? false}
             onValueChange={(v) => toggleAuto.mutate(v)}
+            accessibilityLabel="Auto-download new episodes"
             trackColor={{ true: accent }}
           />
         </View>
