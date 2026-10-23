@@ -92,6 +92,7 @@ export default function BagScreen() {
     startCheckout();
     // Resume at the furthest valid step of an interrupted checkout.
     const step = resumeStep(useCheckoutStore.getState());
+    send({ type: "GO_TO", step });
     router.push(`${CHECKOUT_PATH}/${step}`);
   };
 

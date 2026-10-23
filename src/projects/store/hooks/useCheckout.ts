@@ -57,6 +57,7 @@ export function useStartCheckout() {
  * request all resolve to the same order.
  */
 export function usePlaceOrder() {
+  const queryClient = useQueryClient();
   const { user } = useSession();
   const { items, checkout, send, totals } = useCheckout();
 
@@ -95,20 +96,26 @@ export function usePlaceOrder() {
       );
     },
     onSuccess: (order) => {
+      // Review renders a locked checkout from this, not from the live bag.
+      queryClient.setQueryData(queryKeys.orders.detail(order.id), order);
       if (!checkout.orderId) send({ type: "ORDER_PLACED", orderId: order.id });
     },
   });
 }
 
-/** Finalises a paid order locally: clears the bag, closes the machine. */
+/**
+ * Finalises a paid order locally: removes what it bought from the bag (not
+ * the whole bag: items added while it awaited payment stay), closes the
+ * machine.
+ */
 export function useCompleteCheckout() {
   const queryClient = useQueryClient();
-  const clearCart = useCartStore((s) => s.clearCart);
+  const removePurchased = useCartStore((s) => s.removePurchased);
   const send = useCheckoutStore((s) => s.send);
   return (order: Order, paymentMethod: string) => {
     queryClient.setQueryData(queryKeys.orders.detail(order.id), order);
     queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
-    clearCart();
+    removePurchased(order.lines);
     send({ type: "COMPLETED" });
     track("purchase", {
       order_id: order.id,

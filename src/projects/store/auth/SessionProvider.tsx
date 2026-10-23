@@ -26,7 +26,12 @@ import type {
 import { unregisterForPushAsync } from "../notifications/registerForPush";
 import { clearUserScopedCache } from "../query/storeQuery";
 import { useCartStore } from "../stores/cartStore";
-import { reconcileCartOnSignIn } from "../stores/cartSync";
+import {
+  reconcileCartOnSignIn,
+  startCartAutoSync,
+  stopCartAutoSync,
+} from "../stores/cartSync";
+import { useSearchStore } from "../stores/searchStore";
 import { identify, track } from "../utils/analytics";
 import { getDevFlags } from "../utils/devFlags";
 import { monitoring } from "../utils/monitoring";
@@ -201,10 +206,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await clearTokens();
       await clearUser();
       // Cached PII failure mode: the next person on this device must not see
-      // the previous user's orders, wishlist, profile, bag or checkout.
+      // the previous user's orders, wishlist, profile, bag, checkout address
+      // or searches.
       clearUserScopedCache();
+      // Stop first, or clearing the local bag would empty the server cart.
+      stopCartAutoSync();
       useCartStore.getState().clearCart();
       useCheckoutStore.getState().send({ type: "RESET" });
+      useCheckoutStore.getState().forgetSavedAddress();
+      useSearchStore.getState().clearRecents();
       identify(null);
       monitoring.setUser(null);
       track("sign_out", {});
@@ -223,6 +233,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signingOut.current = false;
     }
   }, []);
+
+  // Keep the server cart in step with the bag while signed in, so a purchase
+  // or an edit isn't undone by the merge at the next sign-in.
+  const signedInUserId =
+    state.status === "signedIn" ? state.user?.id : undefined;
+  useEffect(() => {
+    if (signedInUserId === undefined) return;
+    return startCartAutoSync(signedInUserId);
+  }, [signedInUserId]);
 
   useEffect(() => {
     onAuthFailure = () => {

@@ -23,6 +23,8 @@ type ServerState = {
   wishlist: Record<string, number[]>;
   /** status transition timestamps for the fake fulfilment pipeline */
   paidAt: Record<string, number>;
+  /** Last order number handed out; only ever grows. */
+  lastOrderNumber?: number;
 };
 
 const STORAGE_KEY = "store.mock-server.v1";
@@ -68,6 +70,23 @@ const withLiveStatus = (state: ServerState, order: Order): Order => {
   return { ...order, status };
 };
 
+const FIRST_ORDER_NUMBER = 10001;
+
+/**
+ * Order numbers come from a persisted counter, like a database sequence. The
+ * max of existing ids covers state saved before the counter existed.
+ */
+export function nextOrderNumber(
+  orders: Pick<Order, "id">[],
+  lastOrderNumber = 0,
+): number {
+  const highest = orders.reduce((max, o) => {
+    const n = Number(o.id);
+    return Number.isFinite(n) ? Math.max(max, n) : max;
+  }, lastOrderNumber);
+  return Math.max(highest + 1, FIRST_ORDER_NUMBER);
+}
+
 export const mockServer = {
   async placeOrder(input: PlaceOrderInput, idempotencyKey: string) {
     await delay();
@@ -79,14 +98,16 @@ export const mockServer = {
       const existing = state.orders.find((o) => o.id === existingId);
       if (existing) return withLiveStatus(state, existing);
     }
+    const number = nextOrderNumber(state.orders, state.lastOrderNumber);
     const order: Order = {
       ...input,
-      id: String(10000 + state.orders.length + Math.floor(Math.random() * 90)),
+      id: String(number),
       createdAt: new Date().toISOString(),
       status: "pending_payment",
     };
     await save({
       ...state,
+      lastOrderNumber: number,
       orders: [order, ...state.orders],
       idempotency: { ...state.idempotency, [idempotencyKey]: order.id },
     });
@@ -113,6 +134,32 @@ export const mockServer = {
       });
     }
     return withLiveStatus(state, order);
+  },
+
+  /** Abandons an unpaid order. Paid orders are never cancelled from here. */
+  async cancelOrder(id: string) {
+    await delay(250);
+    const state = await load();
+    const order = state.orders.find((o) => o.id === id);
+    if (!order) {
+      throw new ApiError({
+        kind: "notFound",
+        status: 404,
+        message: "Order not found.",
+      });
+    }
+    if (
+      order.status !== "pending_payment" &&
+      order.status !== "payment_failed"
+    ) {
+      return withLiveStatus(state, order);
+    }
+    const cancelled: Order = { ...order, status: "cancelled" };
+    await save({
+      ...state,
+      orders: state.orders.map((o) => (o.id === id ? cancelled : o)),
+    });
+    return cancelled;
   },
 
   async createPaymentIntent(orderId: string) {

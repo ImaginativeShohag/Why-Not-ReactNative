@@ -89,5 +89,25 @@ export function mergeCarts(
   return merged;
 }
 
+/**
+ * Removes what an order bought from the bag, leaving anything added (or the
+ * extra quantity added) after the order was placed.
+ */
+export function removeOrderedLines(
+  items: CartItem[],
+  ordered: ServerCartLine[],
+): CartItem[] {
+  const bought = new Map<number, number>();
+  for (const line of ordered) {
+    bought.set(
+      line.productId,
+      (bought.get(line.productId) ?? 0) + line.quantity,
+    );
+  }
+  return items
+    .map((i) => ({ ...i, quantity: i.quantity - (bought.get(i.id) ?? 0) }))
+    .filter((i) => i.quantity > 0);
+}
+
 export const toServerLines = (items: CartItem[]): ServerCartLine[] =>
   items.map((i) => ({ productId: i.id, quantity: i.quantity }));

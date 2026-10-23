@@ -19,6 +19,10 @@ type ProductViewProps = {
   onMinusClick: () => void;
   wishlisted?: boolean;
   onToggleWishlist?: () => void;
+  /** Opens the product. Only the image + info area is the link. */
+  onPress?: () => void;
+  onPressIn?: () => void;
+  testID?: string;
 };
 
 export default function ProductView({
@@ -32,44 +36,60 @@ export default function ProductView({
   onMinusClick,
   wishlisted,
   onToggleWishlist,
+  onPress,
+  onPressIn,
+  testID,
 }: ProductViewProps) {
   const qty = quantity ?? 0;
+  const ratingLabel = `Rated ${rating.toFixed(1)} out of 5 from ${ratingCount} reviews`;
   return (
     <View style={styles.card}>
-      <View style={styles.imageWrapper}>
-        <ProductImage image={image} />
-        <LinearGradient
-          colors={["rgba(0,0,0,0.15)", "transparent"]}
-          start={{ x: 0.5, y: 1 }}
-          end={{ x: 0.5, y: 0 }}
-          style={styles.gradient}
-        />
-        {onToggleWishlist ? (
-          <View style={styles.wishlist}>
-            <WishlistButton
-              active={!!wishlisted}
-              onPress={onToggleWishlist}
-              size={20}
-            />
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.price}>{price}</Text>
-        <View
-          style={styles.ratingRow}
-          accessible
-          accessibilityLabel={`Rated ${rating.toFixed(1)} out of 5 from ${ratingCount} reviews`}
-        >
-          <AntDesign name="star" size={12} color="gold" />
-          <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-          <Text style={styles.ratingCount}>({ratingCount})</Text>
+      {/*
+       * The link, the heart and the stepper are siblings, not nested: an
+       * accessible parent hides its children from VoiceOver, so a card-wide
+       * link would make the buttons unreachable.
+       */}
+      <Pressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        disabled={!onPress}
+        accessibilityRole="link"
+        accessibilityLabel={`${title}, ${price}, ${ratingLabel}`}
+        testID={testID}
+        style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1.0 }]}
+      >
+        <View style={styles.imageWrapper}>
+          <ProductImage image={image} />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.15)", "transparent"]}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 0.5, y: 0 }}
+            style={styles.gradient}
+          />
         </View>
-      </View>
+
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.price}>{price}</Text>
+          <View style={styles.ratingRow}>
+            <AntDesign name="star" size={12} color="gold" />
+            <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+            <Text style={styles.ratingCount}>({ratingCount})</Text>
+          </View>
+        </View>
+      </Pressable>
+
+      {onToggleWishlist ? (
+        <View style={styles.wishlist}>
+          <WishlistButton
+            active={!!wishlisted}
+            onPress={onToggleWishlist}
+            size={20}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.divider} />
 

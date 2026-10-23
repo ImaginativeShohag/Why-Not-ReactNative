@@ -8,6 +8,7 @@ import {
   type CartItem,
   changeQuantity,
   mergeCarts,
+  removeOrderedLines,
   type ServerCartLine,
 } from "./cartMath";
 
@@ -18,6 +19,8 @@ interface CartState {
   addToCart: (product: Product) => void;
   updateQuantity: (id: number, delta: number) => void;
   clearCart: () => void;
+  /** Removes an order's lines after purchase; later additions stay. */
+  removePurchased: (lines: ServerCartLine[]) => void;
   /** Applies the documented merge rule (see `mergeCarts`) after sign-in. */
   mergeWithServer: (
     lines: ServerCartLine[],
@@ -39,6 +42,8 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (id, delta) =>
         set((state) => ({ items: changeQuantity(state.items, id, delta) })),
       clearCart: () => set({ items: [] }),
+      removePurchased: (lines) =>
+        set((state) => ({ items: removeOrderedLines(state.items, lines) })),
       mergeWithServer: (lines, resolveProduct) => {
         const merged = mergeCarts(get().items, lines, resolveProduct);
         set({ items: merged });

@@ -59,14 +59,15 @@ export default function ProfileSheet() {
     );
   }
 
-  if (error && !user) {
-    return (
-      <ErrorStateView
-        message={getErrorMessage(error) ?? "Couldn't load your profile."}
-        onRetry={() => refetch()}
-      />
-    );
-  }
+  // FakeStoreAPI answers unknown ids with an empty body, and a social or
+  // signed-up demo session can share an id with someone else's profile. Only
+  // show the profile when it is really this user's; the session identity and
+  // Sign Out are always rendered.
+  const profile =
+    user && user.username === session.user?.username ? user : null;
+  const name = profile
+    ? `${profile.name.firstname} ${profile.name.lastname}`
+    : (session.user?.displayName ?? session.user?.username ?? "Signed in");
 
   return (
     <BottomSheetScrollView
@@ -75,56 +76,70 @@ export default function ProfileSheet() {
         <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
       }
     >
-      {user && (
-        <>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: `https://picsum.photos/seed/${user.id}/200/200` }}
-              style={styles.avatar}
-              accessibilityIgnoresInvertColors
-              accessibilityLabel="Profile photo"
-            />
-          </View>
+      <View style={styles.imageContainer}>
+        <Image
+          source={{
+            uri: `https://picsum.photos/seed/${session.user?.id ?? 0}/200/200`,
+          }}
+          style={styles.avatar}
+          accessibilityIgnoresInvertColors
+          accessibilityLabel="Profile photo"
+        />
+      </View>
 
-          <Text style={styles.sectionTitle}>Details</Text>
+      {error && !profile ? (
+        <ErrorStateView
+          title="Couldn't load your profile"
+          message={getErrorMessage(error) ?? "Couldn't load your profile."}
+          onRetry={() => refetch()}
+        />
+      ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.label}>Name</Text>
-            <Text>{user.name.firstname + " " + user.name.lastname}</Text>
+      <Text style={styles.sectionTitle}>Details</Text>
 
-            <Text style={styles.label}>Username</Text>
-            <Text>{user.username}</Text>
+      <View style={styles.section}>
+        <Text style={styles.label}>Name</Text>
+        <Text>{name}</Text>
 
+        <Text style={styles.label}>Username</Text>
+        <Text>{profile?.username ?? session.user?.username}</Text>
+
+        {profile?.email || session.user?.email ? (
+          <>
             <Text style={styles.label}>Email</Text>
-            <Text>{user.email}</Text>
+            <Text>{profile?.email ?? session.user?.email}</Text>
+          </>
+        ) : null}
 
+        {profile ? (
+          <>
             <Text style={styles.label}>Phone</Text>
-            <Text>{user.phone}</Text>
+            <Text>{profile.phone}</Text>
 
             <Text style={styles.label}>Address</Text>
-            <Text>{user.address?.city}</Text>
-          </View>
+            <Text>{profile.address?.city}</Text>
+          </>
+        ) : null}
+      </View>
 
-          <TouchableOpacity
-            style={styles.button}
-            accessibilityRole="button"
-            onPress={() => {
-              dismiss();
-              router.push("/projects/store/orders");
-            }}
-          >
-            <Text style={styles.buttonText}>Orders</Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        accessibilityRole="button"
+        onPress={() => {
+          dismiss();
+          router.push("/projects/store/orders");
+        }}
+      >
+        <Text style={styles.buttonText}>Orders</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.signOut]}
-            accessibilityRole="button"
-            onPress={handleSignOut}
-          >
-            <Text style={styles.buttonText}>Sign Out</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <TouchableOpacity
+        style={[styles.button, styles.signOut]}
+        accessibilityRole="button"
+        onPress={handleSignOut}
+      >
+        <Text style={styles.buttonText}>Sign Out</Text>
+      </TouchableOpacity>
     </BottomSheetScrollView>
   );
 }

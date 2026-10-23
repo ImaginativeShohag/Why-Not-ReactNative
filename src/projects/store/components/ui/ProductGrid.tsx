@@ -1,9 +1,8 @@
 import { FlashList } from "@shopify/flash-list";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import type { ReactElement } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   type RefreshControlProps,
   type StyleProp,
   type ViewStyle,
@@ -44,6 +43,7 @@ export default function ProductGrid({
   refreshControl,
   contentContainerStyle,
 }: ProductGridProps) {
+  const router = useRouter();
   return (
     <FlashList
       data={products}
@@ -59,35 +59,27 @@ export default function ProductGrid({
       }
       refreshControl={refreshControl}
       renderItem={({ item: product }) => (
-        <Link
-          href={{
-            pathname: "/projects/store/product/[id]",
-            params: { id: product.id },
-          }}
-          asChild
-        >
-          <Pressable
-            // Prefetch on press-in: the ~100ms before press-out is free latency.
-            onPressIn={() => onPressIn(product)}
-            accessibilityRole="link"
-            accessibilityLabel={`${product.title}, ${formatPrice(product.price)}`}
-            testID={`product-${product.id}`}
-            style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1.0 }]}
-          >
-            <ProductView
-              title={product.title}
-              price={formatPrice(product.price)}
-              image={product.image}
-              rating={product.rating.rate}
-              ratingCount={product.rating.count}
-              quantity={quantityOf(product.id)}
-              onPlusClick={() => onIncrease(product)}
-              onMinusClick={() => onDecrease(product)}
-              wishlisted={isWishlisted(product.id)}
-              onToggleWishlist={() => onToggleWishlist(product)}
-            />
-          </Pressable>
-        </Link>
+        <ProductView
+          title={product.title}
+          price={formatPrice(product.price)}
+          image={product.image}
+          rating={product.rating.rate}
+          ratingCount={product.rating.count}
+          quantity={quantityOf(product.id)}
+          onPlusClick={() => onIncrease(product)}
+          onMinusClick={() => onDecrease(product)}
+          wishlisted={isWishlisted(product.id)}
+          onToggleWishlist={() => onToggleWishlist(product)}
+          // Prefetch on press-in: the ~100ms before press-out is free latency.
+          onPressIn={() => onPressIn(product)}
+          onPress={() =>
+            router.push({
+              pathname: "/projects/store/product/[id]",
+              params: { id: product.id },
+            })
+          }
+          testID={`product-${product.id}`}
+        />
       )}
     />
   );

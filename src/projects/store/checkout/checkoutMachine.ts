@@ -144,9 +144,15 @@ export function transition(
       return { ...state, step: event.step };
 
     case "ORDER_PLACED":
-      if (state.step !== "review") return state;
+      // Gate on Review's prerequisites, not on `step`: the screen can be
+      // reached by resuming from the bag while `step` still says where the
+      // user last edited. Dropping this event would keep the old idempotency
+      // key alive, and the next checkout would replay this order.
+      if (state.orderId || state.phase !== "editing") return state;
+      if (!canEnter(state, "review")) return state;
       return {
         ...state,
+        step: "review",
         orderId: event.orderId,
         phase: "awaiting_payment",
         lastError: null,

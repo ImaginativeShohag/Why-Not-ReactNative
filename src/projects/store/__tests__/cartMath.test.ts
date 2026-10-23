@@ -5,6 +5,7 @@ import {
   itemCount,
   MAX_QUANTITY_PER_ITEM,
   mergeCarts,
+  removeOrderedLines,
   subtotalCents,
   toServerLines,
   type CartItem,
@@ -112,5 +113,26 @@ describe("mergeCarts (sign-in reconciliation rule)", () => {
     expect(merged.map((i) => [i.id, i.quantity])).toEqual([
       [2, MAX_QUANTITY_PER_ITEM],
     ]);
+  });
+});
+
+describe("removeOrderedLines", () => {
+  it("removes only what the order bought, keeping later additions", () => {
+    // Ordered 2×#1 and 1×#2; then added a third #1 and a new #3.
+    const bag = [line(1, 3), line(2, 1), line(3, 1)];
+    const left = removeOrderedLines(bag, [
+      { productId: 1, quantity: 2 },
+      { productId: 2, quantity: 1 },
+    ]);
+    expect(left.map((i) => [i.id, i.quantity])).toEqual([
+      [1, 1],
+      [3, 1],
+    ]);
+  });
+
+  it("drops a line whose quantity was lowered below the ordered amount", () => {
+    expect(
+      removeOrderedLines([line(1, 1)], [{ productId: 1, quantity: 2 }]),
+    ).toEqual([]);
   });
 });

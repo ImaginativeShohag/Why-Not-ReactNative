@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { Platform } from "react-native";
 
 import { exchangeSocialToken } from "../api/auth.api";
+import { ApiError } from "../api/errors";
 import { storeConfig } from "../constants/config";
 import type { AuthResult } from "../models/Auth";
 
@@ -82,14 +83,34 @@ export async function signInWithApple(): Promise<SocialResult> {
     });
     return { type: "success", result };
   } catch (error) {
-    if ((error as { code?: string })?.code === "ERR_REQUEST_CANCELED") {
-      return { type: "cancel" };
-    }
+    return appleFailure(error);
+  }
+}
+
+/**
+ * Native Apple errors carry a code like `ERR_REQUEST_UNKNOWN` and a message
+ * with Swift file names — never show that. ASAuthorizationError.unknown is
+ * what iOS reports when the sheet is dismissed with no Apple Account signed
+ * in (common on simulators), so it gets a hint rather than a raw error.
+ */
+function appleFailure(error: unknown): SocialResult {
+  if (error instanceof ApiError) {
+    // From our own token exchange: already a user-facing message.
+    return { type: "error", message: error.message };
+  }
+  const code = (error as { code?: string })?.code;
+  if (code === "ERR_REQUEST_CANCELED") return { type: "cancel" };
+  if (code === "ERR_REQUEST_UNKNOWN") {
     return {
       type: "error",
-      message: error instanceof Error ? error.message : "Apple sign-in failed.",
+      message:
+        "Apple sign-in didn't finish. Check that you're signed in to an Apple Account in Settings, then try again.",
     };
   }
+  return {
+    type: "error",
+    message: "Apple sign-in failed. Please try again.",
+  };
 }
 
 // ---------------------------------------------------------------- Google

@@ -19,7 +19,14 @@ export default function StepIndicator({
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={`Step ${currentIndex + 1} of ${labels.length}: ${labels[currentIndex]}`}
-      accessibilityValue={{ min: 1, max: labels.length, now: currentIndex + 1 }}
+      // 0-based so VoiceOver's percentage maths lands on 0–100 %; `text`
+      // replaces the percentage with "Step N of M" where supported.
+      accessibilityValue={{
+        min: 0,
+        max: Math.max(1, labels.length - 1),
+        now: currentIndex,
+        text: `Step ${currentIndex + 1} of ${labels.length}`,
+      }}
     >
       <View style={styles.row}>
         {labels.map((label, index) => {

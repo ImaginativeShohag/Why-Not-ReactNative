@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Redirect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
-import { fetchOrder } from "@/src/projects/store/api/order.api";
+import { cancelOrder, fetchOrder } from "@/src/projects/store/api/order.api";
+import { useSession } from "@/src/projects/store/auth/useSession";
 import { isLocked } from "@/src/projects/store/checkout/checkoutMachine";
 import {
   formatAddressLines,
@@ -26,6 +27,7 @@ import {
   usePlaceOrder,
   useStartCheckout,
 } from "@/src/projects/store/hooks/useCheckout";
+import { useOrder } from "@/src/projects/store/hooks/useOrders";
 import { usePayment } from "@/src/projects/store/hooks/usePayment";
 import {
   askForOrderUpdates,
@@ -34,6 +36,7 @@ import {
 import { lineTotalCents } from "@/src/projects/store/stores/cartMath";
 import { track } from "@/src/projects/store/utils/analytics";
 import { formatMoney } from "@/src/projects/store/utils/money";
+import { monitoring } from "@/src/projects/store/utils/monitoring";
 import { queryKeys } from "@/src/projects/store/utils/queryKeys";
 import { storeColors } from "@/src/projects/store/constants/theme";
 
@@ -48,11 +51,34 @@ export default function CheckoutReviewScreen() {
   const complete = useCompleteCheckout();
   const startCheckout = useStartCheckout();
   const { pay } = usePayment();
+  const { user } = useSession();
   const [paying, setPaying] = useState(false);
+  // Render state lags a frame: two taps in one frame both see `busy` false.
+  const placingRef = useRef(false);
+  const { data: placedOrder } = useOrder(checkout.orderId ?? "", user?.id);
 
   if (redirect) return <Redirect href={redirect} />;
 
   const locked = isLocked(checkout);
+  // Once placed, the order is what gets paid: show its lines and totals, not
+  // the live bag, which the user may have changed since.
+  const placed = locked ? placedOrder : undefined;
+  const shownTotals = placed?.totals ?? totals;
+  const lineRows = locked
+    ? (placed?.lines ?? []).map((line) => ({
+        key: line.productId,
+        title: line.title,
+        image: line.image,
+        quantity: line.quantity,
+        lineTotal: formatMoney(line.unitPriceCents * line.quantity),
+      }))
+    : items.map((item) => ({
+        key: item.id,
+        title: item.title,
+        image: item.image,
+        quantity: item.quantity,
+        lineTotal: formatMoney(lineTotalCents(item)),
+      }));
   const shipping = SHIPPING_OPTIONS.find(
     (o) => o.id === checkout.shippingOptionId,
   );
@@ -71,7 +97,8 @@ export default function CheckoutReviewScreen() {
 
   const handlePlaceOrder = async () => {
     // Belt and braces with the idempotency key: ignore re-entrant taps.
-    if (busy || !checkout.paymentMethod) return;
+    if (placingRef.current || !checkout.paymentMethod) return;
+    placingRef.current = true;
     try {
       const order = await placeOrder.mutateAsync();
       if (isPaid(order)) {
@@ -109,6 +136,7 @@ export default function CheckoutReviewScreen() {
         message: getErrorMessage(error) ?? "Couldn't place your order.",
       });
     } finally {
+      placingRef.current = false;
       setPaying(false);
     }
   };
@@ -138,9 +166,28 @@ export default function CheckoutReviewScreen() {
           text: "Start over",
           style: "destructive",
           onPress: () => {
+            const abandonedId = checkout.orderId;
             send({ type: "RESET" });
             startCheckout();
             router.dismissTo("/projects/store/checkout/address");
+            if (!abandonedId) return;
+            // Tell the server, or the order stays "Awaiting payment" (and
+            // polled) forever. Best effort: the new checkout doesn't wait.
+            cancelOrder(abandonedId)
+              .then((order) =>
+                queryClient.setQueryData(
+                  queryKeys.orders.detail(order.id),
+                  order,
+                ),
+              )
+              .catch((error) =>
+                monitoring.captureException(error, { area: "checkout.cancel" }),
+              )
+              .finally(() =>
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.orders.all,
+                }),
+              );
           },
         },
       ],
@@ -177,7 +224,9 @@ export default function CheckoutReviewScreen() {
               paying
                 ? "Authorizing payment…"
                 : locked
-                  ? `Pay ${formatMoney(totals.totalCents)}`
+                  ? placed
+                    ? `Pay ${formatMoney(placed.totals.totalCents)}`
+                    : "Pay"
                   : `Place order · ${formatMoney(totals.totalCents)}`
             }
             onPress={handlePlaceOrder}
@@ -218,24 +267,22 @@ export default function CheckoutReviewScreen() {
       />
 
       <SectionHeader
-        title={`${items.length} ${items.length === 1 ? "item" : "items"}`}
+        title={`${lineRows.length} ${lineRows.length === 1 ? "item" : "items"}`}
       />
-      {items.map((item) => (
-        <OrderLineRow
-          key={item.id}
-          title={item.title}
-          image={item.image}
-          quantity={item.quantity}
-          lineTotal={formatMoney(lineTotalCents(item))}
-        />
+      {lineRows.map(({ key, ...row }) => (
+        <OrderLineRow key={key} {...row} />
       ))}
 
-      <SectionHeader title="Total" />
-      <TotalsView
-        rows={totalsRows(totals, {
-          discountLabel: `Discount (${checkout.promoCode})`,
-        })}
-      />
+      {locked && !placed ? null : (
+        <>
+          <SectionHeader title="Total" />
+          <TotalsView
+            rows={totalsRows(shownTotals, {
+              discountLabel: `Discount (${placed?.promoCode ?? checkout.promoCode})`,
+            })}
+          />
+        </>
+      )}
     </CheckoutScaffold>
   );
 }

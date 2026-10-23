@@ -10,6 +10,7 @@ import {
 import {
   checkPromo,
   computeTotals,
+  formatAddressLines,
 } from "@/src/projects/store/checkout/pricing";
 import { validateAddress } from "@/src/projects/store/checkout/validation";
 import {
@@ -81,6 +82,36 @@ describe("checkout machine", () => {
     ).toBe(placed.promoCode);
   });
 
+  it("records the order even when step is stale after Edit → back", () => {
+    // Review → Edit address → back to the bag leaves `step` at "address";
+    // the bag then resumes straight to the review screen.
+    const stale = run([{ type: "GO_TO", step: "address" }], run(toReview));
+    expect(stale.step).toBe("address");
+    const placed = transition(stale, { type: "ORDER_PLACED", orderId: "7" });
+    expect(placed.orderId).toBe("7");
+    expect(placed.step).toBe("review");
+
+    // So the next checkout gets a new key instead of replaying order 7.
+    const done = transition(placed, { type: "COMPLETED" });
+    const next = transition(done, { type: "START", idempotencyKey: "key-9" });
+    expect(next.idempotencyKey).toBe("key-9");
+    expect(next.orderId).toBeNull();
+  });
+
+  it("ignores ORDER_PLACED before review is reachable or once placed", () => {
+    const early = run(toReview.slice(0, 2));
+    expect(transition(early, { type: "ORDER_PLACED", orderId: "1" })).toBe(
+      early,
+    );
+    const placed = transition(run(toReview), {
+      type: "ORDER_PLACED",
+      orderId: "1",
+    });
+    expect(
+      transition(placed, { type: "ORDER_PLACED", orderId: "2" }).orderId,
+    ).toBe("1");
+  });
+
   it("a completed checkout starts fresh but keeps a saved address", () => {
     const done = run(
       [{ type: "ORDER_PLACED", orderId: "1" }, { type: "COMPLETED" }],
@@ -142,5 +173,21 @@ describe("address validation", () => {
     expect(Object.keys(errors)).toEqual(
       expect.arrayContaining(["fullName", "line1", "city", "postalCode"]),
     );
+  });
+});
+
+describe("formatAddressLines", () => {
+  it("includes the region (state) when present", () => {
+    expect(
+      formatAddressLines({ ...ADDRESS, region: "TX", postalCode: "78701" }),
+    ).toEqual(["Ada Lovelace", "12 Analytical St", "Austin, TX 78701, US"]);
+  });
+
+  it("omits an empty region and line2", () => {
+    expect(formatAddressLines({ ...ADDRESS, line2: "", region: "" })).toEqual([
+      "Ada Lovelace",
+      "12 Analytical St",
+      "Austin 73301, US",
+    ]);
   });
 });

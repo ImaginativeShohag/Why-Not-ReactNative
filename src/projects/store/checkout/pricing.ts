@@ -173,9 +173,9 @@ export function totalsRows(
   ];
 }
 
-/** Name, street (line1, line2) and "city postcode, country". */
+/** Name, street (line1, line2) and "city[, region] postcode, country". */
 export const formatAddressLines = (address: Address): string[] => [
   address.fullName,
   [address.line1, address.line2].filter(Boolean).join(", "),
-  `${address.city} ${address.postalCode}, ${address.country}`,
+  `${[address.city, address.region].filter(Boolean).join(", ")} ${address.postalCode}, ${address.country}`,
 ];

@@ -6,6 +6,12 @@ import { monitoring } from "../utils/monitoring";
 import { toServerLines } from "./cartMath";
 import { useCartStore } from "./cartStore";
 
+const PUSH_DEBOUNCE_MS = 1500;
+
+/** The signed-in user's server cart id, learned at sign-in or on first push. */
+let serverCart: { userId: number; cartId: number | null } | null = null;
+let stopSync: (() => void) | null = null;
+
 /**
  * Sign-in reconciliation: local (possibly guest) cart + server cart → merged
  * cart (rule documented on `mergeCarts`), then pushed back to the server.
@@ -21,6 +27,7 @@ export async function reconcileCartOnSignIn(userId: number) {
       fetchServerCart(userId),
       queryClient.ensureQueryData(productsQuery),
     ]);
+    serverCart = { userId, cartId: server.cartId };
     const byId = new Map(products.map((p) => [p.id, p]));
     const merged = useCartStore
       .getState()
@@ -29,4 +36,52 @@ export async function reconcileCartOnSignIn(userId: number) {
   } catch (error) {
     monitoring.captureException(error, { area: "cart.reconcile" });
   }
+}
+
+async function pushCart(userId: number) {
+  try {
+    if (serverCart?.userId !== userId) {
+      const { cartId } = await fetchServerCart(userId);
+      serverCart = { userId, cartId };
+    }
+    await updateServerCart(
+      userId,
+      serverCart.cartId,
+      toServerLines(useCartStore.getState().items),
+    );
+  } catch (error) {
+    monitoring.captureException(error, { area: "cart.push" });
+  }
+}
+
+/**
+ * While signed in, pushes the bag to the server shortly after every change
+ * (a purchase removing lines included). Without this the server keeps the
+ * sign-in snapshot and the next merge brings bought or removed items back.
+ * Returns the stop function.
+ */
+export function startCartAutoSync(userId: number) {
+  stopCartAutoSync();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const unsubscribe = useCartStore.subscribe((state, previous) => {
+    if (state.items === previous.items) return;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      pushCart(userId);
+    }, PUSH_DEBOUNCE_MS);
+  });
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    unsubscribe();
+    if (stopSync === stop) stopSync = null;
+  };
+  stopSync = stop;
+  return stop;
+}
+
+/** Sign-out: stop pushing (a pending push is dropped) and forget the cart id. */
+export function stopCartAutoSync() {
+  stopSync?.();
+  serverCart = null;
 }

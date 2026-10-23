@@ -35,6 +35,15 @@ export async function fetchOrder(id: string): Promise<Order> {
   return mockServer.getOrder(id);
 }
 
+/** Abandons an unpaid order ("Start over"), so it stops showing as active. */
+export async function cancelOrder(id: string): Promise<Order> {
+  if (hasBackend()) {
+    const { data } = await backendApi.post<Order>(`/orders/${id}/cancel`);
+    return data;
+  }
+  return mockServer.cancelOrder(id);
+}
+
 /**
  * Order history. Without a backend this is the on-device orders plus
  * FakeStoreAPI's cart history mapped into legacy orders.

@@ -34,8 +34,8 @@ export const updateServerCart = async (
 export const fetchCartHistory = async (
   userId: number,
 ): Promise<ServerCart[]> => {
-  const { data } = await storeApi.get<ServerCart[]>("/carts", {
-    params: { userId },
-  });
-  return data;
+  // FakeStoreAPI ignores `/carts?userId=` and returns every user's carts;
+  // the per-user route filters server-side. Filter again in case it doesn't.
+  const { data } = await storeApi.get<ServerCart[]>(`/carts/user/${userId}`);
+  return data.filter((cart) => cart.userId === userId);
 };
