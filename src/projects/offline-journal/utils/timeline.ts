@@ -1,5 +1,5 @@
 import type { Entry } from "../models/Entry";
-import { DAY_MS, dayKey } from "./date";
+import { dayKey, yesterdayKey } from "./date";
 
 export type TimelineRow =
   | { kind: "header"; key: string; label: string }
@@ -48,7 +48,7 @@ export function headerIndices(rows: TimelineRow[]) {
 function labelFor(date: Date, now: number) {
   const day = dayKey(date);
   const today = dayKey(new Date(now));
-  const yesterday = dayKey(new Date(now - DAY_MS));
+  const yesterday = yesterdayKey(now);
 
   if (day === today) return `TODAY · ${DAY.format(date)}`;
   if (day === yesterday) return `YESTERDAY · ${DAY.format(date)}`;

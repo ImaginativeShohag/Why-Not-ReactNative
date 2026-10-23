@@ -14,6 +14,17 @@ export function dayKey(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/**
+ * `dayKey` of the calendar day before `now`. Not `now - DAY_MS`: on the day
+ * after a DST spring-forward the previous day is 23 hours long, so just after
+ * midnight 24 hours back lands two days ago.
+ */
+export function yesterdayKey(now: number): string {
+  const date = new Date(now);
+  date.setDate(date.getDate() - 1);
+  return dayKey(date);
+}
+
 /** Inverse of `dayKey`. Returns local midnight, or null for anything malformed. */
 export function parseDayKey(key: string | undefined | null): Date | null {
   if (!key) return null;
@@ -114,7 +125,6 @@ export function formatRelative(then: number, now: number = Date.now()) {
   if (diff < 60_000) return "just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
   if (diff < DAY_MS) return `${Math.floor(diff / 3_600_000)} h ago`;
-  if (dayKey(new Date(then)) === dayKey(new Date(now - DAY_MS)))
-    return "yesterday";
+  if (dayKey(new Date(then)) === yesterdayKey(now)) return "yesterday";
   return formatShortDate(new Date(then));
 }

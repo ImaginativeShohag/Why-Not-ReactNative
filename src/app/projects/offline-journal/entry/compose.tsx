@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import * as Haptics from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -37,6 +38,7 @@ import {
 } from "@/src/projects/offline-journal/utils/date";
 import { normalizeTag } from "@/src/projects/offline-journal/utils/text";
 import { ThemedText } from "@/src/shared/components/themed-text";
+import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
 import { Fonts } from "@/src/shared/constants/theme";
 
 /**
@@ -53,7 +55,13 @@ export default function ComposeScreen() {
 }
 
 function ExistingEntry({ id, background }: { id: string; background: string }) {
+  const palette = usePalette();
   const { data: entry, loaded } = useEntry(id);
+  // The row the editor was seeded from. Held so that the editor, once open,
+  // is not torn down if the live row disappears under it (a remote delete).
+  const [seed, setSeed] = useState<Entry | null>(null);
+  if (entry && !seed) setSeed(entry);
+
   if (!loaded) {
     return (
       <View style={[styles.center, { backgroundColor: background }]}>
@@ -61,7 +69,25 @@ function ExistingEntry({ id, background }: { id: string; background: string }) {
       </View>
     );
   }
-  return <Editor key={id} initial={entry} />;
+  const initial = seed ?? entry;
+  // An id that matches nothing (deleted, or a stale link) must not fall
+  // through to a blank editor: its first autosave would create a new entry.
+  if (!initial) {
+    return (
+      <View style={[styles.fill, { backgroundColor: background }]}>
+        <Stack.Screen options={{ title: "Entry" }} />
+        <ContentUnavailableView
+          iconComponent={Ionicons}
+          iconName="trash-outline"
+          title="Entry not found"
+          description="It may have been deleted on this or another device."
+          titleColor={palette.text}
+          descriptionColor={palette.muted}
+        />
+      </View>
+    );
+  }
+  return <Editor key={id} initial={initial} />;
 }
 
 type Draft = { title: string; body: string; mood: Mood | null; tags: string[] };

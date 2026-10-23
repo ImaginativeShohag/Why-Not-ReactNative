@@ -3,6 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   backoffDelay,
   classifyStatus,
+  describeSyncError,
   MAX_ATTEMPTS,
   mergeOutboxOp,
   parsePullResponse,
@@ -109,5 +110,37 @@ describe("sanitizeMood", () => {
     expect(sanitizeMood(6)).toBeNull();
     expect(sanitizeMood(2.5)).toBeNull();
     expect(sanitizeMood(null)).toBeNull();
+  });
+});
+
+describe("describeSyncError", () => {
+  it("hides native transport detail behind a plain sentence", () => {
+    expect(
+      describeSyncError(
+        "fetch failed: UnexpectedException: Could not connect to the server. (at ExpoModulesCore/Promise.swift:56)",
+      ),
+    ).toBe("Couldn't reach the server");
+    expect(describeSyncError("TypeError: Network request failed")).toBe(
+      "Couldn't reach the server",
+    );
+  });
+
+  it("names the HTTP class when there is a status", () => {
+    expect(describeSyncError("pull failed: HTTP 503")).toBe(
+      "The server had a problem (HTTP 503)",
+    );
+    expect(describeSyncError("pull failed: HTTP 401")).toBe(
+      "The server refused access (HTTP 401)",
+    );
+    expect(describeSyncError("pull failed: HTTP 404")).toBe(
+      "The server rejected the request (HTTP 404)",
+    );
+  });
+
+  it("reports a malformed response, and falls back for anything else", () => {
+    expect(describeSyncError("pull: missing serverTime")).toBe(
+      "The server sent an unexpected response",
+    );
+    expect(describeSyncError("database is locked")).toMatch(/^Sync failed/);
   });
 });

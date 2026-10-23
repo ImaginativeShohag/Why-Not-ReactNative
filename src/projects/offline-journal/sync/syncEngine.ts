@@ -61,13 +61,20 @@ export function kick(): Promise<SyncResult> {
     again = true;
     return inFlight;
   }
-  inFlight = run().finally(() => {
-    inFlight = null;
-    if (again) {
-      again = false;
-      void kick();
-    }
-  });
+  // `run` records failures it expects, but the hydration or the db open can
+  // still throw. Settle those as an error result too, so the fire-and-forget
+  // callers (`void kick()`) can never produce an unhandled rejection.
+  inFlight = run()
+    .catch((cause) =>
+      finish({ pulled: 0, pushed: 0, failed: 0, error: errorText(cause) }),
+    )
+    .finally(() => {
+      inFlight = null;
+      if (again) {
+        again = false;
+        void kick();
+      }
+    });
   return inFlight;
 }
 
@@ -113,12 +120,15 @@ async function run(): Promise<SyncResult> {
     await deleteMeta(db, LAST_ERROR_KEY);
     return finish({ pulled, pushed, failed });
   } catch (cause) {
-    const error = cause instanceof Error ? cause.message : String(cause);
+    const error = errorText(cause);
     await setMeta(db, LAST_ERROR_KEY, error).catch(() => undefined);
     // Offline is not an emergency: the outbox still holds every change.
     return finish({ pulled: 0, pushed: 0, failed: 0, error });
   }
 }
+
+const errorText = (cause: unknown) =>
+  cause instanceof Error ? cause.message : String(cause);
 
 function finish(result: SyncResult) {
   useSyncStore.getState().finish(result);
@@ -177,6 +187,7 @@ async function push(db: SQLiteDatabase, settings: SyncSettings) {
   let failed = 0;
 
   for (const item of batch) {
+    let status: number;
     try {
       // PUT on the client-generated ULID: replaying it is a no-op, so a lost
       // response costs nothing. That is what makes retries safe.
@@ -192,23 +203,26 @@ async function push(db: SQLiteDatabase, settings: SyncSettings) {
           body: item.op === "delete" ? undefined : item.payload,
         },
       );
-
-      const verdict = classifyStatus(response.status);
-      if (verdict === "ok") {
-        await markDone(db, item);
-        pushed++;
-      } else if (verdict === "dead") {
-        // The server will never accept this. Dead-letter it and surface it.
-        await failItem(db, item, `HTTP ${response.status}`, {
-          permanent: true,
-        });
-        failed++;
-      } else {
-        await failItem(db, item, `HTTP ${response.status}`); // retry with backoff
-        failed++;
-      }
+      status = response.status;
     } catch (cause) {
       await failItem(db, item, String(cause)); // offline: stay queued, no drama
+      failed++;
+      continue;
+    }
+
+    const verdict = classifyStatus(status);
+    if (verdict === "ok") {
+      // The server has it. A local write failing now is not a server failure,
+      // so it must not burn an attempt: the row just stays queued, and the
+      // idempotent replay next run clears it.
+      await markDone(db, item).catch(() => undefined);
+      pushed++;
+    } else if (verdict === "dead") {
+      // The server will never accept this. Dead-letter it and surface it.
+      await failItem(db, item, `HTTP ${status}`, { permanent: true });
+      failed++;
+    } else {
+      await failItem(db, item, `HTTP ${status}`); // retry with backoff
       failed++;
     }
   }

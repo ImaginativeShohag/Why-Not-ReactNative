@@ -141,6 +141,8 @@ export default function TimelineScreen() {
             iconComponent={Ionicons}
             iconName="calendar-clear-outline"
             title="Nothing written that day"
+            titleColor={palette.text}
+            descriptionColor={palette.muted}
             description="Pick another day in the calendar, or clear the filter."
           />
         ) : (
@@ -148,6 +150,8 @@ export default function TimelineScreen() {
             iconComponent={Ionicons}
             iconName="book-outline"
             title="Your journal is empty"
+            titleColor={palette.text}
+            descriptionColor={palette.muted}
             description="Everything you write stays on this device. Tap the pen to start."
           />
         )

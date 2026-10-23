@@ -4,7 +4,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import { migrate } from "../db/migrations";
 import { saveEntry, softDeleteEntry } from "../db/queries/entries";
-import { MAX_ATTEMPTS } from "../db/queries/outbox";
+import { discardDeadLetters, MAX_ATTEMPTS } from "../db/queries/outbox";
 import type { SyncSettings } from "../stores/settingsStore";
 import type { HttpResponse } from "../sync/http";
 import { kick, LAST_ERROR_KEY } from "../sync/syncEngine";
@@ -42,7 +42,10 @@ jest.mock("expo-network", () => ({
   getNetworkStateAsync: async () => mockState.network,
 }));
 jest.mock("../db/client", () => ({
-  getDb: async () => mockState.db,
+  getDb: async () => {
+    if (!mockState.db) throw new Error("could not open the database");
+    return mockState.db;
+  },
 }));
 jest.mock("../stores/settingsStore", () => ({
   ensureSettingsHydrated: async () => ({ sync: mockState.settings }),
@@ -236,6 +239,130 @@ describe("push", () => {
 
     expect(await kick()).toMatchObject({ failed: 1 });
     expect((await outbox(db))[0]).toMatchObject({ attempts: 1 });
+  });
+});
+
+describe("per-entity ordering", () => {
+  it("folds an edit into a failed item, so only the latest state ships", async () => {
+    const id = await saveEntry(db, { title: "v1", body: "", mood: null });
+    mockState.handler = server(() => respond(503));
+    await kick();
+    expect((await outbox(db))[0]).toMatchObject({ attempts: 1 });
+
+    await saveEntry(db, { id, title: "v2", body: "", mood: null });
+    const queued = await outbox(db);
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({ attempts: 0, next_attempt_at: 0 });
+
+    mockState.handler = server(() => respond(200));
+    mockState.calls = [];
+    await kick();
+    expect(pushes()).toHaveLength(1);
+    expect(JSON.parse(pushes()[0].body ?? "")).toMatchObject({ title: "v2" });
+    expect(await outbox(db)).toEqual([]);
+  });
+
+  it("never resurrects a delete behind a retrying update", async () => {
+    const id = await saveEntry(db, { title: "v1", body: "", mood: null });
+    await kick();
+    await saveEntry(db, { id, title: "v2", body: "", mood: null });
+    mockState.handler = server(() => respond(503));
+    await kick();
+    await softDeleteEntry(db, id);
+
+    mockState.handler = server(() => respond(200));
+    mockState.calls = [];
+    await kick();
+    expect(pushes()).toEqual([
+      expect.objectContaining({ method: "DELETE", path: `/entries/${id}` }),
+    ]);
+  });
+
+  it("does not let a newer item overtake an older one that is backing off", async () => {
+    // Two rows for one entry, as an outbox written before folding could hold.
+    const id = await saveEntry(db, { title: "old", body: "", mood: null });
+    await db.runAsync(
+      "UPDATE outbox SET attempts = 1, next_attempt_at = ?",
+      Date.now() + 60_000,
+    );
+    await db.runAsync(
+      `INSERT INTO outbox (op, entity, entity_id, payload, created_at)
+       VALUES ('update', 'entry', ?, '{"title":"new"}', 0)`,
+      id,
+    );
+
+    await kick();
+    expect(pushes()).toEqual([]);
+  });
+
+  it("keeps a fresh edit's retry state when the old payload's request fails", async () => {
+    const id = await saveEntry(db, { title: "v1", body: "", mood: null });
+    let editedMidFlight = false;
+    mockState.handler = server(async () => {
+      if (!editedMidFlight) {
+        editedMidFlight = true;
+        await saveEntry(db, { id, title: "v2", body: "", mood: null });
+      }
+      return respond(503);
+    });
+
+    await kick();
+
+    const [row] = await outbox(db);
+    expect(JSON.parse(row.payload)).toMatchObject({ title: "v2" });
+    expect(row).toMatchObject({ attempts: 0, next_attempt_at: 0 });
+  });
+});
+
+describe("payload and failure handling", () => {
+  it("sends created_at, and keeps the original one on an update", async () => {
+    const id = await saveEntry(db, { title: "a", body: "", mood: null });
+    await db.runAsync("UPDATE entries SET created_at = 123 WHERE id = ?", id);
+    await saveEntry(db, { id, title: "b", body: "", mood: null });
+
+    await kick();
+    expect(JSON.parse(pushes()[0].body ?? "")).toMatchObject({
+      title: "b",
+      created_at: 123,
+    });
+  });
+
+  it("does not count a local write error after a 2xx as a server failure", async () => {
+    const id = await saveEntry(db, { title: "a", body: "", mood: null });
+    const runAsync = db.runAsync.bind(db);
+    let failOnce = true;
+    db.runAsync = (async (sql: string, ...params: unknown[]) => {
+      if (failOnce && sql.startsWith("DELETE FROM outbox WHERE id")) {
+        failOnce = false;
+        throw new Error("disk I/O error");
+      }
+      return (runAsync as (...args: unknown[]) => unknown)(sql, ...params);
+    }) as typeof db.runAsync;
+
+    expect(await kick()).toMatchObject({ pushed: 1, failed: 0 });
+    expect((await outbox(db))[0]).toMatchObject({ attempts: 0 });
+
+    await kick(); // the idempotent replay clears it
+    expect(await outbox(db)).toEqual([]);
+    expect(await entry(db, id)).toMatchObject({ dirty: 0 });
+  });
+
+  it("discarding dead letters clears dirty, so pulls apply again", async () => {
+    const id = await saveEntry(db, { title: "a", body: "", mood: null });
+    mockState.handler = server(() => respond(422));
+    await kick();
+
+    await discardDeadLetters(db);
+
+    expect(await outbox(db)).toEqual([]);
+    expect(await entry(db, id)).toMatchObject({ dirty: 0 });
+  });
+
+  it("settles instead of rejecting when the database cannot open", async () => {
+    mockState.db = null;
+    await expect(kick()).resolves.toMatchObject({
+      error: "could not open the database",
+    });
   });
 });
 

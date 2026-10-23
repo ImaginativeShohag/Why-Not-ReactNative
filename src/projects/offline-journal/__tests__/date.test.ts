@@ -10,6 +10,7 @@ import {
   monthBounds,
   monthGrid,
   parseDayKey,
+  yesterdayKey,
 } from "../utils/date";
 
 describe("dayKey / parseDayKey", () => {
@@ -87,5 +88,35 @@ describe("formatters", () => {
     expect(formatRelative(now - DAY_MS - 3_600_000, now)).toBe("yesterday");
     // Future timestamps (clock skew) never render as negative.
     expect(formatRelative(now + 5_000, now)).toBe("just now");
+  });
+});
+
+describe("yesterdayKey", () => {
+  // The DST cases only bite in a zone with DST. Jest's sandboxed process.env
+  // cannot switch zones mid-run, so exercise them with
+  // `TZ=America/New_York npx jest --no-watchman date`; in other zones these
+  // assertions still hold, trivially.
+  const newYork = process.env.TZ === "America/New_York";
+
+  it("is the previous calendar day after a 23-hour day (spring forward)", () => {
+    const now = new Date(2026, 2, 9, 0, 30).getTime(); // 2026-03-08 was 23 h
+    // The bug this replaces: 24 h back from 00:30 lands two days ago.
+    if (newYork) expect(dayKey(new Date(now - DAY_MS))).toBe("2026-03-07");
+    expect(yesterdayKey(now)).toBe("2026-03-08");
+  });
+
+  it("is the previous calendar day late on a 25-hour day (fall back)", () => {
+    const now = new Date(2026, 10, 1, 23, 30).getTime(); // 2026-11-01 is 25 h
+    // ...and here 24 h back is still today.
+    if (newYork) expect(dayKey(new Date(now - DAY_MS))).toBe("2026-11-01");
+    expect(yesterdayKey(now)).toBe("2026-10-31");
+    expect(formatRelative(new Date(2026, 9, 31, 22).getTime(), now)).toBe(
+      "yesterday",
+    );
+  });
+
+  it("crosses month and year boundaries", () => {
+    expect(yesterdayKey(new Date(2026, 0, 1, 9).getTime())).toBe("2025-12-31");
+    expect(yesterdayKey(new Date(2026, 2, 1, 9).getTime())).toBe("2026-02-28");
   });
 });

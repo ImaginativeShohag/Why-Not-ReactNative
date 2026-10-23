@@ -26,8 +26,11 @@ const handledResponses = new Set<string>();
 function open(response: Notifications.NotificationResponse) {
   const url = journalUrl(response.notification);
   if (!url) return; // Not ours — the store routes its own pushes.
-  const id = `${response.notification.request.identifier}:${response.actionIdentifier}`;
   // Cold start can deliver the same tap via the listener AND the last response.
+  // The delivery date is part of the key: the daily reminder reuses one
+  // request identifier, so without it every tap after the first was dropped.
+  const { notification, actionIdentifier } = response;
+  const id = `${notification.request.identifier}:${notification.date}:${actionIdentifier}`;
   if (handledResponses.has(id)) return;
   handledResponses.add(id);
   // Before the root navigator mounts this lands in expo-router's routing

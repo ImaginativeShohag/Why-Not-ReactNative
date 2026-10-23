@@ -123,6 +123,8 @@ export default function SearchScreen() {
           iconComponent={Ionicons}
           iconName="search-outline"
           title="Search every entry"
+          titleColor={palette.text}
+          descriptionColor={palette.muted}
           description="Full-text search runs on the device, so it works in airplane mode."
         />
       ) : loaded && settled && hits.length === 0 ? (
@@ -130,6 +132,8 @@ export default function SearchScreen() {
           iconComponent={Ionicons}
           iconName="document-text-outline"
           title="No matching entries"
+          titleColor={palette.text}
+          descriptionColor={palette.muted}
           description="Try fewer words, or clear a filter."
         />
       ) : (

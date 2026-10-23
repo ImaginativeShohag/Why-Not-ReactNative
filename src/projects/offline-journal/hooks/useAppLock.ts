@@ -17,13 +17,25 @@ export async function canAuthenticate() {
   );
 }
 
+/**
+ * True while the system auth sheet is up. On iOS that sheet makes the app
+ * "inactive"; the lock must not read it as the user leaving, or an "Instant"
+ * lock re-locks on return and prompts again, in a loop.
+ */
+let authenticating = false;
+
 export async function promptAuthentication(message: string) {
-  const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: message,
-    fallbackLabel: "Use passcode",
-    cancelLabel: "Cancel",
-  });
-  return result.success;
+  authenticating = true;
+  try {
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: message,
+      fallbackLabel: "Use passcode",
+      cancelLabel: "Cancel",
+    });
+    return result.success;
+  } finally {
+    authenticating = false;
+  }
 }
 
 export function useAppLock() {
@@ -46,10 +58,13 @@ export function useAppLock() {
         if (leftAt !== null && Date.now() - leftAt >= graceMs) lock();
         leftAt = null;
       } else {
+        if (authenticating) return; // our own Face ID sheet, not a departure
         // "inactive" fires for the app switcher too — that is the moment the
         // OS takes the snapshot, so cover NOW, whatever the grace period says.
         setObscured(true);
-        leftAt ??= Date.now();
+        // Only actually leaving starts the grace clock. "inactive" is also a
+        // Control Center pull or a system sheet over the app.
+        if (state === "background") leftAt ??= Date.now();
       }
     });
 

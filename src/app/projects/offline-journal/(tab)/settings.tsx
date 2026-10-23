@@ -36,6 +36,7 @@ import {
   type FontSize,
   type ThemePreference,
 } from "@/src/projects/offline-journal/stores/settingsStore";
+import { describeSyncError } from "@/src/projects/offline-journal/sync/policy";
 import { formatRelative } from "@/src/projects/offline-journal/utils/date";
 import { ThemedText } from "@/src/shared/components/themed-text";
 
@@ -331,8 +332,13 @@ export default function SettingsScreen() {
             sync.lastSyncedAt ? formatRelative(sync.lastSyncedAt) : "Never"
           }
         />
-        {sync.lastError ? (
-          <SettingsRow label="Last error" value={sync.lastError} />
+        {/* Only while sync is on: a stale error from before it was turned
+            off describes nothing that is happening now. */}
+        {sync.enabled && sync.lastError ? (
+          <SettingsRow
+            label="Last error"
+            value={describeSyncError(sync.lastError)}
+          />
         ) : null}
         <SettingsRow
           label="Sync now"

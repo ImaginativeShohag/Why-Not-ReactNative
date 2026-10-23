@@ -46,17 +46,8 @@ export function SettingsRow({
   accessory,
 }: SettingsRowProps) {
   const palette = usePalette();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? "button" : undefined}
-      style={({ pressed }) => [
-        styles.row,
-        { borderColor: palette.border },
-        pressed && onPress ? { opacity: 0.6 } : null,
-      ]}
-    >
+  const content = (
+    <>
       <ThemedText
         style={[
           styles.label,
@@ -81,6 +72,31 @@ export function SettingsRow({
         </ThemedText>
       ) : null}
       {accessory}
+    </>
+  );
+
+  // A row without an action is a plain View. A disabled Pressable is one
+  // accessibility element, which hides the accessory's own controls (picker
+  // radios, stepper buttons) from VoiceOver and TalkBack.
+  if (!onPress) {
+    return (
+      <View style={[styles.row, { borderColor: palette.border }]}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.row,
+        { borderColor: palette.border },
+        pressed ? { opacity: 0.6 } : null,
+      ]}
+    >
+      {content}
     </Pressable>
   );
 }

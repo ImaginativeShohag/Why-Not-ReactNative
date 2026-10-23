@@ -115,3 +115,22 @@ export function sanitizeMood(mood: number | null): 1 | 2 | 3 | 4 | 5 | null {
     return null;
   return mood as 1 | 2 | 3 | 4 | 5;
 }
+
+/**
+ * The stored sync error is the raw message (a native fetch error can carry a
+ * Swift file and line). Settings shows this instead: what happened, in words.
+ */
+export function describeSyncError(raw: string): string {
+  const status = /HTTP (\d{3})/.exec(raw)?.[1];
+  if (status) {
+    const code = Number(status);
+    if (code >= 500) return `The server had a problem (HTTP ${code})`;
+    if (code === 401 || code === 403)
+      return `The server refused access (HTTP ${code})`;
+    return `The server rejected the request (HTTP ${code})`;
+  }
+  if (/^pull: /.test(raw)) return "The server sent an unexpected response";
+  if (/fetch|network|connect|abort|timed? ?out|offline|host/i.test(raw))
+    return "Couldn't reach the server";
+  return "Sync failed. Your changes are safe on this device";
+}

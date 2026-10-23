@@ -50,12 +50,20 @@ export async function saveEntry(db: SQLiteDatabase, input: EntryInput) {
 
     if (tags) await writeTags(db, id, tags);
 
+    // An update keeps the row's original created_at, so read it back: the
+    // server needs it, and a pull rejects any entry without one.
+    const created = await db.getFirstAsync<{ created_at: number }>(
+      "SELECT created_at FROM entries WHERE id = ?",
+      id,
+    );
+
     await enqueue(db, input.id ? "update" : "create", id, {
       id,
       title: input.title,
       body: input.body,
       mood: input.mood,
       tags: tags ?? (await tagNames(db, id)),
+      created_at: created?.created_at ?? now,
       updated_at: now,
     });
   });
@@ -82,8 +90,9 @@ export async function softDeleteEntry(db: SQLiteDatabase, id: string) {
  * Danger zone. Still soft + queued, so the server replicates the wipe.
  *
  * Set-based rather than `softDeleteEntry` per row, so it mirrors `enqueue`'s
- * coalescing in SQL: an unattempted outbox row for the entry becomes the delete
- * (a delete always wins the merge), everything else gets a fresh delete row.
+ * coalescing in SQL: the entry's latest outbox row becomes the delete (a delete
+ * always wins the merge) with a fresh retry state, everything else gets a new
+ * delete row.
  */
 export async function softDeleteAll(db: SQLiteDatabase) {
   const now = Date.now();
@@ -95,10 +104,12 @@ export async function softDeleteAll(db: SQLiteDatabase) {
       `UPDATE outbox SET
          op              = 'delete',
          payload         = json_object('id', entity_id, 'deleted_at', ?),
-         next_attempt_at = 0
+         attempts        = 0,
+         next_attempt_at = 0,
+         last_error      = NULL
        WHERE id IN (
          SELECT MAX(id) FROM outbox
-         WHERE attempts = 0 AND entity_id IN (${live})
+         WHERE entity_id IN (${live})
          GROUP BY entity_id
        )`,
       now,
@@ -109,7 +120,7 @@ export async function softDeleteAll(db: SQLiteDatabase) {
        FROM entries e
        WHERE e.deleted_at IS NULL
          AND NOT EXISTS (
-           SELECT 1 FROM outbox o WHERE o.entity_id = e.id AND o.attempts = 0
+           SELECT 1 FROM outbox o WHERE o.entity_id = e.id
          )`,
       now,
       now,

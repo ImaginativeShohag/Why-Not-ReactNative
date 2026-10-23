@@ -72,6 +72,8 @@ export default function EntryDetailScreen() {
           iconComponent={Ionicons}
           iconName="trash-outline"
           title="Entry not found"
+          titleColor={palette.text}
+          descriptionColor={palette.muted}
           description="It may have been deleted on this or another device."
         />
       </View>
