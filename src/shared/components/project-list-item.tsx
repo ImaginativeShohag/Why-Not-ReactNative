@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Project } from "../config/projects";
+import { useThemeColor } from "../hooks/use-theme-color";
+import { ThemedText } from "./themed-text";
 
 type ProjectListItemProps = {
   project: Project;
@@ -7,14 +9,22 @@ type ProjectListItemProps = {
 };
 
 export function ProjectListItem({ project, onPress }: ProjectListItemProps) {
+  const muted = useThemeColor({}, "icon");
+  const border = useThemeColor({ light: "#e0e0e0", dark: "#2c2f31" }, "icon");
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
+    <Pressable
+      style={[styles.card, { borderColor: border }]}
+      onPress={onPress}
+      accessibilityRole="button"
+    >
       <View style={styles.row}>
         <Text style={styles.emoji}>{project.emoji}</Text>
-        <Text style={styles.title}>{project.title}</Text>
+        <ThemedText style={styles.title}>{project.title}</ThemedText>
         <Text style={styles.dotAvailable}>●</Text>
       </View>
-      <Text style={styles.subtitle}>{project.subtitle}</Text>
+      <ThemedText style={[styles.subtitle, { color: muted }]}>
+        {project.subtitle}
+      </ThemedText>
     </Pressable>
   );
 }
@@ -22,7 +32,6 @@ export function ProjectListItem({ project, onPress }: ProjectListItemProps) {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -38,6 +47,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: 16,
+    lineHeight: 20,
     fontWeight: "600",
   },
   dotAvailable: {
@@ -46,6 +56,6 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: "#888",
+    lineHeight: 15,
   },
 });

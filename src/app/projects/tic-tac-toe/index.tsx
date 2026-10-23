@@ -1,6 +1,7 @@
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import { ThemedText } from "@/src/shared/components/themed-text";
 import {
   calculateStatus,
   calculateWinner,
@@ -84,9 +85,9 @@ function Board({ xIsNext, squares, onPlay }: BoardProps) {
   return (
     <View>
       {/* Announces each new status ("Next player: O", "Winner X") on Android. */}
-      <Text style={styles.status} accessibilityLiveRegion="polite">
+      <ThemedText style={styles.status} accessibilityLiveRegion="polite">
         {status}
-      </Text>
+      </ThemedText>
       <View style={styles.board}>
         {squares.map((square, squareIndex) => (
           <Square
@@ -159,6 +160,8 @@ const styles = StyleSheet.create({
   },
   status: {
     marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 17,
     fontFamily: MONO,
   },
   board: {

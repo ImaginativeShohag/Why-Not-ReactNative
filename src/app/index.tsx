@@ -1,12 +1,15 @@
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ProjectListItem } from "../shared/components/project-list-item";
+import { ThemedText } from "../shared/components/themed-text";
 import { PROJECTS } from "../shared/config/projects";
+import { useThemeColor } from "../shared/hooks/use-theme-color";
 
 export default function IndexScreen() {
   const router = useRouter();
+  const muted = useThemeColor({}, "icon");
 
   return (
     <SafeAreaView
@@ -19,8 +22,10 @@ export default function IndexScreen() {
             flexDirection: "column",
           }}
         >
-          <Text style={styles.header}>Why Not ReactNative</Text>
-          <Text style={styles.subheader}>Pick an exercise</Text>
+          <ThemedText style={styles.header}>Why Not ReactNative</ThemedText>
+          <ThemedText style={[styles.subheader, { color: muted }]}>
+            Pick an exercise
+          </ThemedText>
 
           {PROJECTS.map((item) => (
             <ProjectListItem
@@ -41,11 +46,12 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 22,
+    lineHeight: 26,
     fontWeight: "bold",
   },
   subheader: {
     fontSize: 14,
-    color: "#666",
+    lineHeight: 17,
     marginBottom: 16,
   },
 });

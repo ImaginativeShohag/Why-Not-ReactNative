@@ -13,6 +13,14 @@ const VARIANT = (process.env.APP_VARIANT ?? "development") as Variant;
 const BASE_ID = "org.imaginativeworld.whynotreactnative";
 const EAS_PROJECT_ID = "14c49066-d1a8-4fd8-a15b-4d290153a787";
 const APP_GROUP = `group.${BASE_ID}`;
+
+// iOS has one usage string per permission for the whole app, and the first
+// plugin that sets it wins. Several projects ask for the camera and photos, so
+// the wording must cover all of them, and every plugin gets the same text.
+const CAMERA_PERMISSION =
+  "Take photos and videos for your journal and Camera & Social.";
+const PHOTOS_PERMISSION =
+  "Choose photos to attach to journal entries or to edit and share.";
 const LINK_DOMAIN = process.env.LINK_DOMAIN ?? "whynotreactnative.example.com";
 
 const VARIANTS: Record<
@@ -125,6 +133,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
+        dark: { backgroundColor: "#000000" },
       },
     ],
     "expo-web-browser",
@@ -148,14 +157,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-image-picker",
       {
-        photosPermission: "Attach photos to journal entries and edit them.",
-        cameraPermission: "Take a photo to attach to a journal entry.",
+        photosPermission: PHOTOS_PERMISSION,
+        cameraPermission: CAMERA_PERMISSION,
       },
     ],
     [
       "expo-camera",
       {
-        cameraPermission: "Capture photos and videos in Camera & Social.",
+        cameraPermission: CAMERA_PERMISSION,
         microphonePermission: "Record sound with your videos.",
         recordAudioAndroid: true,
         barcodeScannerEnabled: true,
@@ -164,7 +173,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-media-library",
       {
-        photosPermission: "Browse your albums to edit and share photos.",
+        photosPermission: PHOTOS_PERMISSION,
         savePhotosPermission: "Save your edited photos to the gallery.",
         isAccessMediaLocationEnabled: true,
       },

@@ -41,7 +41,10 @@ declare global {
   }
 }
 
-window.__TANSTACK_QUERY_CLIENT__ = queryClient;
+// `window` doesn't exist while the web build is statically rendered in Node.
+if (typeof window !== "undefined") {
+  window.__TANSTACK_QUERY_CLIENT__ = queryClient;
+}
 
 export const QueryProvider = ({ children }: { children: ReactNode }) => {
   return (
