@@ -12,15 +12,15 @@ import {
   formatDuration,
   formatKmLabel,
   formatPace,
+  formatShortDate,
 } from "@/src/projects/fitness-tracker/utils/format";
+
+// Twelve weekly bars leave ~28 pt per bar; "Sep 21" needs about three.
+const WEEK_LABEL_EVERY = 3;
 
 export default function StatsScreen() {
   const palette = usePalette();
   const { data } = useStats();
-  const weekLabel = (ms: number) => {
-    const d = new Date(ms);
-    return `${d.getDate()}/${d.getMonth() + 1}`;
-  };
   const { bests } = data;
   const rows: [string, string, string | null][] = [
     [
@@ -68,13 +68,14 @@ export default function StatsScreen() {
       <Section title="Weekly distance" palette={palette}>
         <BarChart
           data={data.weekly.map((w) => ({
-            label: weekLabel(w.weekStart),
+            label: formatShortDate(w.weekStart),
             value: w.distanceM / 1000,
           }))}
           height={150}
           color={palette.accent}
           labelColor={palette.muted}
           formatValue={formatKmLabel}
+          labelEvery={WEEK_LABEL_EVERY}
           highlightLast
         />
       </Section>
@@ -91,13 +92,14 @@ export default function StatsScreen() {
       <Section title="Weekly elevation gain" palette={palette}>
         <BarChart
           data={data.weekly.map((w) => ({
-            label: weekLabel(w.weekStart),
+            label: formatShortDate(w.weekStart),
             value: w.elevationM,
           }))}
           height={120}
           color={palette.warn}
           labelColor={palette.muted}
           formatValue={(v) => `${Math.round(v)} m`}
+          labelEvery={WEEK_LABEL_EVERY}
         />
       </Section>
       <Section title="Personal bests" palette={palette}>

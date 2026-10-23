@@ -1,4 +1,6 @@
 import {
+  AuthorizationRequestStatus,
+  getRequestStatusForAuthorization,
   isHealthDataAvailableAsync,
   queryQuantitySamples,
   requestAuthorization,
@@ -16,17 +18,29 @@ const HK_TYPE: Record<ActivityType, WorkoutActivityType> = {
   hike: WorkoutActivityType.hiking,
 };
 
+const PERMISSIONS = {
+  toShare: [
+    "HKWorkoutTypeIdentifier",
+    "HKWorkoutRouteTypeIdentifier",
+    "HKQuantityTypeIdentifierDistanceWalkingRunning",
+    "HKQuantityTypeIdentifierDistanceCycling",
+    "HKQuantityTypeIdentifierActiveEnergyBurned",
+  ],
+  toRead: ["HKQuantityTypeIdentifierHeartRate"],
+} as const;
+
+/** Shows the Health sheet if anything is still unasked. Only from "Save to Health". */
 async function authorize() {
-  return requestAuthorization({
-    toShare: [
-      "HKWorkoutTypeIdentifier",
-      "HKWorkoutRouteTypeIdentifier",
-      "HKQuantityTypeIdentifierDistanceWalkingRunning",
-      "HKQuantityTypeIdentifierDistanceCycling",
-      "HKQuantityTypeIdentifierActiveEnergyBurned",
-    ],
-    toRead: ["HKQuantityTypeIdentifierHeartRate"],
-  });
+  return requestAuthorization(PERMISSIONS);
+}
+
+/**
+ * Has the sheet already been shown? Checks without prompting. HealthKit never
+ * reveals whether *read* access was granted, only whether it was asked.
+ */
+async function wasAsked() {
+  const status = await getRequestStatusForAuthorization(PERMISSIONS);
+  return status === AuthorizationRequestStatus.unnecessary;
 }
 
 export const health: HealthSync = {
@@ -86,7 +100,9 @@ export const health: HealthSync = {
 
   async readHeartRate(start, end) {
     try {
-      await authorize();
+      // Read-only and passive (the summary screen): never pop the sheet here.
+      // The user is asked when they save to Health, as Permissions promises.
+      if (!(await wasAsked())) return [];
       const samples = await queryQuantitySamples(
         "HKQuantityTypeIdentifierHeartRate",
         {

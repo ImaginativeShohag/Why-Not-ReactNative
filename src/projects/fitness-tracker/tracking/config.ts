@@ -1,8 +1,33 @@
 import * as Location from "expo-location";
 
 import type { TrackingMode } from "../models/Workout";
+import { silenceMeansStillMs } from "./autoPause";
 
 export const LOCATION_TASK = "fitness-tracker-location";
+
+/** One table for the task, the foreground watch and the silence thresholds. */
+const INTERVALS: Record<
+  TrackingMode,
+  { distanceInterval: number; timeInterval: number }
+> = {
+  accurate: { distanceInterval: 5, timeInterval: 1000 },
+  saver: { distanceInterval: 25, timeInterval: 10_000 },
+};
+
+/** No fix for this long while moving slowly = the user is standing still. */
+export function stillAfterSilenceMs(mode: TrackingMode) {
+  const { distanceInterval, timeInterval } = INTERVALS[mode];
+  return silenceMeansStillMs(distanceInterval, timeInterval);
+}
+
+/**
+ * No fix for this long *while the last fixes said "moving"* = signal lost.
+ * Stopping is covered by `stillAfterSilenceMs`; the distance filter keeps
+ * a standing user silent, which is not a lost signal.
+ */
+export function staleFixMs(mode: TrackingMode) {
+  return Math.max(20_000, 2 * stillAfterSilenceMs(mode));
+}
 
 /**
  * The accuracy/battery trade-off table from the spec. Measure both on the
@@ -31,15 +56,13 @@ export function locationTaskOptions(
     return {
       ...common,
       accuracy: Location.Accuracy.BestForNavigation,
-      distanceInterval: 5,
-      timeInterval: 1000,
+      ...INTERVALS.accurate,
     };
   }
   return {
     ...common,
     accuracy: Location.Accuracy.Balanced,
-    distanceInterval: 25,
-    timeInterval: 10_000,
+    ...INTERVALS.saver,
     deferredUpdatesDistance: 100,
     deferredUpdatesInterval: 60_000,
   };
@@ -47,14 +70,6 @@ export function locationTaskOptions(
 
 export function watchOptions(mode: TrackingMode): Location.LocationOptions {
   return mode === "accurate"
-    ? {
-        accuracy: Location.Accuracy.BestForNavigation,
-        distanceInterval: 5,
-        timeInterval: 1000,
-      }
-    : {
-        accuracy: Location.Accuracy.Balanced,
-        distanceInterval: 25,
-        timeInterval: 10_000,
-      };
+    ? { accuracy: Location.Accuracy.BestForNavigation, ...INTERVALS.accurate }
+    : { accuracy: Location.Accuracy.Balanced, ...INTERVALS.saver };
 }

@@ -330,6 +330,8 @@ export default function WorkoutDetailScreen() {
           }
           icon="heart-outline"
           onPress={saveToHealth}
+          // Saved once is enough: a second save would duplicate the workout.
+          disabled={workout.healthSyncedAt != null || busy != null}
           palette={palette}
         />
       </View>
@@ -359,18 +361,25 @@ function Action({
   label,
   icon,
   onPress,
+  disabled = false,
   palette,
 }: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
+  disabled?: boolean;
   palette: { card: string; text: string };
 }) {
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.action, { backgroundColor: palette.card }]}
+      disabled={disabled}
+      style={[
+        styles.action,
+        { backgroundColor: palette.card, opacity: disabled ? 0.6 : 1 },
+      ]}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
     >
       <Ionicons name={icon} size={20} color={palette.text} />
       <Text style={{ color: palette.text, fontWeight: "700", flexShrink: 1 }}>

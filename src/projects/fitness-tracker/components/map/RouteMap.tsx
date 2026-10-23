@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
 import MapView, { Marker, Polyline, type LatLng } from "react-native-maps";
 
 import type { ColoredSegment } from "../../utils/paceColor";
+import { regionForCoordinates } from "../../utils/region";
 
 export type SplitMarker = { coordinate: LatLng; label: string };
 
@@ -39,23 +40,33 @@ export function RouteMap({
   style,
 }: Props) {
   const ref = useRef<MapView>(null);
-  const fitted = useRef(false);
+  const ready = useRef(false);
 
   useEffect(() => {
     if (!follow) return;
     ref.current?.animateCamera({ center: follow, zoom: 16 }, { duration: 600 });
   }, [follow]);
 
-  const fitKey = fitTo?.length ?? 0;
-  useEffect(() => {
-    if (!fitTo || fitTo.length < 2 || fitted.current) return;
-    fitted.current = true;
+  // fitToCoordinates is silently ignored before the map is ready (and before
+  // it has a size), so fit on ready and on layout, and again if the route
+  // changes after that. The bounds-based initial region covers the first frame.
+  const fit = () => {
+    if (!ready.current || !fitTo || fitTo.length < 2) return;
     ref.current?.fitToCoordinates(fitTo, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
       animated: false,
     });
-  }, [fitKey, fitTo]);
+  };
+  const fitKey = fitTo?.length ?? 0;
+  useEffect(() => {
+    fit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
 
+  const fitRegion = useMemo(
+    () => (fitTo && fitTo.length > 1 ? regionForCoordinates(fitTo) : null),
+    [fitTo],
+  );
   const initial = follow ?? start ?? fitTo?.[0];
 
   return (
@@ -63,10 +74,16 @@ export function RouteMap({
       ref={ref}
       style={[styles.map, style]}
       initialRegion={
-        initial
+        fitRegion ??
+        (initial
           ? { ...initial, latitudeDelta: 0.01, longitudeDelta: 0.01 }
-          : undefined
+          : undefined)
       }
+      onMapReady={() => {
+        ready.current = true;
+        fit();
+      }}
+      onLayout={fit}
       showsUserLocation={follow != null}
       userInterfaceStyle={dark ? "dark" : "light"}
       scrollEnabled={interactive}

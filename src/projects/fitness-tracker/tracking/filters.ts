@@ -9,6 +9,18 @@ import { haversine } from "./metrics";
 
 export const MAX_ACCURACY_M = 25;
 export const MIN_MOVE_M = 5;
+/**
+ * A gap this long between two accepted points (process killed, GPS dead,
+ * phone in a drawer) starts a new segment instead of drawing a straight line
+ * and counting the gap as distance and moving time.
+ */
+export const MAX_GAP_MS = 60_000;
+/**
+ * After this many speed rejections in a row the anchor is the problem (a bad
+ * point slipped in, or the user really is that fast): re-anchor on the newest
+ * fix in a fresh segment instead of rejecting everything from here on.
+ */
+export const SPEED_RESET_AFTER = 3;
 
 /** Anything faster than this for the activity is a GPS jump, not the user. */
 export const MAX_SPEED_MPS: Record<ActivityType, number> = {
@@ -33,11 +45,15 @@ export type FilterState = {
   /** Last *accepted* point — the reference for speed and jitter checks. */
   last: Point | null;
   kalman: KalmanState | null;
+  /** Consecutive speed rejections against `last`. Optional: older persisted sessions lack it. */
+  speedRejects?: number;
 };
 
 export type FilterOptions = {
   activity: ActivityType;
   segment: number;
+  /** Fixes older than this (e.g. the session start) are stale: cached pre-start positions. */
+  notBefore?: number;
   maxAccuracyM?: number;
   minMoveM?: number;
 };
@@ -105,15 +121,36 @@ export function processFix(
   // A new segment (after resume) must not be compared with the pre-pause point.
   const sameSegment = last != null && last.segment === options.segment;
 
+  if (options.notBefore != null && fix.timestamp < options.notBefore)
+    return reject("stale");
   if (last && fix.timestamp <= last.t) return reject("stale");
 
-  if (sameSegment && last) {
-    const dt = (fix.timestamp - last.t) / 1000;
-    const d = haversine(last, { lat: fix.latitude, lng: fix.longitude });
-    if (d / dt > MAX_SPEED_MPS[options.activity]) return reject("speed");
+  // Continue the current segment unless the gap or a re-anchor says otherwise.
+  let segment = options.segment;
+  let continues = sameSegment;
+  // Measured from the last fix the filter *saw* (jitter fixes keep the
+  // Kalman clock warm), so standing still at a light is not a gap.
+  const seenAt = Math.max(last?.t ?? 0, state.kalman?.t ?? 0);
+  if (continues && last && fix.timestamp - seenAt > MAX_GAP_MS) {
+    continues = false;
+    segment = options.segment + 1;
   }
 
-  const kalman = kalmanStep(sameSegment ? state.kalman : null, {
+  if (continues && last) {
+    const dt = (fix.timestamp - last.t) / 1000;
+    const d = haversine(last, { lat: fix.latitude, lng: fix.longitude });
+    if (d / dt > MAX_SPEED_MPS[options.activity]) {
+      const streak = (state.speedRejects ?? 0) + 1;
+      if (streak < SPEED_RESET_AFTER) {
+        return reject("speed", { ...state, speedRejects: streak });
+      }
+      // Never bridge the jump: the distance across it is not trustworthy.
+      continues = false;
+      segment = options.segment + 1;
+    }
+  }
+
+  const kalman = kalmanStep(continues ? state.kalman : null, {
     lat: fix.latitude,
     lng: fix.longitude,
     acc: fix.accuracy ?? maxAcc,
@@ -127,15 +164,20 @@ export function processFix(
     acc: fix.accuracy,
     speed: fix.speed != null && fix.speed >= 0 ? fix.speed : null,
     t: fix.timestamp,
-    segment: options.segment,
+    segment,
   };
 
   // Standing still: keep the filter warm but don't write a point.
-  if (sameSegment && last && haversine(last, point) < minMove) {
-    return reject("jitter", { last, kalman });
+  if (continues && last && haversine(last, point) < minMove) {
+    return reject("jitter", { last, kalman, speedRejects: 0 });
   }
 
-  return { state: { last: point, kalman }, point, reason: null };
+  // `point.segment` may be ahead of `options.segment`: the caller adopts it.
+  return {
+    state: { last: point, kalman, speedRejects: 0 },
+    point,
+    reason: null,
+  };
 }
 
 /** Batch helper — filters a whole array of fixes, oldest first. */

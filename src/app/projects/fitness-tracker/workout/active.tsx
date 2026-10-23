@@ -23,27 +23,35 @@ import {
   useWorkout,
 } from "@/src/projects/fitness-tracker/hooks/useWorkouts";
 import { watchSteps } from "@/src/projects/fitness-tracker/sensors/pedometer";
+import { silentStopAt } from "@/src/projects/fitness-tracker/tracking/autoPause";
+import {
+  staleFixMs,
+  stillAfterSilenceMs,
+} from "@/src/projects/fitness-tracker/tracking/config";
 import {
   autoPauseFromMotion,
+  autoPauseFromSilence,
   pauseWorkout,
+  reattach,
   resumeWorkout,
   stopWorkout,
 } from "@/src/projects/fitness-tracker/tracking/controller";
+import { MAX_ACCURACY_M } from "@/src/projects/fitness-tracker/tracking/filters";
 import {
   douglasPeucker,
+  estimateCalories,
   haversine,
   paceSecPerKm,
 } from "@/src/projects/fitness-tracker/tracking/metrics";
+import { activeSince } from "@/src/projects/fitness-tracker/tracking/state";
 import {
   formatDuration,
   formatKm,
   formatPace,
 } from "@/src/projects/fitness-tracker/utils/format";
+import { goalProgress } from "@/src/projects/fitness-tracker/utils/goal";
 import { paceColoredSegments } from "@/src/projects/fitness-tracker/utils/paceColor";
 import { useColorScheme } from "@/src/shared/hooks/use-color-scheme";
-
-/** No fix for this long while "active" = say so. Silent bad data is worse than none. */
-const STALE_FIX_MS = 20_000;
 
 export default function ActiveWorkoutScreen() {
   useKeepAwake();
@@ -65,13 +73,21 @@ export default function ActiveWorkoutScreen() {
     return () => sub.remove();
   }, []);
 
+  // However we got here (Today button, notification tap, recovery skipped),
+  // make sure the location source is armed. Idempotent.
+  useEffect(() => {
+    reattach().catch(() => {});
+  }, []);
+
   useMotionAutoPause(
     session?.autoPause === true && session.status !== "paused",
     session?.status === "autopaused",
-    (action) => autoPauseFromMotion(action),
+    (action, at) => autoPauseFromMotion(action, at),
   );
 
-  // Ended elsewhere (lock-screen End button, notification): go to the summary.
+  // The single place that leaves for the summary: after the hold-to-stop
+  // below, or when the workout ended elsewhere (lock-screen End button,
+  // notification).
   useEffect(() => {
     if (session) lastWorkoutId.current = session.workoutId;
     else if (!loading) {
@@ -110,24 +126,54 @@ export default function ActiveWorkoutScreen() {
   }, [points]);
 
   const status = session?.status ?? "active";
-  const stale =
+  const since = session ? activeSince(session) : 0;
+  const lastRaw = session?.lastRaw ?? null;
+  const lastFixAt = lastRaw?.timestamp ?? last?.t ?? null;
+  // A standing user gets no fixes at all (distance filter), so silence after
+  // good fixes is not "GPS lost". Warn only when there has been no fix since
+  // the start / last resume, or fixes arrive but are too inaccurate to use.
+  const noFix =
+    session != null &&
     status === "active" &&
-    (!last || now - last.t > STALE_FIX_MS) &&
-    elapsed > STALE_FIX_MS;
-  const quality = stale ? "none" : gpsQuality(last?.acc ?? null);
+    (lastFixAt == null || lastFixAt < since) &&
+    now - since > staleFixMs(session.mode);
+  const weakFix =
+    status === "active" &&
+    lastRaw != null &&
+    lastRaw.timestamp >= since &&
+    lastRaw.accuracy != null &&
+    lastRaw.accuracy > MAX_ACCURACY_M;
+  const quality = noFix
+    ? "none"
+    : gpsQuality(lastRaw?.accuracy ?? last?.acc ?? null);
   const distance = workout?.distanceM ?? 0;
   const avgPace = workout ? paceSecPerKm(distance, workout.movingMs, 20) : null;
+  const goal = workout
+    ? goalProgress(workout.goalType, workout.goalValue, {
+        distanceM: distance,
+        elapsedMs: elapsed,
+        calories: estimateCalories(workout.type, distance, workout.movingMs),
+      })
+    : null;
+
+  // Time-based auto-pause: silence longer than one distance interval at
+  // stopping speed means standing still, even with no "still" fix.
+  const silent =
+    session != null &&
+    session.autoPause &&
+    status === "active" &&
+    silentStopAt(lastFixAt, since, now, stillAfterSilenceMs(session.mode)) !=
+      null;
+  useEffect(() => {
+    if (silent) autoPauseFromSilence().catch(() => {});
+  }, [silent]);
 
   const stop = async () => {
+    // Navigation happens in the effect above once the session row is gone.
     const id = await stopWorkout();
     if (id && steps > 0) {
       await updateWorkout(await getDb(), id, { steps });
     }
-    if (id)
-      router.replace({
-        pathname: "/projects/fitness-tracker/workout/[id]",
-        params: { id },
-      });
   };
 
   return (
@@ -163,9 +209,10 @@ export default function ActiveWorkoutScreen() {
           🔋 {battery >= 0 ? Math.round(battery * 100) : "—"}%
         </Text>
       </View>
-      {stale ? (
+      {noFix || weakFix ? (
         <Text style={[styles.banner, { backgroundColor: palette.warn }]}>
-          GPS signal lost — distance is not being recorded
+          {noFix ? "GPS signal lost" : "GPS signal too weak"} — distance is not
+          being recorded
         </Text>
       ) : null}
       {session && !session.background ? (
@@ -181,6 +228,25 @@ export default function ActiveWorkoutScreen() {
         color={palette.text}
         mutedColor={palette.muted}
       />
+      {goal ? (
+        <View style={styles.goal}>
+          <Text style={[styles.goalText, { color: palette.text }]}>
+            Goal {goal.label}
+            {goal.fraction >= 1 ? " ✓" : ""}
+          </Text>
+          <View style={[styles.goalTrack, { backgroundColor: palette.card }]}>
+            <View
+              style={[
+                styles.goalFill,
+                {
+                  backgroundColor: palette.accent,
+                  width: `${goal.fraction * 100}%`,
+                },
+              ]}
+            />
+          </View>
+        </View>
+      ) : null}
       <View style={styles.row}>
         <MetricTile
           value={`${formatKm(distance)} km`}
@@ -276,6 +342,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   row: { flexDirection: "row" },
+  goal: { gap: 4 },
+  goalText: {
+    textAlign: "center",
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+  goalTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  goalFill: { height: 6, borderRadius: 3 },
   map: {
     flex: 1,
     borderRadius: 16,

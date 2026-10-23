@@ -30,7 +30,7 @@ import {
 } from "@/src/projects/fitness-tracker/tracking/controller";
 import type { Session } from "@/src/projects/fitness-tracker/tracking/state";
 import { syncWidget } from "@/src/projects/fitness-tracker/tracking/widget";
-import { DAY_MS, startOfDay } from "@/src/projects/fitness-tracker/utils/dates";
+import { lastDays } from "@/src/projects/fitness-tracker/utils/dates";
 import {
   formatDuration,
   formatKm,
@@ -70,14 +70,10 @@ export default function TodayScreen() {
 
   const distanceToday = stats.today?.distanceM ?? 0;
   const streak = computeStreak(stats.days, new Date());
-  const today0 = startOfDay(now);
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const day = today0 - (6 - i) * DAY_MS;
-    return {
-      label: DAY_LETTERS[new Date(day).getDay()],
-      value: (stats.week.find((d) => d.day === day)?.distanceM ?? 0) / 1000,
-    };
-  });
+  const week = lastDays(now, 7).map((day) => ({
+    label: DAY_LETTERS[new Date(day).getDay()],
+    value: (stats.week.find((d) => d.day === day)?.distanceM ?? 0) / 1000,
+  }));
 
   const goToActive = () =>
     router.push("/projects/fitness-tracker/workout/active");
@@ -96,6 +92,7 @@ export default function TodayScreen() {
               }
               accessibilityLabel="Permissions"
               hitSlop={12}
+              style={{ paddingHorizontal: 16 }}
             >
               <Ionicons
                 name="shield-checkmark-outline"
@@ -196,7 +193,13 @@ export default function TodayScreen() {
         <BigButton
           label="● WORKOUT IN PROGRESS"
           color={palette.danger}
-          onPress={goToActive}
+          onPress={async () => {
+            // Same as the banner's Resume: skipping the banner must not
+            // leave a killed workout without a location source.
+            await reattach();
+            setRecovery(null);
+            goToActive();
+          }}
         />
       ) : (
         <View style={styles.row}>

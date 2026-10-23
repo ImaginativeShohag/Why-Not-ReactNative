@@ -1,12 +1,30 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
+import { Pressable } from "react-native";
 
 import { usePalette } from "@/src/projects/fitness-tracker/constants/theme";
 
 export default function FitnessTabLayout() {
   const palette = usePalette();
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: palette.accent }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: palette.accent,
+        // The root stack hides its header for this project, so without this
+        // there is no way back to the launcher from inside the tabs.
+        headerLeft: () => (
+          <Pressable
+            onPress={() => router.navigate("/")}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back to projects"
+            style={{ paddingHorizontal: 16 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={palette.accent} />
+          </Pressable>
+        ),
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{

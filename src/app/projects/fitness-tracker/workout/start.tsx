@@ -90,9 +90,12 @@ export default function StartWorkoutScreen() {
         <Text style={styles.countdownText}>
           {countdown === 0 ? "GO" : countdown}
         </Text>
-        <Pressable onPress={() => setCountdown(null)} style={styles.cancel}>
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Cancel</Text>
-        </Pressable>
+        {/* At "GO" the workout is already starting: Cancel could no longer stop it. */}
+        {countdown > 0 ? (
+          <Pressable onPress={() => setCountdown(null)} style={styles.cancel}>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Cancel</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }

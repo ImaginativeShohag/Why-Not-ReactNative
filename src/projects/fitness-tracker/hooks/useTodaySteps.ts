@@ -20,7 +20,10 @@ export function useTodaySteps() {
       if (cancelled) return;
       setAvailable(ok);
       if (!ok) return;
-      setBase(await getTodaySteps());
+      const today = await getTodaySteps();
+      // Unmounted while the history query ran: subscribing now would leak.
+      if (cancelled) return;
+      setBase(today);
       sub = watchSteps(setLive);
     })().catch(() => setAvailable(false));
     return () => {

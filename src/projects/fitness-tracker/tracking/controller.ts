@@ -19,14 +19,21 @@ import {
   updateWorkout,
 } from "../db/queries/workouts";
 import * as liveActivity from "../liveactivity";
-import { ACTIVITY_LABELS } from "../models/Workout";
+import { ACTIVITY_LABELS, type RawFix } from "../models/Workout";
 import { defaultTitle } from "../utils/format";
 import { newId } from "../utils/dates";
-import { LOCATION_TASK, locationTaskOptions, watchOptions } from "./config";
+import { gpsMayAct, silentStopAt } from "./autoPause";
+import {
+  LOCATION_TASK,
+  locationTaskOptions,
+  stillAfterSilenceMs,
+  watchOptions,
+} from "./config";
 import { estimateCalories, summarize, thumbnailPath } from "./metrics";
-import { ingest } from "./pipeline";
+import { ingest, ingestNow } from "./pipeline";
 import { enqueue } from "./queue";
 import {
+  activeSince,
   clearSession,
   getSession,
   newSession,
@@ -146,21 +153,27 @@ export function startWorkout(options: StartOptions): Promise<string> {
   });
 }
 
-async function transition(fn: (s: Session, now: number) => Session) {
+async function transition(
+  fn: (s: Session, now: number) => Session,
+  /** Runs inside the same queued job, after the new session is saved. */
+  after?: (next: Session) => Promise<void>,
+) {
   return enqueue(async () => {
     const db = await getDb();
     const session = await getSession(db);
     if (!session) return null;
     const next = fn(session, Date.now());
-    if (next === session) return session;
-    await saveSession(db, next);
-    await updateWorkout(db, next.workoutId, { status: next.status });
-    const workout = await getWorkout(db, next.workoutId);
-    if (workout)
-      liveActivity.update(
-        liveActivity.buildState(next, workout, workout.avgHeartRate),
-        true,
-      );
+    if (next !== session) {
+      await saveSession(db, next);
+      await updateWorkout(db, next.workoutId, { status: next.status });
+      const workout = await getWorkout(db, next.workoutId);
+      if (workout)
+        liveActivity.update(
+          liveActivity.buildState(next, workout, workout.avgHeartRate),
+          true,
+        );
+    }
+    if (after) await after(next);
     return next;
   });
 }
@@ -170,21 +183,67 @@ export const pauseWorkout = () =>
     s.status === "paused" ? s : pauseSession(s, now, "paused"),
   );
 
-export async function resumeWorkout() {
-  const next = await transition((s, now) => resumeSession(s, now));
-  if (next) await ensureTracking(next);
-  return next;
+export const resumeWorkout = () =>
+  transition(
+    (s, now) => resumeSession(s, now),
+    // Inside the queue: a stop racing this resume must not see tracking
+    // re-armed after it already tore it down.
+    (next) => ensureTracking(next),
+  );
+
+/**
+ * Foreground device-motion auto-pause (GPS-speed auto-pause lives in the
+ * pipeline). `at` is when the motion state actually changed: a resume
+ * restarts the clock from there and replays the GPS fixes buffered since.
+ * The decision is recorded so the pipeline doesn't immediately undo it.
+ */
+export function autoPauseFromMotion(
+  action: "pause" | "resume",
+  at = Date.now(),
+) {
+  let replay: RawFix[] = [];
+  return transition(
+    (s, now) => {
+      if (!s.autoPause) return s;
+      const motionDecision = { action, at: now };
+      if (action === "pause" && s.status === "active")
+        return pauseSession(
+          { ...s, motionDecision },
+          Math.min(at, now),
+          "autopaused",
+        );
+      if (action === "resume" && s.status === "autopaused") {
+        const from = Math.min(Math.max(at, s.pausedAt ?? at), now);
+        replay = (s.resumeBuffer ?? []).filter((f) => f.timestamp >= from);
+        return resumeSession({ ...s, motionDecision }, from);
+      }
+      return s;
+    },
+    async () => {
+      if (replay.length) await ingestNow(replay);
+    },
+  );
 }
 
-/** Foreground device-motion auto-pause (GPS-speed auto-pause lives in the pipeline). */
-export const autoPauseFromMotion = (action: "pause" | "resume") =>
+/**
+ * Foreground time-based auto-pause: no fix for longer than one distance
+ * interval at stopping speed means the user is standing still, even though
+ * no "still" sample ever arrived.
+ */
+export const autoPauseFromSilence = () =>
   transition((s, now) => {
-    if (!s.autoPause) return s;
-    if (action === "pause" && s.status === "active")
-      return pauseSession(s, now, "autopaused");
-    if (action === "resume" && s.status === "autopaused")
-      return resumeSession(s, now);
-    return s;
+    if (!s.autoPause || s.status !== "active" || !s.lastRaw) return s;
+    const at = silentStopAt(
+      s.lastRaw.timestamp,
+      activeSince(s),
+      now,
+      stillAfterSilenceMs(s.mode),
+    );
+    if (at == null || !gpsMayAct("pause", now, s.motionDecision)) return s;
+    return {
+      ...pauseSession(s, at, "autopaused"),
+      autoPauseState: { stillSince: s.lastRaw.timestamp, movingSince: null },
+    };
   });
 
 export function stopWorkout(): Promise<string | null> {

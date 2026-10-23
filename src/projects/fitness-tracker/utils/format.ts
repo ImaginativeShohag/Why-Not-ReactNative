@@ -47,6 +47,14 @@ export function formatDate(ms: number) {
   });
 }
 
+/** Locale-ordered short date for chart labels: "Mar 3" / "3 Mar". */
+export function formatShortDate(ms: number) {
+  return new Date(ms).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function formatTime(ms: number) {
   return new Date(ms).toLocaleTimeString(undefined, {
     hour: "2-digit",

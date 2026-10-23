@@ -5,8 +5,12 @@
  */
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import type { ActivityType, TrackingMode } from "../models/Workout";
-import { initialAutoPause, type AutoPauseState } from "./autoPause";
+import type { ActivityType, RawFix, TrackingMode } from "../models/Workout";
+import {
+  initialAutoPause,
+  type AutoPauseState,
+  type MotionDecision,
+} from "./autoPause";
 import { initialFilterState, type FilterState } from "./filters";
 
 export type SessionStatus = "active" | "paused" | "autopaused";
@@ -29,7 +33,21 @@ export type Session = {
   elevationRef: number | null;
   autoPauseState: AutoPauseState;
   lastKmAnnounced: number;
+  // Optional: sessions persisted by an older build don't have these.
+  /** Newest raw fix seen, accepted or not: silence and GPS-health checks. */
+  lastRaw?: RawFix | null;
+  /** When the clock last restarted (resume). */
+  resumedAt?: number | null;
+  /** Fixes from the last few seconds of an auto-pause, replayed on resume. */
+  resumeBuffer?: RawFix[];
+  /** Last foreground device-motion auto-pause decision. */
+  motionDecision?: MotionDecision | null;
 };
+
+/** Start of the current active stretch: the session start or the last resume. */
+export function activeSince(session: Session) {
+  return Math.max(session.startedAt, session.resumedAt ?? 0);
+}
 
 export function newSession(
   init: Pick<
@@ -88,7 +106,7 @@ export function pauseSession(
   status: "paused" | "autopaused",
 ): Session {
   if (session.status !== "active") return { ...session, status };
-  return { ...session, status, pausedAt: at };
+  return { ...session, status, pausedAt: at, resumeBuffer: [] };
 }
 
 /** Pure transition: restart the clock in a fresh segment (no distance bridged). */
@@ -103,5 +121,7 @@ export function resumeSession(session: Session, at: number): Session {
     pausedTotalMs: session.pausedTotalMs + pausedFor,
     segment: session.segment + 1,
     autoPauseState: { stillSince: null, movingSince: null },
+    resumedAt: Math.max(at, session.pausedAt ?? at),
+    resumeBuffer: [],
   };
 }

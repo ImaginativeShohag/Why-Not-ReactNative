@@ -15,7 +15,8 @@ import {
 import type { ActivityType, Point, Split, Workout } from "../models/Workout";
 import { paceSecPerKm } from "../tracking/metrics";
 import { getSession, type Session } from "../tracking/state";
-import { DAY_MS, startOfDay, startOfWeek } from "../utils/dates";
+import { addDays, startOfDay, startOfWeek } from "../utils/dates";
+import { bucketWeeks } from "../utils/weeks";
 import { useLiveQuery } from "./useLiveQuery";
 
 export function useWorkouts(type: ActivityType | null = null, limit = 500) {
@@ -61,7 +62,7 @@ export type TodayStats = {
 const selectToday = async (db: SQLiteDatabase): Promise<TodayStats> => {
   const now = Date.now();
   const [week, days, recent] = await Promise.all([
-    dailyTotals(db, startOfDay(now) - 6 * DAY_MS),
+    dailyTotals(db, addDays(startOfDay(now), -6)),
     activeDays(db),
     listWorkouts(db, { limit: 3 }),
   ]);
@@ -88,23 +89,12 @@ export type StatsData = {
 };
 
 const WEEKS = 12;
+
 const selectStats = async (db: SQLiteDatabase): Promise<StatsData> => {
-  const firstWeek = startOfWeek(Date.now()) - (WEEKS - 1) * 7 * DAY_MS;
+  const now = Date.now();
+  const firstWeek = addDays(startOfWeek(now), -(WEEKS - 1) * 7);
   const workouts = await listWorkouts(db, { since: firstWeek, limit: 1000 });
-  const weekly = Array.from({ length: WEEKS }, (_, i) => ({
-    weekStart: firstWeek + i * 7 * DAY_MS,
-    distanceM: 0,
-    elevationM: 0,
-  }));
-  for (const w of workouts) {
-    const idx = Math.floor(
-      (startOfWeek(w.startedAt) - firstWeek) / (7 * DAY_MS),
-    );
-    if (weekly[idx]) {
-      weekly[idx].distanceM += w.distanceM;
-      weekly[idx].elevationM += w.elevationGainM;
-    }
-  }
+  const weekly = bucketWeeks(workouts, now, WEEKS);
   const paceTrend = workouts
     .filter((w) => w.distanceM >= 1000 && w.movingMs > 0)
     .slice(0, 30)

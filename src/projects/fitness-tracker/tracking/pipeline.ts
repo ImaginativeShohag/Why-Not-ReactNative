@@ -12,11 +12,18 @@ import { addRolling, getWorkout, updateWorkout } from "../db/queries/workouts";
 import * as liveActivity from "../liveactivity";
 import type { Point, RawFix, Workout } from "../models/Workout";
 import { formatPace } from "../utils/format";
-import { STILL_SPEED_MPS, stepAutoPause } from "./autoPause";
+import {
+  gpsMayAct,
+  silentStopAt,
+  STILL_SPEED_MPS,
+  stepAutoPause,
+} from "./autoPause";
+import { stillAfterSilenceMs } from "./config";
 import { processFix } from "./filters";
 import { haversine, paceSecPerKm, stepElevation } from "./metrics";
 import { enqueue } from "./queue";
 import {
+  activeSince,
   getSession,
   pauseSession,
   resumeSession,
@@ -30,7 +37,15 @@ export function ingest(fixes: readonly RawFix[]) {
   });
 }
 
-async function ingestNow(fixes: readonly RawFix[]) {
+/** How much of an auto-pause is kept so a resume can replay it. */
+const RESUME_BUFFER_MS = 10_000;
+
+/**
+ * Same as `ingest`, for callers that already hold the queue (a controller
+ * transition replaying buffered fixes after a motion resume). Enqueueing
+ * from inside a queued job would deadlock.
+ */
+export async function ingestNow(fixes: readonly RawFix[]) {
   if (!fixes.length) return;
   const db = await getDb();
   const initial = await getSession(db);
@@ -43,10 +58,64 @@ async function ingestNow(fixes: readonly RawFix[]) {
   let moving = 0;
   let gain = 0;
   let loss = 0;
-  let prevRaw: RawFix | null = null;
+  const silenceMs = stillAfterSilenceMs(session.mode);
+
+  const accept = (fix: RawFix) => {
+    const prev = session.filter.last;
+    const result = processFix(session.filter, fix, {
+      activity: session.activity,
+      segment: session.segment,
+      notBefore: session.startedAt,
+    });
+    session = { ...session, filter: result.state };
+    if (!result.point) return;
+
+    const p = result.point;
+    // The filter opens a new segment after a long gap or a re-anchor.
+    if (p.segment !== session.segment)
+      session = { ...session, segment: p.segment };
+    accepted.push(p);
+    if (prev && prev.segment === p.segment) {
+      distance += haversine(prev, p);
+      moving += p.t - prev.t;
+    }
+    const elev = stepElevation(session.elevationRef, p.alt);
+    session = { ...session, elevationRef: elev.ref };
+    gain += elev.gain;
+    loss += elev.loss;
+  };
 
   for (const fix of [...fixes].sort((a, b) => a.timestamp - b.timestamp)) {
+    // A cached pre-start fix is not part of this workout.
+    if (fix.timestamp < session.startedAt) continue;
+    const prevRaw = session.lastRaw ?? null;
+    if (!prevRaw || fix.timestamp > prevRaw.timestamp)
+      session = { ...session, lastRaw: fix };
+
     if (session.autoPause) {
+      // The distance filter sends nothing while you stand still: a long
+      // silence before this fix means you were stopped. Pause retroactively.
+      if (session.status === "active" && prevRaw) {
+        const at = silentStopAt(
+          prevRaw.timestamp,
+          activeSince(session),
+          fix.timestamp,
+          silenceMs,
+        );
+        if (
+          at != null &&
+          gpsMayAct("pause", fix.timestamp, session.motionDecision)
+        ) {
+          session = {
+            ...pauseSession(session, at, "autopaused"),
+            autoPauseState: {
+              stillSince: prevRaw.timestamp,
+              movingSince: null,
+            },
+          };
+        }
+      }
+
       const speed =
         fix.speed != null && fix.speed >= 0
           ? fix.speed
@@ -64,33 +133,36 @@ async function ingestNow(fixes: readonly RawFix[]) {
           session.status === "autopaused",
         );
         session = { ...session, autoPauseState: step.state };
-        if (step.action === "pause")
+        if (
+          step.action === "pause" &&
+          gpsMayAct("pause", fix.timestamp, session.motionDecision)
+        )
           session = pauseSession(session, fix.timestamp, "autopaused");
-        if (step.action === "resume")
-          session = resumeSession(session, fix.timestamp);
+        if (
+          step.action === "resume" &&
+          gpsMayAct("resume", fix.timestamp, session.motionDecision)
+        ) {
+          // Restart the clock when movement began, and keep the fixes from
+          // the confirmation window instead of dropping them.
+          const at = step.state.movingSince ?? fix.timestamp;
+          const replay = (session.resumeBuffer ?? []).filter(
+            (f) => f.timestamp >= at,
+          );
+          session = resumeSession(session, at);
+          for (const f of replay) accept(f);
+        }
+      }
+      if (session.status === "autopaused") {
+        session = {
+          ...session,
+          resumeBuffer: [...(session.resumeBuffer ?? []), fix].filter(
+            (f) => f.timestamp >= fix.timestamp - RESUME_BUFFER_MS,
+          ),
+        };
       }
     }
-    prevRaw = fix;
     if (session.status !== "active") continue;
-
-    const prev = session.filter.last;
-    const result = processFix(session.filter, fix, {
-      activity: session.activity,
-      segment: session.segment,
-    });
-    session = { ...session, filter: result.state };
-    if (!result.point) continue;
-
-    const p = result.point;
-    accepted.push(p);
-    if (prev && prev.segment === p.segment) {
-      distance += haversine(prev, p);
-      moving += p.t - prev.t;
-    }
-    const elev = stepElevation(session.elevationRef, p.alt);
-    session = { ...session, elevationRef: elev.ref };
-    gain += elev.gain;
-    loss += elev.loss;
+    accept(fix);
   }
 
   // One transaction per batch: a single commit instead of one per write, and

@@ -75,9 +75,12 @@ public final class LiveActivityModule: Module {
     AsyncFunction("update") { (state: StateRecord) async in
       guard #available(iOS 16.2, *) else { return }
       // staleDate lets the system grey the activity out if the pipeline dies
-      // instead of showing a frozen "live" distance forever.
+      // instead of showing a frozen "live" distance forever. A paused workout
+      // is frozen on purpose and gets no updates (no fixes are processed), so
+      // it must not go stale during a long pause.
       let content = ActivityContent(
-        state: state.contentState, staleDate: Date().addingTimeInterval(10 * 60))
+        state: state.contentState,
+        staleDate: state.isPaused ? nil : Date().addingTimeInterval(10 * 60))
       for activity in Activity<WorkoutAttributes>.activities {
         await activity.update(content)
       }

@@ -1,14 +1,20 @@
 import {
   DEFAULT_AUTO_PAUSE,
+  gpsMayAct,
   initialAutoPause,
+  MOTION_PRIORITY_MS,
+  silenceMeansStillMs,
+  silentStopAt,
   stepAutoPause,
 } from "../tracking/autoPause";
 import {
   initialFilterState,
   kalmanStep,
   MAX_ACCURACY_M,
+  MAX_GAP_MS,
   processFix,
   processFixes,
+  SPEED_RESET_AFTER,
 } from "../tracking/filters";
 import type { RawFix } from "../models/Workout";
 
@@ -148,5 +154,95 @@ describe("auto-pause", () => {
     expect(stepAutoPause(s, { t: 5000, moving: true }, true).action).toBe(
       "resume",
     );
+  });
+});
+
+describe("processFix: session start, speed lockout, gaps", () => {
+  it("drops cached fixes older than the session start", () => {
+    const r = processFix(initialFilterState, fix(0, 999), {
+      ...opts,
+      notBefore: 1000,
+    });
+    expect(r.reason).toBe("stale");
+    expect(
+      processFix(initialFilterState, fix(0, 1000), { ...opts, notBefore: 1000 })
+        .reason,
+    ).toBeNull();
+  });
+
+  it(`re-anchors in a new segment after ${SPEED_RESET_AFTER} speed rejections in a row`, () => {
+    // A bad anchor 500 m off, then the real track: every fix looks like a jump.
+    let state = processFix(initialFilterState, fix(500, 0), opts).state;
+    for (let i = 1; i < SPEED_RESET_AFTER; i++) {
+      const r = processFix(state, fix(i * 3, i * 1000), opts);
+      expect(r.reason).toBe("speed");
+      state = r.state;
+    }
+    const r = processFix(
+      state,
+      fix(SPEED_RESET_AFTER * 3, SPEED_RESET_AFTER * 1000),
+      opts,
+    );
+    expect(r.reason).toBeNull();
+    // New segment: the impossible jump is never counted as distance.
+    expect(r.point?.segment).toBe(1);
+    // And the next fix continues normally from the new anchor.
+    const next = processFix(r.state, fix(SPEED_RESET_AFTER * 3 + 10, 5000), {
+      ...opts,
+      segment: 1,
+    });
+    expect(next.reason).toBeNull();
+    expect(next.point?.segment).toBe(1);
+  });
+
+  it("resets the rejection streak once a fix is accepted", () => {
+    const first = processFix(initialFilterState, fix(0, 0), opts);
+    const jump = processFix(first.state, fix(500, 1000), opts);
+    expect(jump.state.speedRejects).toBe(1);
+    const ok = processFix(jump.state, fix(10, 2000), opts);
+    expect(ok.reason).toBeNull();
+    expect(ok.state.speedRejects).toBe(0);
+  });
+
+  it("starts a new segment after a long gap (process killed)", () => {
+    const first = processFix(initialFilterState, fix(0, 0), opts);
+    const later = processFix(first.state, fix(3000, MAX_GAP_MS + 1000), opts);
+    // 3 km in a minute would be a speed outlier inside one segment.
+    expect(later.reason).toBeNull();
+    expect(later.point?.segment).toBe(1);
+    // A normal gap stays in the segment.
+    const near = processFix(first.state, fix(20, 5000), opts);
+    expect(near.point?.segment).toBe(0);
+  });
+});
+
+describe("silence-based auto-pause", () => {
+  it("scales the silence threshold with the distance interval", () => {
+    expect(silenceMeansStillMs(5, 1000)).toBeGreaterThanOrEqual(
+      DEFAULT_AUTO_PAUSE.stopAfterMs,
+    );
+    expect(silenceMeansStillMs(25, 10_000)).toBeGreaterThan(
+      silenceMeansStillMs(5, 1000),
+    );
+  });
+
+  it("pauses one stop window after the last fix once silence is long enough", () => {
+    expect(silentStopAt(10_000, 0, 15_000, 10_000)).toBeNull();
+    expect(silentStopAt(10_000, 0, 20_000, 10_000)).toBe(
+      10_000 + DEFAULT_AUTO_PAUSE.stopAfterMs,
+    );
+  });
+
+  it("ignores fixes from before the last resume and having no fix yet", () => {
+    expect(silentStopAt(null, 0, 60_000, 10_000)).toBeNull();
+    expect(silentStopAt(5_000, 6_000, 60_000, 10_000)).toBeNull();
+  });
+
+  it("lets a recent motion decision win over GPS", () => {
+    const motion = { action: "pause" as const, at: 1000 };
+    expect(gpsMayAct("resume", 2000, motion)).toBe(false);
+    expect(gpsMayAct("pause", 2000, motion)).toBe(true);
+    expect(gpsMayAct("resume", 1000 + MOTION_PRIORITY_MS, motion)).toBe(true);
+    expect(gpsMayAct("resume", 2000, null)).toBe(true);
   });
 });
