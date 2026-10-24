@@ -40,10 +40,11 @@ export function classifyStatus(status: number): ResponseClass {
 
 /**
  * Outbox compaction. Autosave writes every ~800 ms, and shipping each keystroke
- * as its own request is waste — so a new op folds into the not-yet-sent item
- * for the same entity. The rule is "what does the server need to end up
- * correct?":
- *   create + update -> create (server never saw it; send the latest body)
+ * as its own request is waste — so a new op folds into the entity's latest
+ * queued item, even one already attempted or dead-lettered (`enqueue`
+ * re-queues it under a new id and retry state). The rule is "what does the
+ * server need to end up correct?":
+ *   create + update -> create (the PUT upserts; send the latest body)
  *   update + update -> update
  *   any    + delete -> delete
  *   delete + create/update -> the new op (an undo that re-saved the row)

@@ -29,7 +29,10 @@ import { classifyStatus, parsePullResponse, sanitizeMood } from "./policy";
  *
  * Conflict rule, stated explicitly: last-write-wins by `updated_at`, and a row
  * with unsent local edits (dirty = 1) is never overwritten by a pull. The
- * client ULID is the idempotency key, so replaying any request is harmless.
+ * client ULID makes every PUT/DELETE an upsert, so replaying any request is
+ * harmless; the `idempotency-key` header (`<ULID>:<outbox id>`) names one
+ * request, and compaction gives a folded edit a new outbox id, so a new body
+ * never travels under an old key.
  */
 
 const CURSOR_KEY = "last_pulled_at";

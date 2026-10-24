@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 import { migrate } from "../db/migrations";
-import { saveEntry, softDeleteEntry } from "../db/queries/entries";
+import {
+  saveEntry,
+  softDeleteAll,
+  softDeleteEntry,
+} from "../db/queries/entries";
 import { discardDeadLetters, MAX_ATTEMPTS } from "../db/queries/outbox";
 import type { SyncSettings } from "../stores/settingsStore";
 import type { HttpResponse } from "../sync/http";
@@ -176,7 +180,7 @@ describe("push", () => {
     mockState.handler = server(async () => {
       if (!editedMidFlight) {
         editedMidFlight = true;
-        // Autosave lands now. The item has attempts = 0, so this folds into it.
+        // Autosave lands now and folds into the item that is in flight.
         await saveEntry(db, { id, title: "v2", body: "", mood: null });
       }
       return respond(200);
@@ -195,6 +199,9 @@ describe("push", () => {
     expect(JSON.parse(pushes().at(-1)?.body ?? "")).toMatchObject({
       title: "v2",
     });
+    // v2 is a different request: a server caching by key must not answer it
+    // with v1's response.
+    expect(pushes()[1].key).not.toBe(pushes()[0].key);
     expect(await outbox(db)).toEqual([]);
     expect(await entry(db, id)).toMatchObject({ dirty: 0 });
   });
@@ -254,12 +261,47 @@ describe("per-entity ordering", () => {
     expect(queued).toHaveLength(1);
     expect(queued[0]).toMatchObject({ attempts: 0, next_attempt_at: 0 });
 
+    const failedKey = pushes()[0].key;
     mockState.handler = server(() => respond(200));
     mockState.calls = [];
     await kick();
     expect(pushes()).toHaveLength(1);
     expect(JSON.parse(pushes()[0].body ?? "")).toMatchObject({ title: "v2" });
+    expect(pushes()[0].key).not.toBe(failedKey);
     expect(await outbox(db)).toEqual([]);
+  });
+
+  it("replays a retried request under the same key", async () => {
+    await saveEntry(db, { title: "a", body: "", mood: null });
+    mockState.handler = server(() => respond(503));
+    await kick();
+    await db.runAsync("UPDATE outbox SET next_attempt_at = 0");
+
+    mockState.handler = server(() => respond(200));
+    await kick();
+    const [first, retry] = pushes();
+    expect(retry.key).toBe(first.key);
+  });
+
+  it("gives every entry wiped by delete-all a fresh key", async () => {
+    const id = await saveEntry(db, { title: "a", body: "", mood: null });
+    mockState.handler = server(() => respond(503));
+    await kick();
+    const failedKey = pushes()[0].key;
+
+    await softDeleteAll(db);
+    const queued = await outbox(db);
+    expect(queued).toEqual([
+      expect.objectContaining({ op: "delete", entity_id: id, attempts: 0 }),
+    ]);
+
+    mockState.handler = server(() => respond(200));
+    mockState.calls = [];
+    await kick();
+    expect(pushes()).toEqual([
+      expect.objectContaining({ method: "DELETE", path: `/entries/${id}` }),
+    ]);
+    expect(pushes()[0].key).not.toBe(failedKey);
   });
 
   it("never resurrects a delete behind a retrying update", async () => {

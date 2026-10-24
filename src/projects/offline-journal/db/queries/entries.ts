@@ -90,9 +90,9 @@ export async function softDeleteEntry(db: SQLiteDatabase, id: string) {
  * Danger zone. Still soft + queued, so the server replicates the wipe.
  *
  * Set-based rather than `softDeleteEntry` per row, so it mirrors `enqueue`'s
- * coalescing in SQL: the entry's latest outbox row becomes the delete (a delete
- * always wins the merge) with a fresh retry state, everything else gets a new
- * delete row.
+ * coalescing in SQL: the entry's latest outbox row is replaced by the delete (a
+ * delete always wins the merge), re-inserted so it gets a fresh id — and so a
+ * fresh idempotency key — and a fresh retry state.
  */
 export async function softDeleteAll(db: SQLiteDatabase) {
   const now = Date.now();
@@ -101,27 +101,17 @@ export async function softDeleteAll(db: SQLiteDatabase) {
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `UPDATE outbox SET
-         op              = 'delete',
-         payload         = json_object('id', entity_id, 'deleted_at', ?),
-         attempts        = 0,
-         next_attempt_at = 0,
-         last_error      = NULL
-       WHERE id IN (
+      `DELETE FROM outbox WHERE id IN (
          SELECT MAX(id) FROM outbox
          WHERE entity_id IN (${live})
          GROUP BY entity_id
        )`,
-      now,
     );
     await db.runAsync(
       `INSERT INTO outbox (op, entity, entity_id, payload, created_at)
        SELECT 'delete', 'entry', id, json_object('id', id, 'deleted_at', ?), ?
        FROM entries e
-       WHERE e.deleted_at IS NULL
-         AND NOT EXISTS (
-           SELECT 1 FROM outbox o WHERE o.entity_id = e.id
-         )`,
+       WHERE e.deleted_at IS NULL`,
       now,
       now,
     );

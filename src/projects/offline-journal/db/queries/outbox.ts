@@ -14,7 +14,10 @@ export { MAX_ATTEMPTS };
  * request is idempotent, so resending the folded row is always correct. A
  * second row is what broke ordering: a retry backing off behind a newer row let
  * the newer one land first, and the old retry then overwrote it (or revived a
- * delete). The folded row is a new request, so its retry state starts over.
+ * delete). The folded row is a new request, so it is re-inserted: a fresh id
+ * gives it a fresh idempotency key (`id` is AUTOINCREMENT, never reused) and a
+ * fresh retry state. Reusing the old id would replay the old key with a new
+ * body, and a server that caches responses by key would drop the edit.
  */
 export async function enqueue(
   db: SQLiteDatabase,
@@ -30,21 +33,13 @@ export async function enqueue(
   );
 
   if (waiting) {
-    await db.runAsync(
-      `UPDATE outbox SET op = ?, payload = ?, attempts = 0, next_attempt_at = 0,
-         last_error = NULL
-       WHERE id = ?`,
-      mergeOutboxOp(waiting.op, op),
-      JSON.stringify(payload),
-      waiting.id,
-    );
-    return;
+    await db.runAsync("DELETE FROM outbox WHERE id = ?", waiting.id);
   }
 
   await db.runAsync(
     `INSERT INTO outbox (op, entity, entity_id, payload, created_at)
      VALUES (?, 'entry', ?, ?, ?)`,
-    op,
+    waiting ? mergeOutboxOp(waiting.op, op) : op,
     entityId,
     JSON.stringify(payload),
     Date.now(),
@@ -78,9 +73,10 @@ export async function claimBatch(db: SQLiteDatabase, limit = 25) {
 }
 
 /**
- * Deletes the item only if its payload is still the one we sent. Compaction
- * may have folded a newer edit into this row while the request was in flight —
- * deleting it then would silently drop that edit.
+ * Deletes the item only if it is still the request we sent. Compaction may
+ * have folded a newer edit in while the request was in flight — that replaces
+ * the row under a new id, so deleting by id alone already spares it; the
+ * payload check also covers an outbox written before folding re-inserted.
  */
 export async function completeItem(db: SQLiteDatabase, item: OutboxItem) {
   const result = await db.runAsync(
