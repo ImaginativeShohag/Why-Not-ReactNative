@@ -22,15 +22,15 @@ QUIZ.register({
       prompt:
         "Open `src/app/projects/offline-journal/_layout.tsx` and `src/projects/offline-journal/hooks/useEntries.ts` (and grep for `openDatabase` and `getDb` across `src/` to see who is allowed to call what). How do the journal's screens and hooks get their database handle?",
       choices: [
-        "From `useSQLiteContext()`, which returns the handle opened by `<SQLiteProvider databaseName={DATABASE_NAME} onInit={initDatabase} useSuspense>` in the project layout",
+        "From `useSQLiteContext()`, which returns the handle opened by `<SQLiteProvider databaseName={DATABASE_NAME} options={DB_OPTIONS} onInit={initDatabase}>` in the project layout",
         "Each hook calls `openDatabaseAsync(\"journal.db\")` itself and caches the handle in a `useRef`",
         "From a TanStack Query `useQuery` whose `queryFn` returns the database from `src/shared/providers/QueryProvider.tsx`",
         "From `getDb()` in `db/client.ts`, which every screen awaits inside a `useEffect`",
       ],
       answer: 0,
       explain:
-        "The journal owns exactly one database provider, and it sits in the **project** layout, not the root. `SQLiteProvider` runs `initDatabase` (migrate, then seed) before any child renders, so every screen and hook that calls `useSQLiteContext()` is guaranteed a migrated database. `getDb()` exists only for callers with no React tree: the sync engine and the headless background task.\n\n- **Failure mode if done differently:** a hook that opens its own handle bypasses Suspense, the error boundary and the migration guarantee, so a screen can query tables that do not exist yet.\n- **Design decision:** the launcher must not open the journal's database or prompt for Face ID, which is why the provider and the `LockGate` live in the journal's layout.\n- The journal does not use TanStack Query at all; reads come from its own `useLiveQuery`.\n\nIn the tutorial: *Architecture → Provider stack*, then *M1 Skeleton & database*.",
-      links: [{ title: "expo-sqlite reference", url: "https://docs.expo.dev/versions/latest/sdk/sqlite/" }, { title: "React: Suspense", url: "https://react.dev/reference/react/Suspense" }],
+        "The journal owns exactly one database provider, and it sits in the **project** layout, not the root. `SQLiteProvider` runs `initDatabase` (migrate, then seed) before any child renders, so every screen and hook that calls `useSQLiteContext()` is guaranteed a migrated database. `getDb()` exists only for callers with no React tree: the sync engine and the headless background task.\n\n- **Failure mode if done differently:** a hook that opens its own handle bypasses the error boundary and the migration guarantee, so a screen can query tables that do not exist yet.\n- **Design decision:** the launcher must not open the journal's database or prompt for Face ID, which is why the provider and the `LockGate` live in the journal's layout.\n- The journal does not use TanStack Query at all; reads come from its own `useLiveQuery`.\n\nIn the tutorial: *Architecture → Provider stack*, then *M1 Skeleton & database*.",
+      links: [{ title: "expo-sqlite reference", url: "https://docs.expo.dev/versions/latest/sdk/sqlite/" }, { title: "React: catching rendering errors with an error boundary", url: "https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary" }],
     },
     {
       id: "offline-journal-02",
@@ -57,14 +57,14 @@ QUIZ.register({
       prompt:
         "Entry ids are 26-character ULIDs generated on the device (`utils/id.ts`), not server ids or autoincrement integers. Check `utils/id.ts`, then grep `syncEngine.ts` for `idempotency-key` and `remote_id`. Which reason matches how the code actually uses them?",
       choices: [
-        "They can be created offline with no server round-trip, they sort by creation time, and they serve as the idempotency key for `PUT /entries/:id`",
+        "They can be created offline with no server round-trip, they sort by creation time, and they make `PUT /entries/:id` an idempotent upsert",
         "The server assigns the real id on the first sync. The ULID is a placeholder that `remote_id` later replaces",
         "FTS5 external-content tables need a TEXT primary key, so INTEGER ids would break search",
         "SQLite does not allow random UUIDv4 strings as primary keys",
       ],
       answer: 0,
       explain:
-        "The ULID solves three problems with one value. It can be minted **offline** by any device with no coordination (80 random bits), it sorts by creation time (10 timestamp characters), and it is the **idempotency key**: `PUT /entries/:id` is an upsert on it, so replaying a request whose response was lost is a no-op. `markDone` even sets `remote_id = COALESCE(remote_id, id)`, so the server never assigns a different id.\n\n- **Failure mode with server-assigned ids:** the client cannot reference a row until a round-trip finishes, so offline creation, tags, attachments and outbox items would all need an id-rewrite step.\n- FTS5 external content is keyed on the implicit `rowid`, not the TEXT primary key, so that distractor is wrong. The timeline orders by `created_at`, not by id.\n\nIn the tutorial: *M1* (`utils/id.ts`) and *Data model & flow → Sync semantics to decide*.",
+        "The ULID solves three problems with one value. It can be minted **offline** by any device with no coordination (80 random bits), it sorts by creation time (10 timestamp characters), and it makes every write **idempotent**: `PUT /entries/:id` is an upsert on it, so replaying a request whose response was lost is a no-op. (The `idempotency-key` header is `<ULID>:<outbox id>`, which names one request; a folded edit gets a new outbox id and so a new key.) `markDone` even sets `remote_id = COALESCE(remote_id, id)`, so the server never assigns a different id.\n\n- **Failure mode with server-assigned ids:** the client cannot reference a row until a round-trip finishes, so offline creation, tags, attachments and outbox items would all need an id-rewrite step.\n- FTS5 external content is keyed on the implicit `rowid`, not the TEXT primary key, so that distractor is wrong. The timeline orders by `created_at`, not by id.\n\nIn the tutorial: *M1* (`utils/id.ts`) and *Data model & flow → Sync semantics to decide*.",
       links: [{ title: "ULID specification", url: "https://github.com/ulid/spec" }, { title: "MDN: idempotent", url: "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent" }, { title: "SQLite rowid tables", url: "https://www.sqlite.org/rowidtable.html" }],
     },
     {
@@ -325,7 +325,7 @@ QUIZ.register({
       code: 'mergeOutboxOp("create", "update")\nmergeOutboxOp("update", "delete")\nmergeOutboxOp("delete", "update")',
       accept: [/^create\s*,\s*delete\s*,\s*update$/i],
       explain:
-        "`mergeOutboxOp` answers one question: *what does the server need in order to end up correct?* create+update stays `create` (the server never saw the row, so send the latest body); anything followed by delete is `delete`; delete followed by a re-save becomes the new op (an undo that saved again).\n\n- **Why compaction exists:** autosave writes about every 800 ms, and one request per pause is wasted traffic and queue growth.\n- **Why it is pure:** the rule lives in `sync/policy.ts` with no database or clock, so `policy.test.ts` covers every combination in milliseconds.\n- **Guard:** `enqueue()` only folds into rows with `attempts = 0`, because an attempted row may already have reached the server.\n\nIn the tutorial: *Data model & flow → Write path* (compaction paragraph) and *M6* (policy.ts).",
+        "`mergeOutboxOp` answers one question: *what does the server need in order to end up correct?* create+update stays `create` (the PUT upserts on the ULID, so send the latest body); anything followed by delete is `delete`; delete followed by a re-save becomes the new op (an undo that saved again).\n\n- **Why compaction exists:** autosave writes about every 800 ms, and one request per pause is wasted traffic and queue growth.\n- **Why it is pure:** the rule lives in `sync/policy.ts` with no database or clock, so `policy.test.ts` covers every combination in milliseconds.\n- **Fold target:** `enqueue()` folds into the entity's latest outbox row whatever its attempt count, dead letters included, and re-inserts it under a new id with a clean `attempts`, `next_attempt_at` and `last_error`, because the folded row is a new request (and needs its own idempotency key). That is safe because payloads are full state and requests are idempotent; a second row could let an old retry land after the newer one.\n\nIn the tutorial: *Data model & flow → Write path* (compaction paragraph) and *M6* (policy.ts).",
       links: [{ title: "AWS: exponential backoff and jitter", url: "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" }],
     },
     {
@@ -342,7 +342,7 @@ QUIZ.register({
       code: "backoffDelay(3, () => 0)",
       accept: ["8000", /^8[,_\s]?000(\s*ms)?$/i],
       explain:
-        "Backoff is `min(2 ** attempts * 1000, 300_000)` plus up to a second of jitter, so 3 attempts is 8,000 ms when the injected `random` returns 0.\n\n- **Why jitter:** devices that went offline together (a tunnel, a Wi-Fi outage) would otherwise retry in lockstep forever and hammer the server at the same instant.\n- **Why the cap:** without it a long outage would push the next attempt hours away.\n- **How it is stored:** `failItem()` writes `next_attempt_at = now + delay`, `claimBatch()` skips rows still inside that window, and `attempts >= MAX_ATTEMPTS` (6) marks a dead letter. A plain column is all a retry queue needs.\n- `random` is an injectable parameter so the test can pin the jitter.\n\nIn the tutorial: *Data model & flow → Sync semantics* and *M6*.",
+        "Backoff is `min(2 ** attempts * 1000, 300_000)` plus up to a second of jitter, so 3 attempts is 8,000 ms when the injected `random` returns 0.\n\n- **Why jitter:** devices that went offline together (a tunnel, a Wi-Fi outage) would otherwise retry in lockstep forever and hammer the server at the same instant.\n- **Why the cap:** without it a long outage would push the next attempt hours away.\n- **How it is stored:** `failItem()` writes `next_attempt_at = now + delay`, `claimBatch()` skips rows still inside that window, and `attempts >= MAX_ATTEMPTS` (6) marks a dead letter. A plain column is all a retry queue needs. `claimBatch()` also skips a row while an older live row for the same entity exists, so per-entity order holds.\n- `random` is an injectable parameter so the test can pin the jitter.\n\nIn the tutorial: *Data model & flow → Sync semantics* and *M6*.",
       links: [{ title: "AWS: exponential backoff and jitter", url: "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" }],
     },
     {
@@ -399,7 +399,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "`kick()` is a **run-lock with one queued follow-up**. While a run is in flight, further kicks return the same promise and set `again`; when the run ends, exactly one more run starts. Five triggers feed it (foreground, network regained, manual, debounced local write, background task), so concurrency is the normal case, not an edge case.\n\n- **Failure mode without the lock:** two runs claim the same outbox rows and push them twice. Idempotency keys make that survivable, but you still pay duplicate traffic and confusing status.\n- **Why the follow-up:** an edit saved during a run would otherwise wait for the next trigger.\n- `kick()` also cancels a pending `kickSoon()` timer, because any run ships the whole outbox.\n\nIn the tutorial: the \"Duplicate sync\" failure mode and *M6*.",
+        "`kick()` is a **run-lock with one queued follow-up**. While a run is in flight, further kicks return the same promise and set `again`; when the run ends, exactly one more run starts. Five triggers feed it (foreground, network regained, manual, debounced local write, background task), so concurrency is the normal case, not an edge case.\n\n- **Failure mode without the lock:** two runs claim the same outbox rows and push them twice. Idempotency keys make that survivable, but you still pay duplicate traffic and confusing status.\n- **Why the follow-up:** an edit saved during a run would otherwise wait for the next trigger.\n- `kick()` also cancels a pending `kickSoon()` timer, because any run ships the whole outbox.\n- `kick()` never rejects: a throw from settings hydration or the database open is caught into an error result, so fire-and-forget callers (`void kick()`) cannot raise an unhandled rejection.\n\nIn the tutorial: the \"Duplicate sync\" failure mode and *M6*.",
       links: [{ title: "MDN: idempotent", url: "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent" }],
     },
     {
@@ -439,14 +439,14 @@ QUIZ.register({
       prompt:
         "Read `useAppLock` and `LockGate` side by side before answering. Biometric lock is on with **Lock after: 1 min** (`lockAfterMs: 60000`). The user opens the app switcher, waits 10 seconds and returns to the journal. What happens?",
       choices: [
-        "The journal is covered, without a prompt, as soon as the app goes `inactive`. On return the cover lifts and no Face ID prompt appears, because 10 s is inside the grace period",
+        "The journal is covered, without a prompt, as soon as the app goes `inactive`. On return the cover lifts and no Face ID prompt appears: `inactive` covers but does not start the grace clock",
         "Nothing is covered in the switcher, because the grace period hasn't elapsed",
         "The journal locks immediately and asks for Face ID on return, because `inactive` always locks",
         "The whole Stack unmounts while covered, so the user comes back to the timeline root",
       ],
       answer: 0,
       explain:
-        "Two separate concerns hide in one scenario. **Hiding** must be immediate: the OS snapshots the UI when the app goes `inactive`, so `obscured` flips on at once, regardless of the grace period. **Locking** (requiring auth) only happens on return if `Date.now() - leftAt >= graceMs`.\n\n- **Failure mode if you only lock after the grace period:** the app-switcher preview shows the journal for the whole grace window, which leaks private text.\n- `LockGate` keeps rendering the children and puts an opaque cover over them rather than unmounting, so navigation state survives and no prompt appears while merely obscured. Content is hidden from VoiceOver while covered.\n\nIn the tutorial: *M7* and the \"App switcher leak\" failure mode.",
+        "Two separate concerns hide in one scenario. **Hiding** must be immediate: the OS snapshots the UI when the app goes `inactive`, so `obscured` flips on at once, regardless of the grace period. **Locking** (requiring auth) only happens on return if `Date.now() - leftAt >= graceMs`, and `leftAt` is set only when the app reaches `background`. `inactive` also means the switcher, a Control Center pull or the journal's own Face ID sheet; those cover but are not the user leaving (and `authenticating` makes the listener ignore its own prompt, or an \"Instant\" lock would re-lock on return and prompt in a loop).\n\n- **Failure mode if you only lock after the grace period:** the app-switcher preview shows the journal for the whole grace window, which leaks private text.\n- `LockGate` keeps rendering the children and puts an opaque cover over them rather than unmounting, so navigation state survives and no prompt appears while merely obscured. Content is hidden from VoiceOver while covered.\n\nIn the tutorial: *M7* and the \"App switcher leak\" failure mode.",
       links: [{ title: "React Native: AppState", url: "https://reactnative.dev/docs/appstate" }, { title: "expo-local-authentication reference", url: "https://docs.expo.dev/versions/latest/sdk/local-authentication/" }],
     },
     {
@@ -631,6 +631,28 @@ QUIZ.register({
         "A selector decides what a component subscribes to. `useShallow` compares the returned object one level deep, so an unchanged selection is the same snapshot; without it, an inline `{...}` selector returns a **new object every call**, and Zustand v5 would see a changed snapshot each time (a render loop). A bare `useSettingsStore()` subscribes to everything, so any write re-renders the screen.\n\n- Action functions (`patch`, `patchSync`) are created once in `create()`, so plain selectors for them never cause renders.\n- One level is the point: `patchSync` builds a new `sync` object, so a real sync change still re-renders, as it should.\n- Persistence is separate: `partialize` decides what is written.\n- **Why bother on a small screen:** the habit keeps the screen from re-rendering more as the store grows.\n\nIn the tutorial: *M7* (`settingsStore.ts`).",
       links: [{ title: "Zustand: useShallow", url: "https://zustand.docs.pmnd.rs/reference/hooks/use-shallow.html" }, { title: "Zustand: persisting store data", url: "https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data.html" }, { title: "React: memo", url: "https://react.dev/reference/react/memo" }],
     },
+    {
+      id: "offline-journal-44",
+      type: "mcq",
+      level: 2,
+      topics: ["Auth & Security", "Platform Differences"],
+      files: [
+        "src/projects/offline-journal/hooks/useAppLock.ts",
+        "src/projects/offline-journal/components/LockGate.tsx",
+      ],
+      prompt:
+        "Biometric lock is on with **Lock after: Instant** (`lockAfterMs: 0`). On an iPhone the user taps Unlock and the Face ID sheet appears. Read `promptAuthentication()` and the `AppState` listener in `hooks/useAppLock.ts`, then the prompt effect in `LockGate.tsx`. Why does the listener return early while `authenticating` is true?",
+      choices: [
+        "On iOS the system auth sheet makes the app `inactive`. Read as a departure, it would flip `obscured` (and, without the background-only rule, start the grace clock), so closing the sheet re-locks or re-runs `LockGate`'s prompt effect: Face ID in a loop",
+        "`authenticateAsync` throws if an `AppState` listener fires while it is running",
+        "The Face ID sheet sends the app to `background`, and the JS thread is suspended there, so the listener would never finish",
+        "It stops iOS from taking an app-switcher snapshot while the Face ID sheet is up",
+      ],
+      answer: 0,
+      explain:
+        "The system Face ID sheet is drawn over the app, and on iOS that makes the app `inactive`, exactly like the app switcher. The listener cannot tell the two apart, so `promptAuthentication()` sets a module-level `authenticating` flag around `authenticateAsync` and the listener ignores changes while it is set.\n\n- **Loop one (Instant lock):** the old listener started the grace clock on `inactive`. With a 0 ms grace, the return to `active` after a *successful* scan called `lock()` again, and `LockGate` prompted again.\n- **Loop two (cancel):** covering sets `obscured`; when the sheet closes it flips back, and `LockGate`'s effect depends on `[locked, obscured]`, so a *cancelled* prompt re-prompted immediately.\n- **The second fix:** only `background` starts the grace clock now. `inactive` (switcher, Control Center, a system sheet) still covers, because the snapshot is taken then, but it is not the user leaving.\n- Jest cannot catch this: it needs a real device with Face ID and a real `AppState` sequence.\n\nIn the tutorial: *M7* (the paragraph after `useAppLock.ts`) and the \"Face ID loop on Instant lock\" failure mode.",
+      links: [{ title: "React Native: AppState", url: "https://reactnative.dev/docs/appstate" }, { title: "expo-local-authentication reference", url: "https://docs.expo.dev/versions/latest/sdk/local-authentication/" }],
+    },
 
     // ---------------------------------------------------------------------
     // Level 3: failure modes and design trade-offs
@@ -640,19 +662,22 @@ QUIZ.register({
       type: "mcq",
       level: 3,
       topics: ["Offline & Sync"],
-      files: ["src/projects/offline-journal/db/queries/outbox.ts"],
+      files: [
+        "src/projects/offline-journal/db/queries/outbox.ts",
+        "src/projects/offline-journal/__tests__/syncEngine.test.ts",
+      ],
       prompt:
-        "`enqueue()` only folds a new op into an existing outbox row `WHERE entity_id = ? AND attempts = 0`. Read `enqueue()` in `db/queries/outbox.ts`, then reason about what the server may already have seen. Why not fold into any waiting row for that entity?",
+        "`enqueue()` folds a new op into the entity's latest outbox row even when that row has already been attempted (or dead-lettered), re-inserting it under a new id with a clean `attempts`, `next_attempt_at` and `last_error`. Read `enqueue()` and its doc comment in `db/queries/outbox.ts`, then the `per-entity ordering` tests in `__tests__/syncEngine.test.ts`. An earlier version queued a second row whenever the existing one had been attempted. Why is folding the correct choice?",
       choices: [
-        "A row that has been attempted may already have reached the server (its response may have been lost), so a newer op has to be sent after it as a separate item to keep the order correct",
-        "Rows with `attempts > 0` are dead letters about to be deleted",
-        "SQLite can't UPDATE a row that another transaction has read",
-        "Folding into an attempted row would reset its backoff, which breaks the server's rate limit",
+        "Every payload is the entry's full latest state and every request is an idempotent PUT or DELETE on the ULID, so resending the folded row is always correct; a second row let the newer one land first and the old retry then overwrote it (or revived a delete)",
+        "Attempted rows are dead letters, and folding into them is the only way to get them retried automatically",
+        "SQLite cannot INSERT a second outbox row for an entity that already has one",
+        "Folding keeps the old row's backoff, which protects the server from a burst of retries",
       ],
       answer: 0,
       explain:
-        "Once an item has been sent, you cannot know what the server applied: the response may have been lost. Rewriting an **attempted** row could reorder or erase operations the server may already have seen (an edit folded into an attempted delete would never send the delete). So `enqueue()` folds only into rows with `attempts = 0`.\n\n- **Subtlety:** attempts only increase on *failure*, so a row being pushed for the first time still has `attempts = 0`. A fold can land on an in-flight row, which is exactly what `completeItem`'s payload check handles.\n- **Failure mode:** silent reordering is the worst kind of sync bug: no error, wrong final state on the server.\n\nIn the tutorial: *Data model & flow → Write path* (compaction paragraph) and the \"Edit lost in flight\" failure mode.",
-      links: [{ title: "AWS: exponential backoff and jitter", url: "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" }],
+        "Compaction works because of two properties of the payload and the request, not because of the row's history. Every payload is the entry's **full latest state** (title, body, mood, tags, `created_at`, `updated_at`), and every request is idempotent: a PUT or DELETE keyed on the client ULID. Whatever the server applied from earlier attempts, sending the folded row once more converges it on the latest state.\n\n- **What broke with a second row:** the attempted row sat in backoff while the new row was eligible at once. The newer state landed first; then the old retry landed and overwrote it with stale text, or re-created an entry the newer row had deleted. No error, wrong final state.\n- **Why it is re-inserted:** the folded row is a new request, so it gets a new id (and so a new `idempotency-key`) and starts at `attempts = 0`, `next_attempt_at = 0`, `last_error = NULL`. A dead letter folded into this way gets a fresh chance with the new payload.\n- **Belt and braces:** `claimBatch()` only hands out the oldest live row per entity, so even a queue that still holds two rows (written before this rule) cannot reorder. A fold can still land on an in-flight row; because it replaces the row under a new id, the old request's result only touches its own row (and the payload checks in `completeItem` and `failItem` back that up).\n\nIn the tutorial: *Data model & flow → Write path* (compaction paragraph) and the `outbox.ts` listing.",
+      links: [{ title: "MDN: idempotent", url: "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent" }, { title: "MDN: PUT", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT" }],
     },
     {
       id: "offline-journal-30",
@@ -665,17 +690,17 @@ QUIZ.register({
         "src/projects/offline-journal/__tests__/syncEngine.test.ts",
       ],
       prompt:
-        "Open `db/queries/outbox.ts`. `completeItem()` runs `DELETE FROM outbox WHERE id = ? AND payload = ?` rather than just `WHERE id = ?`. Find the matching test in `__tests__/syncEngine.test.ts` first. Describe the exact sequence of events this guards against, and what would be lost without it.",
+        "Open `db/queries/outbox.ts`. When an entry already has a queued row, `enqueue()` deletes that row and inserts a new one instead of running `UPDATE outbox SET op = ?, payload = ? WHERE id = ?`. Now look at the `idempotency-key` header in `sync/syncEngine.ts` and the `per-entity ordering` tests. Describe the exact sequence this guards against, and what would be lost with an in-place update.",
       model:
-        "`push()` claims an item and sends its PUT. While the request is in flight the row still has `attempts = 0`, because attempts only increase on failure. If autosave writes a newer edit during that time, `enqueue()` finds the same row and folds the new op and payload into it. When the first PUT comes back 2xx, deleting by id alone would remove the row that now carries the newer, unsent edit, so the server would never receive it. `markDone` would then also clear `dirty`, because no outbox row is left, and that drops the pull's protection for the local edit. With the payload check the DELETE affects 0 rows, the newer payload stays queued for the next run, and `markDone`'s `NOT EXISTS` guard keeps `dirty = 1`.",
+        "The header is `<entity_id>:<outbox id>`, so the outbox id names one request. `push()` sends v1 under key `X:7`. While it is in flight (or after it failed and is backing off), autosave folds v2 into that row. With an in-place UPDATE the row keeps id 7, so v2 goes out under `X:7` too. A server that caches responses by idempotency key sees a key it already answered, replays v1's 2xx without applying v2, and the client marks the row done and clears `dirty`. v2 is lost and nothing is logged. Re-inserting gives the folded row a new id (`AUTOINCREMENT` never reuses one), so v2 travels under its own key. It also means a successful response for v1 deletes only row 7, so v2 stays queued, and `markDone`'s `NOT EXISTS` keeps `dirty = 1`. A plain retry of an unchanged row keeps its id and key, which is what the key is for.",
       rubric: [
-        "An in-flight item still has `attempts = 0`, so `enqueue()` can fold a newer edit into it",
-        "Deleting by id alone would drop that newer edit, which then never reaches the server",
-        "With the payload check the delete matches 0 rows and the edit ships on the next run",
-        "Mentions the knock-on effect on `dirty` and `markDone`'s `NOT EXISTS` guard",
+        "The idempotency key includes the outbox id, so it names one request",
+        "An in-place fold would send a new body under an already-used key, and a caching server would answer with the old response and drop the edit",
+        "Re-inserting gives a fresh id and key; `AUTOINCREMENT` guarantees the id is never reused",
+        "Mentions that the old request's success then deletes only its own row, so the folded edit and `dirty = 1` survive (the `payload = ?` check in `completeItem`/`failItem` is a second guard)",
       ],
       explain:
-        "This is optimistic concurrency done as a **compare-and-delete**: the payload is the version. The sequence: `push()` sends a PUT; the row still has `attempts = 0`; autosave folds a newer edit into the same row; the first PUT returns 2xx; `DELETE … WHERE id = ?` would remove the row now carrying the unsent edit.\n\n- **Impact:** the newer edit never reaches the server, and `markDone` would also clear `dirty` (nothing queued), removing the pull's protection for that local edit. A later pull could overwrite it. Silent data loss.\n- **With the check:** the DELETE matches 0 rows, the newer payload stays queued, and `markDone`'s `NOT EXISTS` keeps `dirty = 1`.\n- The same idea applies to any queue item that can change while a worker holds it. `syncEngine.test.ts` reproduces the sequence.\n\nIn the tutorial: the \"Edit lost in flight\" failure mode and the `outbox.ts` listing.",
+        "An idempotency key must identify **one request body**, not one queue slot. The outbox row id is part of the key, so whenever the body changes the row needs a new id.\n\n- **The failure:** fold v2 into a row that already went out as v1, keep the id, and v2 reuses v1's key. A server that deduplicates by key replies with v1's cached 2xx, the client deletes the row and clears `dirty`, and v2 never lands. The local dev server records keys but does not short-circuit on them, so this only shows up against a real backend.\n- **The fix:** `enqueue()` and `softDeleteAll()` delete the old row and insert a new one in the same transaction. `id` is `INTEGER PRIMARY KEY AUTOINCREMENT`, so SQLite never reuses it, even after the largest row is deleted.\n- **Knock-on benefit:** v1's success now deletes only v1's row by id, so the folded edit stays queued and `markDone` keeps `dirty = 1`. `completeItem` and `failItem` still also check `payload = ?`, which covers queues written before this rule.\n- **What stays the same:** a retry of an unchanged row keeps its key, so a lost response followed by a retry is answered from the cache, which is exactly what the key is for.\n\nIn the tutorial: the compaction paragraph, the \"Folded edit swallowed by the server's idempotency cache\" failure mode, and the `outbox.ts` listing.",
       links: [{ title: "SQLite transactions", url: "https://www.sqlite.org/lang_transaction.html" }, { title: "MDN: idempotent", url: "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent" }],
     },
     {
@@ -805,11 +830,11 @@ QUIZ.register({
         "Read the tap that launched the app with `Notifications.getLastNotificationResponse()`",
         "Check that `data.url` starts with `/projects/offline-journal/`",
         "Call `clearLastNotificationResponse()` so later launches don't reopen compose",
-        "Record `identifier:actionIdentifier` in `handledResponses` to ignore a duplicate delivery",
+        "Record `identifier:date:actionIdentifier` in `handledResponses` to ignore a duplicate delivery",
         "Call `router.push(url)`, which expo-router queues until the root navigator mounts",
       ],
       explain:
-        "A cold-start tap opens the **launcher**, so the journal layout never mounts and a listener living there would never see the tap. The router is therefore started from the root layout. The sequence then protects against three problems: read the launching tap with `getLastNotificationResponse()`, validate the URL prefix (payloads are input), record `identifier:actionIdentifier` to drop a duplicate delivery, clear the last response, and push the route.\n\n- **Failure mode of not clearing:** every later launch jumps to compose again.\n- **Failure mode of not de-duplicating:** the same tap can arrive both as the last response and through the listener, opening compose twice.\n- `router.push` before the navigator mounts is queued by expo-router and replayed.\n\nIn the tutorial: *M5 Reminders* and the \"Cold-start tap lost\" failure mode.",
+        "A cold-start tap opens the **launcher**, so the journal layout never mounts and a listener living there would never see the tap. The router is therefore started from the root layout. The sequence then protects against three problems: read the launching tap with `getLastNotificationResponse()`, validate the URL prefix (payloads are input), record `identifier:date:actionIdentifier` to drop a duplicate delivery, clear the last response, and push the route.\n\n- **Failure mode of not clearing:** every later launch jumps to compose again.\n- **Failure mode of not de-duplicating:** the same tap can arrive both as the last response and through the listener, opening compose twice.\n- **Why the date is in the key:** the daily reminder reuses one request identifier for every delivery, so keyed on identifier alone every tap after the first in the same process was dropped.\n- `router.push` before the navigator mounts is queued by expo-router and replayed.\n\nIn the tutorial: *M5 Reminders* and the \"Cold-start tap lost\" failure mode.",
       links: [{ title: "expo-notifications reference", url: "https://docs.expo.dev/versions/latest/sdk/notifications/" }, { title: "Expo Router introduction", url: "https://docs.expo.dev/router/introduction/" }],
     },
     {
@@ -923,6 +948,28 @@ QUIZ.register({
       explain:
         "`flushPending` exists so swiping a second row commits the first instead of dropping it. That same rule makes a **duplicate call for the same row** harmful: the second `remove(id)` flushes the delete the user may still want to undo, so it is soft-deleted and queued immediately and Undo can no longer restore it.\n\n- **Why it can happen:** the Delete button is tappable while the open animation is still running, so one gesture can reach both `onSwipeableOpen` and `onPress`.\n- **The guard:** `committedRef` makes `commit()` run once per open and is reset in `onSwipeableClose`. `commit()` also calls `close()`, because FlashList recycles cells and a recycled or restored row would otherwise appear already open with the guard set.\n- A component bug and a hook rule combine here, which is why both files are listed.\n\nIn the tutorial: *M2* (the swipe paragraph).",
       links: [{ title: "Gesture Handler: ReanimatedSwipeable", url: "https://docs.swmansion.com/react-native-gesture-handler/docs/components/reanimated_swipeable/" }, { title: "React: useRef", url: "https://react.dev/reference/react/useRef" }],
+    },
+    {
+      id: "offline-journal-45",
+      type: "mcq",
+      level: 3,
+      topics: ["Platform Differences", "Architecture", "Expo Router"],
+      files: [
+        "src/projects/offline-journal/hooks/usePalette.ts",
+        "src/app/projects/offline-journal/_layout.tsx",
+      ],
+      prompt:
+        "An earlier version applied the journal's Theme setting (system / light / dark) with `Appearance.setColorScheme(theme)` and reset it to `\"unspecified\"` when the journal unmounted. Read `useJournalScheme()` in `hooks/usePalette.ts` and `JournalStack` in the project `_layout.tsx`. What was wrong with the old approach, and what replaced it?",
+      choices: [
+        "`Appearance.setColorScheme` is process-wide, and resetting it to \"unspecified\" left React Native's cached scheme stale, so the launcher and other projects stayed in the journal's theme. Now `useJournalScheme()` resolves the setting and the layout nests a navigation `ThemeProvider` and a `StatusBar` that unmount with the journal",
+        "`Appearance.setColorScheme` only works in Expo Go, so the development build replaced it with `userInterfaceStyle` in `app.config.ts`",
+        "Nothing was wrong with the scope; it was only slow, so the setting moved to the root layout, which now reads the journal's settings store for every project",
+        "`Appearance.setColorScheme` is Android-only, so iOS ignored the setting and the fix was a `.ios.ts` variant of the hook",
+      ],
+      answer: 0,
+      explain:
+        "`Appearance.setColorScheme` overrides the colour scheme for the **whole process**, not for a subtree. In a launcher that hosts several projects, a theme chosen inside the journal therefore applied to everything, and resetting it to `\"unspecified\"` on the way out did not restore the system value: React Native kept the stale scheme, so the launcher stayed dark after leaving a dark journal.\n\n- **The fix is scoping:** `useJournalScheme()` maps the setting (`system` falls back to `useColorScheme()`), `usePalette()` reads from it, and `JournalStack` nests `<ThemeProvider value={scheme === \"dark\" ? DarkTheme : DefaultTheme}>` from `expo-router/react-navigation` plus an `expo-status-bar` `<StatusBar style=\u2026>`. Both unmount with the journal, so the launcher is back on the system scheme by construction.\n- **Knock-on:** shared components that colour themselves from the system scheme (`ContentUnavailableView`, via `useThemeColor`) must be handed the journal palette (`titleColor`, `descriptionColor`).\n- **Rule of thumb:** treat `Appearance`, notification handlers and other process-global APIs as shared infrastructure; a project never sets them for itself.\n\nIn the tutorial: *Fitting into the launcher* (Process-global APIs) and the \"Theme leaks into the launcher\" failure mode.",
+      links: [{ title: "React Native: Appearance", url: "https://reactnative.dev/docs/appearance" }, { title: "React Navigation: themes", url: "https://reactnavigation.org/docs/themes/" }, { title: "expo-status-bar reference", url: "https://docs.expo.dev/versions/latest/sdk/status-bar/" }],
     },
   ],
 });

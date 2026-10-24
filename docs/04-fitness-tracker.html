@@ -147,7 +147,7 @@
 
 <h3>Screen inventory</h3>
 
-<p>All routes are relative to <code>/projects/fitness-tracker</code>.</p>
+<p>All routes are relative to <code>/projects/fitness-tracker</code>. The root Stack hides its header for the project, so the tab header carries a back chevron to the launcher, and modals get an explicit Close (swipe-down alone isn't discoverable).</p>
 
 <div class="wu-scroll"><table>
 <thead><tr><th>Route</th><th>Screen</th><th>Purpose</th></tr></thead>
@@ -155,10 +155,10 @@
 <tr><td><code>/(tab)/</code></td><td>Today</td><td>Rings/goals, step count, recent activity, weekly streak.</td></tr>
 <tr><td><code>/(tab)/history</code></td><td>History</td><td>Workout list with mini route thumbnails; filter by type.</td></tr>
 <tr><td><code>/(tab)/stats</code></td><td>Stats</td><td>Charts: weekly distance, pace trend, elevation, personal bests.</td></tr>
-<tr><td><code>/workout/start</code></td><td>Pre-start</td><td>Type picker, GPS-fix indicator, goal setting, countdown.</td></tr>
-<tr><td><code>/workout/active</code></td><td>Active workout</td><td>The critical screen. Keeps the display awake; map + metrics.</td></tr>
+<tr><td><code>/workout/start</code></td><td>Pre-start</td><td>Modal with a Close button. Type picker, GPS-fix indicator, goal setting, countdown (Cancel disappears at "GO", when the start can no longer be stopped).</td></tr>
+<tr><td><code>/workout/active</code></td><td>Active workout</td><td>The critical screen. Keeps the display awake; map + metrics, plus a goal progress bar when a goal is set. The only place that navigates to the summary once the session ends.</td></tr>
 <tr><td><code>/workout/[id]</code></td><td>Workout detail</td><td>Full map, splits table, charts, share card, export GPX.</td></tr>
-<tr><td><code>/settings/permissions</code></td><td>Permissions</td><td>A dedicated screen — this app needs four separate grants.</td></tr>
+<tr><td><code>/settings/permissions</code></td><td>Permissions</td><td>A dedicated modal (with Close) — this app needs four separate grants.</td></tr>
 </tbody>
 </table></div>
 
@@ -284,8 +284,8 @@
                   ┌────────▼─────────┐
                   │ enqueue() chain  │  ← one promise queue: task batches, UI taps,
                   └────────┬─────────┘    notification actions, recovery all serialise
-              auto-pause step → accuracy / stale / speed gates
-              → Kalman smooth → jitter gate
+              auto-pause (silence + GPS speed) → accuracy / stale
+              / gap / speed gates → Kalman smooth → jitter gate
                            │ one transaction per batch
                   ┌────────▼─────────┐
                   │  SQLite (WAL)    │  ← single source of truth: points, workouts,
@@ -321,14 +321,17 @@
 
 <pre><code>src/projects/fitness-tracker/
 ├── tracking/
-│   ├── config.ts                 LOCATION_TASK name, accurate vs saver task options
+│   ├── config.ts                 LOCATION_TASK, one INTERVALS table for task + watch,
+│   │                             stillAfterSilenceMs(mode), staleFixMs(mode)
 │   ├── task.ts                   defineTask, action listener, pending-action replay
 │   ├── pipeline.ts               ingest(): fixes → filter → one SQLite transaction
 │   ├── controller.ts             start/pause/resume/stop/discard, recovery; idempotent
 │   ├── queue.ts                  enqueue(): the single promise chain
 │   ├── state.ts                  persisted Session (JSON in a single-row table)
-│   ├── filters.ts                accuracy/stale/speed gates, Kalman, jitter (PURE)
-│   ├── autoPause.ts              still/moving state machine (PURE)
+│   ├── filters.ts                accuracy/stale/gap/speed gates, speed re-anchor,
+│   │                             Kalman, jitter (PURE)
+│   ├── autoPause.ts              still/moving machine, silenceMeansStillMs, silentStopAt,
+│   │                             gpsMayAct / MOTION_PRIORITY_MS (PURE)
 │   ├── metrics.ts                distance, pace, elevation, splits, Douglas–Peucker (PURE)
 │   └── widget.ts                 throttled push of today's numbers to the widget
 ├── db/
@@ -354,8 +357,10 @@
 │   └── index.ts                  ~1 Hz throttle + state builder over the native module
 ├── hooks/                        useLiveQuery, usePermissions, useGpsFix, …
 ├── models/Workout.ts             Workout, Point, RawFix, Session-adjacent types
-├── utils/                        format, dates, streak, paceColor
-└── __tests__/                    metrics, filters, gpx, controller, configPlugin</code></pre>
+├── utils/                        format, dates (calendar-day math), weeks (week buckets),
+│                                 goal (goalProgress), region (regionForCoordinates),
+│                                 streak, paceColor
+└── __tests__/                    metrics, filters, dates, gpx, controller, configPlugin</code></pre>
 
 <pre><code>&lt;repo root&gt;
 ├── modules/                      ← local Expo Modules; NOT under src/
@@ -394,10 +399,10 @@
 
 <h3>Two rules that make the background path trustworthy</h3>
 <ul>
-  <li><strong>The session lives in SQLite.</strong> <code>state.ts</code> stores the whole <code>Session</code> (workout id, status, segment counter, pause bookkeeping, filter state, elevation reference, auto-pause timers) as JSON in a single-row table. The next task invocation may run in a fresh headless runtime and must find everything it needs in the database. Elapsed time is derived from persisted timestamps, never from an in-memory stopwatch.</li>
+  <li><strong>The session lives in SQLite.</strong> <code>state.ts</code> stores the whole <code>Session</code> (workout id, status, segment counter, pause bookkeeping, filter state, elevation reference, auto-pause timers) as JSON in a single-row table. Later fields are optional so a session persisted by an older build still loads: <code>lastRaw</code> (the newest raw fix, accepted or not, for silence and GPS-health checks), <code>resumedAt</code> (when the clock last restarted), <code>resumeBuffer</code> (the last few seconds of fixes seen while auto-paused) and <code>motionDecision</code> (the last DeviceMotion pause/resume and when). <code>activeSince(session)</code> is the start of the current active stretch: <code>max(startedAt, resumedAt)</code>. The next task invocation may run in a fresh headless runtime and must find everything it needs in the database. Elapsed time is derived from persisted timestamps, never from an in-memory stopwatch.</li>
   <li><strong>Every mutation goes through <code>enqueue()</code>.</strong> A GPS batch, a pause tapped on the lock screen, a motion auto-pause and the crash-recovery check all read-modify-write the same session row. <code>queue.ts</code> is a promise chain (a mutex is enough because JS is single-threaded) so two cycles can never interleave and drop a pause or double-count a batch.</li>
 </ul>
-<p>Pauses are modelled as <strong>segments</strong>: every resume increments <code>segment</code>, and distance, moving time, the speed gate, the smoother, the drawn polyline and the GPX export never bridge two segments. Without it, pausing and then taking a bus would count as running.</p>
+<p>Pauses and gaps are modelled as <strong>segments</strong>: <code>segment</code> increments on every resume, on every gap of more than 60 s between fixes (<code>MAX_GAP_MS</code>: process killed, phone in a drawer) and on every speed-gate re-anchor. Distance, moving time, the speed gate, the smoother, the drawn polyline and the GPX export never bridge two segments. Without it, pausing and then taking a bus would count as running.</p>
 
 <h2 id="native">The native layer</h2>
 
@@ -466,7 +471,7 @@ Test loop:
 <tr><td>Sync/async functions</td><td><code>Function("start") { ... }</code>, <code>AsyncFunction</code></td><td>identical</td></tr>
 <tr><td>Typed args</td><td><code>Record</code> structs</td><td><code>Record</code> data classes</td></tr>
 <tr><td>Events to JS</td><td><code>Events("onAction")</code> + <code>sendEvent</code>, observers set up in <code>OnCreate</code> / <code>OnDestroy</code></td><td>same</td></tr>
-<tr><td>Platform behaviour</td><td>ActivityKit: start / update / end a Live Activity (a <code>staleDate</code> greys it out if the pipeline dies)</td><td>Ongoing <code>NotificationCompat</code> notification with a native chronometer and Pause/Resume/End actions (the closest analogue)</td></tr>
+<tr><td>Platform behaviour</td><td>ActivityKit: start / update / end a Live Activity (a <code>staleDate</code> greys it out if the pipeline dies; none while paused)</td><td>Ongoing <code>NotificationCompat</code> notification with a native chronometer and Pause/Resume/End actions (the closest analogue)</td></tr>
 <tr><td>Action buttons</td><td>A <code>LiveActivityIntent</code> (iOS 17+) writes the action to App Group <code>UserDefaults</code> and posts a Darwin notification the module observes</td><td>A non-exported <code>BroadcastReceiver</code> via immutable <code>PendingIntent</code>s</td></tr>
 <tr><td>JS not listening</td><td>The action stays in <code>UserDefaults</code> until <code>consumePendingAction()</code></td><td>The receiver parks it in SharedPreferences until <code>consumePendingAction()</code></td></tr>
 <tr><td>Widget data</td><td><code>setWidgetData(json)</code> writes the App Group and calls <code>WidgetCenter.reloadAllTimelines()</code></td><td><code>setWidgetData(json)</code> writes SharedPreferences and updates the <code>RemoteViews</code> widget</td></tr>
@@ -480,18 +485,38 @@ Test loop:
 <h3>Point processing</h3>
 <pre><code>batch of raw fixes (sorted by timestamp; the session row is re-read from SQLite)
   → manually paused or no session → ignore the batch
-  → auto-pause step (GPS speed): maybe pause / resume (resume starts a new segment)
-  → reject if coordinates invalid (non-finite, out of range, or 0,0)
-  → reject if accuracy > 25 m
-  → reject if timestamp is not newer than the last accepted point
-  → reject if implied speed > plausible max for the activity type
-     (after the stale check, so the speed division always has dt &gt; 0)
-  → Kalman smooth lat/lng (accuracy as measurement noise; restarts on a new segment)
-  → if smoothed point is &lt; 5 m from the last ACCEPTED point → skip (anchor stays put)
-  → accumulate distance, moving time, elevation (3 m hysteresis)
+  for each fix:
+  → skip it if older than session.startedAt (a cached pre-start position)
+  → record it as session.lastRaw (newest raw fix, accepted or not)
+  → auto-pause (only if enabled):
+     · silence: no fix for ≥ stillAfterSilenceMs(mode) since the previous raw fix
+       (and that fix was in this active stretch) → pause RETROACTIVELY at
+       silentStopAt = previous fix + 8 s. With a distance filter the OS sends
+       nothing while you stand still, so "still" samples never arrive
+     · GPS speed (reported, or implied from the previous raw fix) → stepAutoPause
+     · GPS may pause / resume only if gpsMayAct(): a DeviceMotion decision in the
+       last 60 s (MOTION_PRIORITY_MS) for the opposite action wins
+     · resume: restart the clock at movingSince (not now), open a new segment and
+       replay the resumeBuffer (fixes from the last 10 s of the pause) through accept()
+     · still auto-paused → append the fix to resumeBuffer, keep the last 10 s
+  → not active → next fix
+  → accept(fix) = processFix(filter, fix, { segment, notBefore: startedAt }):
+     → reject if coordinates invalid (non-finite, out of range, or 0,0)
+     → reject if accuracy > 25 m
+     → reject as "stale" if before notBefore, or not newer than the last accepted point
+     → gap: more than 60 s (MAX_GAP_MS) since max(last.t, kalman.t) → new segment
+     → implied speed > plausible max for the activity → reject, up to 2 in a row;
+       the 3rd (SPEED_RESET_AFTER) re-anchors on this fix in a new segment instead
+       (after the stale check, so the speed division always has dt &gt; 0)
+     → Kalman smooth lat/lng (accuracy as measurement noise; restarts on a new segment)
+     → smoothed point &lt; 5 m from the last ACCEPTED point → skip (anchor stays put,
+       Kalman stays warm, speed streak resets)
+     → the caller adopts point.segment when the filter opened a new one
+  → accumulate distance, moving time (same segment only), elevation (3 m hysteresis)
   → ONE transaction: insert points, add rolling totals, save session
   → (after commit) voice cue per km, then push to the Live Activity / notification
     (throttled to ~1 Hz, forced on status changes)</code></pre>
+<p>The silence threshold comes from the same <code>INTERVALS</code> table that configures the task and the foreground watch: <code>stillAfterSilenceMs(mode) = max(8 s, distanceInterval / 0.6 m/s + timeInterval)</code>, about 9.3 s in accurate mode and about 52 s in saver mode. The pipeline can only notice silence when the <em>next</em> fix arrives, so it pauses retroactively; in the foreground the active screen also checks <code>silentStopAt</code> on its clock tick and calls the queued <code>autoPauseFromSilence()</code>, so the pause shows up while you are still standing. Motion resumes work the same way as GPS resumes: <code>autoPauseFromMotion("resume", movingSince)</code> backdates the clock and replays the buffered fixes with <code>ingestNow</code> inside the same queued job.</p>
 <p>Rolling totals exist only for the live UI. <code>stopWorkout</code> recomputes distance, moving time, elevation, splits, calories and the thumbnail from the persisted points with the same pure functions the tests cover, so any drift in the incremental path never reaches history.</p>
 
 <h3>Configuration trade-offs to measure yourself</h3>
@@ -511,7 +536,7 @@ Test loop:
 <h3>Platform reality check</h3>
 <ul>
   <li><strong>iOS:</strong> background location works with the <code>location</code> background mode and Always permission. The blue status bar / indicator will show. Without the background permission the controller falls back to a foreground-only <code>watchPositionAsync</code> and the active screen says so.</li>
-  <li><strong>Android:</strong> you <em>must</em> run a foreground service with a persistent notification, declare <code>foregroundServiceType="location"</code>, and request background location as a separate, second prompt. On top of that, OEM battery managers (Xiaomi, Huawei, Samsung, OnePlus) kill background work aggressively — test on a real device from at least one of those vendors, and send the user to the battery-optimization settings (the permissions screen does, via <code>android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS</code>). Auto-pause uses GPS speed in the background (works while suspended) and DeviceMotion variance in the foreground (faster, but sensors are not delivered to JS while suspended).</li>
+  <li><strong>Android:</strong> you <em>must</em> run a foreground service with a persistent notification, declare <code>foregroundServiceType="location"</code>, and request background location as a separate, second prompt. On top of that, OEM battery managers (Xiaomi, Huawei, Samsung, OnePlus) kill background work aggressively — test on a real device from at least one of those vendors, and send the user to the battery-optimization settings (the permissions screen does, via <code>android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS</code>). Auto-pause uses GPS speed in the background (works while suspended) and DeviceMotion variance in the foreground (faster, but sensors are not delivered to JS while suspended). GPS speed alone is not enough with a <code>distanceInterval</code>: standing still produces <em>no</em> fixes at all, so a long silence after good fixes is also read as "stopped" (time-based auto-pause). When both sources are live, the latest DeviceMotion decision wins for 60 s and GPS may only act once motion has gone quiet.</li>
 </ul>
 
 <h2 id="milestones">Build order</h2>
@@ -552,7 +577,7 @@ Test loop:
     <li>iOS background modes + Always permission, added via <em>your own</em> config plugin (and the <code>expo-location</code> plugin flags).</li>
     <li>Permission flow in order: foreground, background, motion, notifications; background is locked until foreground is granted.</li>
     <li>Crash/kill recovery: on launch <code>findRecoverable()</code> detects an unfinished workout (discarding orphan rows) and the Today screen offers Resume / Finish / Discard.</li>
-    <li>Deferred updates for the battery-saver mode, and a stale-fix banner ("GPS signal lost") on the active screen.</li>
+    <li>Deferred updates for the battery-saver mode, and GPS-health banners on the active screen: "GPS signal lost" when no fix has arrived since the start or last resume, "GPS signal too weak" when fixes arrive but are too inaccurate to use.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Start a workout, lock the phone, put it in a pocket, walk 30 minutes. The route has no gaps. Then force-kill the app mid-workout and confirm the recorded data up to that moment is intact and the recovery banner appears (unless Android's service kept recording).</div>
 </div>
@@ -561,7 +586,7 @@ Test loop:
   <h3><span class="tag">M4</span> Maps &amp; visualization</h3>
   <div class="goal">Goal: the route looks good and renders fast.</div>
   <ul>
-    <li>Map with a route polyline (<code>react-native-maps</code>); camera follows the user during the workout.</li>
+    <li>Map with a route polyline (<code>react-native-maps</code>); camera follows the user during the workout. On the detail screen, fit the whole route: <code>fitToCoordinates</code> is silently ignored before <code>onMapReady</code> and before the map has a size, so <code>RouteMap</code> starts from a bounds-based <code>initialRegion</code> (<code>regionForCoordinates</code> in <code>utils/region.ts</code>) and fits again on ready and on layout.</li>
     <li>Pace-coloured polyline segments, merged by colour bucket so the map gets tens of <code>&lt;Polyline&gt;</code> views, not one per leg.</li>
     <li>Douglas–Peucker simplification before rendering — 10,000 points must not be drawn raw.</li>
     <li>Kilometre splits (interpolated boundaries) and a splits table.</li>
@@ -578,7 +603,7 @@ Test loop:
   <ul>
     <li>Pedometer step count, live and historical.</li>
     <li>Barometer-derived relative elevation (iOS gives <code>relativeAltitude</code>; Android derives it from pressure), shown next to GPS elevation.</li>
-    <li>Auto-pause as a pure state machine with asymmetric timings (pause after 8 s still, resume after 3 s moving), fed by GPS speed in the pipeline and by DeviceMotion variance in the foreground.</li>
+    <li>Auto-pause as a pure state machine with asymmetric timings (pause after 8 s still, resume after 3 s moving), fed by GPS speed in the pipeline and by DeviceMotion variance in the foreground. Add the time-based path (silence longer than <code>stillAfterSilenceMs(mode)</code> means stopped) and the priority rule (<code>gpsMayAct</code>: a motion decision from the last 60 s beats GPS), or the two sources fight. A resume restarts the clock when movement began (<code>movingSince</code>) and replays the buffered fixes, so the 3 s confirmation window is not lost distance.</li>
     <li>Historical steps exist on iOS only; on Android the Today ring counts from when watching began.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Auto-pause triggers within 10 s of stopping and resumes within 5 s of moving. Walk to a traffic light and back, then tune the thresholds, because the first values will have false positives.</div>
@@ -589,7 +614,7 @@ Test loop:
   <div class="goal">Goal: Swift and Kotlin you wrote, called from JS.</div>
   <ul>
     <li><code>npx create-expo-module@latest --local</code>, named <code>live-activity</code> (native module name <code>LiveActivity</code>).</li>
-    <li>Swift: <code>ActivityAttributes</code> + start/update/end with <code>ActivityContent</code>; end stale activities on start; set a <code>staleDate</code>. The SwiftUI Live Activity view and Dynamic Island layouts live in the widget extension (<code>plugins/workout-widget/WorkoutLiveActivity.swift</code>).</li>
+    <li>Swift: <code>ActivityAttributes</code> + start/update/end with <code>ActivityContent</code>; end stale activities on start; set a <code>staleDate</code> 10 minutes out on every update (none while paused: a paused workout gets no updates on purpose and must not grey out). The SwiftUI Live Activity view and Dynamic Island layouts live in the widget extension (<code>plugins/workout-widget/WorkoutLiveActivity.swift</code>).</li>
     <li>Kotlin: an ongoing notification with Pause/Resume and End actions and a native chronometer.</li>
     <li>Typed TS interface; <code>onAction</code> events from native back to JS for the buttons, with parking for taps made while JS was dead.</li>
     <li>Wire it into the tracking pipeline through <code>liveactivity/index.ts</code>, throttled to about one update per second (trailing: the newest state wins; status changes are forced). Register the action listener in <code>task.ts</code> and call <code>startPendingActionReplay()</code> from the root layout.</li>
@@ -615,7 +640,7 @@ Test loop:
   <div class="goal">Goal: interoperate with the platform's health store.</div>
   <ul>
     <li>Write workouts to HealthKit (iOS) and Health Connect (Android).</li>
-    <li>Read heart-rate samples back for the detail charts.</li>
+    <li>Read heart-rate samples back for the detail charts, without ever prompting from that passive screen: on iOS <code>readHeartRate</code> returns <code>[]</code> unless <code>getRequestStatusForAuthorization</code> is already <code>unnecessary</code> (the sheet was shown before). Only "Save to Health" calls <code>requestAuthorization</code>, and that button is disabled once <code>healthSyncedAt</code> is set, because a second save would duplicate the workout.</li>
     <li>GPX export and share (<code>expo-file-system</code> + <code>expo-sharing</code>), with a tested GPX writer.</li>
     <li>A shareable summary card rendered offscreen and exported as an image.</li>
     <li>Keep the platform split behind one <code>HealthSync</code> interface: <code>sync.ios.ts</code> and <code>sync.android.ts</code> are chosen by Metro's platform extensions, <code>sync.ts</code> is the fallback.</li>
@@ -632,11 +657,16 @@ npx jest --no-watchman src/projects/fitness-tracker   # unit tests
 npx expo export --platform ios --output-dir /tmp/out  # bundle check
 npx expo export --platform android --output-dir /tmp/out
 npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugin landed?)</code></pre>
+<div class="warn">
+  <strong>Prebuild only to check native changes</strong>
+  <p><code>prebuild --clean</code> regenerates <code>ios/</code> and can leave it without <code>Pods/</code>, <code>Podfile.lock</code> and the <code>.xcworkspace</code>. The next <code>pod install</code> then needs <code>cmake</code> and GitHub access (the Hermes podspec). It also rewrites the <code>ios</code> script in <code>package.json</code> to <code>expo run:ios</code>; restore that one line, never <code>git checkout package.json</code>. Don't prebuild to test a JS change: Fast Refresh or a rebuild of the existing dev client is enough.</p>
+</div>
 <div class="wu-scroll"><table>
 <thead><tr><th>Test file</th><th>What it pins</th></tr></thead>
 <tbody>
 <tr><td><code>metrics.test.ts</code></td><td>Distance, pace, elevation hysteresis, splits and simplification against known values and the recorded GPX.</td></tr>
-<tr><td><code>filters.test.ts</code></td><td>Each rejection stage, stale-before-speed ordering, segment resets, stationary drift producing almost no points.</td></tr>
+<tr><td><code>filters.test.ts</code></td><td>Each rejection stage, stale-before-speed ordering, segment resets, stationary drift producing almost no points; cached fixes before the session start dropped, a speed re-anchor in a new segment after 3 rejections in a row (and the streak reset on accept), a new segment after a long gap; the silence threshold scaling with the distance interval, <code>silentStopAt</code>, and a recent motion decision winning over GPS.</td></tr>
+<tr><td><code>dates.test.ts</code></td><td>Calendar-day and week buckets across a DST change (<code>addDays</code>, <code>lastDays</code>, <code>bucketWeeks</code>), <code>goalProgress</code> labels, and <code>regionForCoordinates</code> containing every coordinate with padding.</td></tr>
 <tr><td><code>gpx.test.ts</code></td><td>Export/parse round trip, segment boundaries.</td></tr>
 <tr><td><code>controller.test.ts</code></td><td>Recovery waits for an in-flight <code>startWorkout</code> instead of deleting its row as an orphan; real orphans are still discarded.</td></tr>
 <tr><td><code>configPlugin.test.ts</code></td><td>iOS/Android mods land, the wrapper is run-once, each mod is idempotent, a duplicated App Group collapses, a bad App Group fails fast.</td></tr>
@@ -663,7 +693,7 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
 <tr><td>Config plugin authoring</td><td><code>@expo/config-plugins</code></td><td><code>withInfoPlist</code>, <code>withEntitlementsPlist</code>, <code>withAndroidManifest</code>, <code>withXcodeProject</code>, <code>withDangerousMod</code>, <code>createRunOncePlugin</code>, <code>compileModsAsync</code> (tests), <code>AndroidConfig.Permissions.ensurePermissions</code>. Import from <code>expo/config-plugins</code>.</td></tr>
 <tr><td>Live Activities</td><td>your own module (<code>modules/live-activity</code>)</td><td>Swift: <code>ActivityAttributes</code>, <code>Activity.request/update/end</code>, <code>ActivityContent</code>, <code>LiveActivityIntent</code>, <code>ActivityConfiguration</code>, <code>DynamicIsland</code>. Kotlin: <code>NotificationCompat</code>, <code>PendingIntent</code>, <code>BroadcastReceiver</code>.</td></tr>
 <tr><td>Widgets</td><td>WidgetKit (iOS), <code>AppWidgetProvider</code> + <code>RemoteViews</code> (Android)</td><td>Hand-written extension target through <code>withXcodeProject</code>. <code>@bacons/apple-targets</code> is a good alternative to read if you would rather not maintain pbxproj mods.</td></tr>
-<tr><td>Health</td><td><code>@kingstinct/react-native-healthkit</code>, <code>react-native-health-connect</code></td><td>HealthKit: <code>requestAuthorization</code>, <code>saveWorkoutSample</code>, <code>saveWorkoutRoute</code>, <code>queryQuantitySamples</code>. Health Connect: <code>getSdkStatus</code>, <code>initialize</code>, <code>requestPermission</code>, <code>insertRecords</code> (<code>ExerciseSession</code> with <code>exerciseRoute</code>, <code>Distance</code>, <code>TotalCaloriesBurned</code>), <code>readRecords("HeartRate")</code>. Both have config plugins.</td></tr>
+<tr><td>Health</td><td><code>@kingstinct/react-native-healthkit</code>, <code>react-native-health-connect</code></td><td>HealthKit: <code>requestAuthorization</code> (only from "Save to Health"), <code>getRequestStatusForAuthorization</code> (checks whether the sheet was already shown, without prompting; HealthKit never reveals whether <em>read</em> access was granted), <code>saveWorkoutSample</code>, <code>saveWorkoutRoute</code>, <code>queryQuantitySamples</code>. Health Connect: <code>getSdkStatus</code>, <code>initialize</code>, <code>requestPermission</code>, <code>insertRecords</code> (<code>ExerciseSession</code> with <code>exerciseRoute</code>, <code>Distance</code>, <code>TotalCaloriesBurned</code>), <code>readRecords("HeartRate")</code>. Both have config plugins.</td></tr>
 <tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>openDatabaseAsync(name, { enableChangeListener: true })</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code>. WAL mode matters more here — you're writing from a background context while the UI reads.</td></tr>
 <tr><td>Battery</td><td><code>expo-battery</code></td><td><code>getBatteryLevelAsync</code>, <code>isLowPowerModeEnabledAsync</code> — stored on each workout (start and end) so you can correlate drain with the tracking mode.</td></tr>
 </tbody>
@@ -689,9 +719,13 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
   <li><strong>App Group mismatch.</strong> Widget shows no data because the app and the extension use different group identifiers. Silent and maddening. The final code derives both from one plugin prop and the <code>WorkoutAppGroup</code> Info.plist key.</li>
   <li><strong>Racing session writers.</strong> A pause from the lock screen interleaves with a GPS batch and the pause silently disappears (or a batch is double-counted). Every mutation goes through <code>enqueue()</code>. A related race: crash recovery running between <code>insertWorkout</code> and <code>saveSession</code> of a start in flight deletes the new row as an "orphan", so recovery is queued too.</li>
   <li><strong>Action tapped while JS is dead.</strong> End on the notification or lock screen is lost because nothing listens. The native side parks it (SharedPreferences / App Group) and <code>startPendingActionReplay()</code>, called from the root layout, replays it on launch and on every return to the foreground.</li>
-  <li><strong>Pause bridged by distance.</strong> Without a segment counter, the first fix after a resume is compared with the last one before the pause and a bus ride counts as running.</li>
+  <li><strong>Pause bridged by distance.</strong> Without a segment counter, the first fix after a resume is compared with the last one before the pause and a bus ride counts as running. The same goes for a gap of more than 60 s (process killed, GPS dead) and for a speed-gate re-anchor: each one starts a new segment instead of drawing a straight line and counting it.</li>
   <li><strong>Plugin order.</strong> <code>expo-share-intent</code> prepends the App Group without deduping; listed before it, your entitlement mod runs first and the duplicate comes back. List your plugin earlier so it runs later and collapses the array.</li>
-  <li><strong>Frozen "live" data.</strong> If the pipeline dies, an activity that never goes stale keeps showing old distance. The Live Activity sets a <code>staleDate</code> on every update and the active screen shows a "GPS signal lost" banner when no fix has arrived for 20 s.</li>
+  <li><strong>Frozen "live" data.</strong> If the pipeline dies, an activity that never goes stale keeps showing old distance. The Live Activity sets a <code>staleDate</code> of now + 10 minutes on every update, but <code>nil</code> while paused: a paused workout gets no updates on purpose, so a long pause would otherwise grey it out. The active screen shows "GPS signal lost" only when no fix has arrived since the start or last resume (<code>activeSince</code>) for <code>staleFixMs(mode) = max(20 s, 2 × stillAfterSilenceMs(mode))</code>, and "GPS signal too weak" when the newest raw fix is worse than <code>MAX_ACCURACY_M</code>. A plain "no fix for 20 s" rule fires every time you stop at a light, because a distance filter keeps a standing user silent.</li>
+<li><strong>Auto-pause never fires with a distance filter.</strong> <code>expo-location</code> with <code>distanceInterval: 5</code> (or 25) sends no fixes while you stand still, so a speed-based state machine never receives the "still" samples it waits for and the clock keeps running. Treat silence after good fixes as stopping: <code>silentStopAt</code> pauses retroactively in the pipeline when the next fix arrives, and the active screen triggers <code>autoPauseFromSilence()</code> in the foreground.</li>
+<li><strong>Two auto-pause sources fighting.</strong> DeviceMotion (<code>expo-sensors</code>, foreground only) says "moving" while GPS speed still says "stopped", and the workout flips between paused and active on every batch. The controller records <code>motionDecision</code>, and <code>gpsMayAct</code> lets GPS act against it only after <code>MOTION_PRIORITY_MS</code> (60 s).</li>
+<li><strong>Map fit silently ignored.</strong> <code>react-native-maps</code> drops a <code>fitToCoordinates</code> call made before <code>onMapReady</code> or before the view has a size, with no error: the summary map just shows the first point zoomed in. Start from a bounds-based <code>initialRegion</code> and fit again in <code>onMapReady</code> and <code>onLayout</code>.</li>
+<li><strong>Health sheet from a passive screen.</strong> Calling <code>requestAuthorization</code> just to read heart rate pops the Health sheet the moment a workout ends. Check <code>getRequestStatusForAuthorization</code> first (it never prompts) and only ask from an explicit "Save to Health" tap. HealthKit never tells you whether <em>read</em> access was granted, only whether the user was asked, so an empty result is normal.</li>
   <li><strong>Foreground service killed on swipe.</strong> <code>killServiceOnDestroy: true</code> ends recording when the user swipes the app away; the final config keeps it false and relies on persisted state for the rest.</li>
 </ol>
 

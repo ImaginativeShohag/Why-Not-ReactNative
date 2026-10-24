@@ -266,6 +266,7 @@
   <li><strong>Sleep timer</strong> with an "end of episode" option and a fade-out over the last 10 seconds.</li>
   <li><strong>Queue reordering</strong> with a drag handle, swipe-to-remove, and haptic feedback on pickup and drop (<code>expo-haptics</code>).</li>
   <li><strong>Chapter markers</strong> rendered as ticks on the scrubber; tapping one seeks.</li>
+  <li><strong>Small layout and navigation details.</strong> A horizontal <code>ScrollView</code> inside a flex column grows to fill it, which stretches the Discover genre chips into tall pills; <code>OptionChips</code> sets <code>style={{ flexGrow: 0 }}</code>. Every <code>Switch</code> gets an <code>accessibilityLabel</code>, or VoiceOver and TalkBack announce only "switch". The project stack gives the <code>(tab)</code> group <code>title</code> and <code>headerBackTitle</code> "Podcasts", otherwise screens pushed over the tabs show "(tab)" as the back label. Because the root stack hides its header for the project, the tab layout adds a <code>headerLeft</code> button back to the launcher.</li>
 </ul>
 
 <h2 id="architecture">Architecture</h2>
@@ -301,7 +302,8 @@
 <pre><code>src/app/projects/podcast-player/
 ├── _layout.tsx                   project stack, wrapped in &lt;MiniPlayerHost&gt;; starts the singletons
 ├── (tab)/
-│   ├── _layout.tsx               JS tabs, fixed height = TAB_BAR_HEIGHT + bottom inset
+│   ├── _layout.tsx               JS tabs, fixed height = TAB_BAR_HEIGHT + bottom inset;
+│   │                             headerLeft back button to the launcher (optional)
 │   ├── index.tsx                 home
 │   ├── discover.tsx
 │   ├── queue.tsx
@@ -318,7 +320,8 @@
 │   ├── nowPlaying.ts             lock-screen metadata
 │   ├── interruptions.ts          classifies unexplained status transitions
 │   ├── sleepTimer.ts             timer, fade-out, auto-advance rule
-│   └── progress.ts               throttled position writer, resume + played rules
+│   ├── rate.ts                   pure: clampRate, resolveStartRate
+│   └── progress.ts               throttled position writer, resume, played + isAtEnd rules
 ├── downloads/
 │   ├── manager.ts                I/O: concurrency, retries, snapshots, rehydrate
 │   ├── policy.ts                 pure: backoff, network rule, eviction, auto-delete
@@ -344,10 +347,12 @@
 ├── hooks/                        usePodcastQueries, useEpisodeActions
 ├── models/Episode.ts             Podcast, Episode, QueueItem, DownloadRecord, Chapter …
 ├── stores/                       playerStore, downloadStore (live progress), settingsStore (persisted)
-├── utils/                        queryKeys, invalidate, downloadView, format, html, color
+├── utils/                        queryKeys, invalidate, downloadView, format, html, color,
+│                                 serial (createSerialQueue: one-at-a-time promise chain)
 ├── constants/layout.ts
 ├── lib/updates.ts                EAS Update check / banner / channel surfing
-└── __tests__/                    queue, downloads, parse (+ XML fixtures), sleepTimer, format, settingsStore</code></pre>
+└── __tests__/                    queue, downloads, parse (+ XML fixtures), sleepTimer, format, settingsStore,
+                                  playbackRules (isAtEnd, rates), serial</code></pre>
 
 <div class="warn">
   <strong><code>MiniPlayerHost</code> mounts in <em>your</em> layout, not the root</strong>
@@ -366,7 +371,12 @@
 <tr><td><code>queue</code>, <code>kv</code></td><td>Up-next order; the resumable session</td><td>The playing episode is never in the queue.</td></tr>
 </tbody>
 </table></div>
-<p>User preferences are the exception: they live in a persisted Zustand store (<code>stores/settingsStore.ts</code>, AsyncStorage key <code>podcast-player/settings</code>) because they are tiny and the singletons need a <em>synchronous</em> <code>getSettings()</code>. The price is that it returns defaults until hydration finishes, so the headless background task awaits <code>ensureSettingsHydrated()</code> first.</p>
+<p>User preferences are the exception: they live in a persisted Zustand store (<code>stores/settingsStore.ts</code>, AsyncStorage key <code>podcast-player/settings</code>) because they are tiny and the singletons need a <em>synchronous</em> <code>getSettings()</code>. The price is that it returns defaults until hydration finishes, so the headless background task awaits <code>ensureSettingsHydrated()</code> first, and so does <code>PlaybackService.loadEpisode()</code>, which needs the Default speed for <code>resolveStartRate()</code> even when an episode loads right after launch.</p>
+
+<div class="warn">
+  <strong><code>withTransactionAsync</code> is not a lock</strong>
+  <p>On the one shared connection, expo-sqlite's <code>withTransactionAsync()</code> is a plain <code>BEGIN</code> … <code>COMMIT</code>, and any query started elsewhere while it is open joins that transaction. Here a feed upsert, a queue save and a batched download update can all fire at once from different singletons. When two overlap, the second <code>BEGIN</code> fails ("cannot start a transaction within a transaction"), and that call's <code>ROLLBACK</code> then undoes the <em>first</em> one's writes. <code>db/queries.ts</code> therefore routes every write transaction through <code>writeTransaction()</code>, which runs them one at a time on a <code>createSerialQueue()</code> from <code>utils/serial.ts</code>. The alternative, <code>withExclusiveTransactionAsync()</code>, opens a separate connection (native only, not web), and competing writes then fail with "database is locked" rather than waiting, so you would still need to retry or queue them.</p>
+</div>
 
 <h3>Query keys and live state</h3>
 <p>Every TanStack Query key starts with <code>"podcast"</code> (<code>utils/queryKeys.ts</code>) because the app has exactly one <code>QueryClient</code>. Keys nest (<code>["podcast","show",id,"episodes"]</code>), so invalidating <code>podcastKeys.shows()</code> refreshes the show, its episodes and its flags in one call. High-frequency data does <em>not</em> go through the query cache: download progress goes to <code>downloadStore.live</code>, merged with the persisted row by <code>mergeDownload()</code> in <code>utils/downloadView.ts</code>, and rendered through a connected <code>LiveEpisodeRow</code> so only the row that is downloading re-renders.</p>
@@ -411,6 +421,10 @@ APP TERMINATED
 <ul>
   <li><strong>Throttled position writes.</strong> Status ticks arrive every 500 ms (<code>updateInterval: 500</code>). <code>createProgressWriter()</code> saves at most every 5 s while playing and <code>flush()</code>es immediately on pause, seek, track change, app backgrounding and external pause (it skips a write within 0.5 s of the last saved value).</li>
   <li><strong>Resume rule.</strong> <code>resolveResumePosition()</code> starts over if the episode is played or under 5 s in; otherwise it returns <code>position - 2</code>. An episode counts as played within <code>min(30, duration × 5% + 5)</code> seconds of the end.</li>
+  <li><strong>Play after the end.</strong> When an episode finishes, the player stays parked at its end, and both native players ignore <code>play()</code> there, so the button does nothing. The service sets <code>finished</code> on the finish event, and <code>play()</code> checks it (or <code>isAtEnd(position, duration)</code>, within <code>AT_END_EPSILON_SEC</code> = 0.5 s of the end): it seeks to 0 and only then plays.</li>
+  <li><strong>Swapping sources.</strong> expo-audio's native <code>replace()</code> resumes on its own when the old item was playing, so the new episode would play from 0:00 until the resume seek lands. <code>replaceSource()</code> pauses first, then replaces and sets the rate; <code>onStatus</code> starts playback after the pending seek.</li>
+  <li><strong>Start rate.</strong> <code>resolveStartRate()</code> in <code>playback/rate.ts</code>: a restored session's rate, then a speed picked this run, then the Default speed setting. <code>status.rate</code> is deliberately not an input: it always holds a number (1 initially), so falling back from it would never reach the setting.</li>
+  <li><strong>Rapid taps.</strong> Each <code>load()</code> takes a token (<code>++loadSeq</code>) and <code>loadEpisode()</code> returns after any await once a newer load exists. Flushing the old episode's progress happens only after the last await, so a superseded load never flushes or resets the episode that is actually playing.</li>
   <li><strong>Sleep timer.</strong> Options include "end of episode", with a 10 s volume fade. The finish handler captures the timer option <em>before</em> awaiting the progress save and consults <code>sleepFired</code>, so a timer that expires just before the finish event cannot start the next queued episode.</li>
 </ul>
 
@@ -444,10 +458,11 @@ STORAGE
 <h3>Lifecycle you must get right</h3>
 <ol>
   <li><strong>Pause is not failure.</strong> A paused <code>downloadAsync()</code> resolves with <code>null</code>. The manager keeps a <code>stopReason</code> to tell a user pause (row stays <code>paused</code>) from a Wi-Fi drop (row returns to <code>queued</code> and resumes by itself).</li>
-  <li><strong>Checkpoint on background.</strong> When the app goes to background or inactive, <code>checkpointAll()</code> pauses each active task, saves <code>savable()</code> with the file URI turned into a relative path, then resumes it. A deferred (<code>checkpoint</code>) tells <code>start()</code> this was not a real pause.</li>
+  <li><strong>Checkpoint on background.</strong> When the app goes to background or inactive, <code>checkpointAll()</code> pauses each active task, saves <code>savable()</code> with the file URI turned into a relative path, then resumes it. A deferred (<code>checkpoint</code>) tells <code>run()</code> (the transfer body that <code>start()</code> calls once it has claimed a concurrency slot) this was not a real pause. It resumes only when the task is still <code>paused</code> and has no <code>stopReason</code>: a user pause or a Wi-Fi drop that lands during the checkpoint resolves the deferred with <code>null</code>, so the download stays paused instead of being silently restarted.</li>
   <li><strong>Rehydrate on launch.</strong> <code>rehydrate()</code> turns <code>downloading</code> rows back into <code>queued</code>, requeues <code>done</code> rows whose file vanished, applies auto-delete, and registers the network listener (<code>expo-network</code>). <code>failed</code> and <code>paused</code> rows wait for an explicit retry or resume.</li>
   <li><strong>Throttle the noise.</strong> Progress is pushed to the live store only when the whole percent changes and written to SQLite at most every 3 s.</li>
   <li><strong>Capacity before bytes.</strong> <code>ensureCapacity()</code> checks free space and the cap before starting. If everything stored is unplayed, the download fails with a clear message instead of deleting something the user has not heard.</li>
+  <li><strong>Never delete the file under the player.</strong> "Remove download" on the episode that is playing from its file first calls <code>playbackService.releaseLocalFile()</code>, which swaps the source to the stream URL at the same position (keeping it playing if it was), and <code>removeMany()</code> skips any id the player still reads locally (<code>nowPlaying.isLocal</code>).</li>
 </ol>
 
 <div class="warn">
@@ -548,7 +563,7 @@ fingerprint.yml   nightly + manual
 <p>Secrets: <code>EXPO_TOKEN</code> and <code>MAESTRO_CLOUD_API_KEY</code>. Store credentials stay in EAS. Uploading source maps to a crash reporter is not wired up yet (see next steps). Two details worth copying: the commit message reaches the shell through an <em>environment variable</em>, never <code>${{ }}</code> interpolation inside the script, and the fingerprint job parses <code>--json</code> output because <code>fingerprint:compare</code> exits 0 whether or not the hashes match.</p>
 
 <h3>Maestro flows</h3>
-<p><code>.maestro/podcast-smoke.yaml</code> drives launcher → Podcast Player → Discover → search "Syntax" → subscribe → play → mini-player, using the <code>testID</code>s the screens expose (<code>podcast-search-input</code>, <code>podcast-subscribe</code>, <code>mini-player</code>, <code>mini-player-toggle</code>). It starts with <code>appId: ${APP_ID}</code>, because each variant installs under its own id. Run locally with <code>maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/podcast-smoke.yaml</code>. The flow needs network (iTunes search, enclosure streaming) and ends in <code>takeScreenshot</code>, which doubles as store-screenshot generation.</p>
+<p><code>.maestro/podcast-smoke.yaml</code> drives launcher → Podcast Player → Discover → search "Syntax" → subscribe → play → mini-player, using the <code>testID</code>s the screens expose (<code>podcast-search-input</code>, <code>podcast-subscribe</code>, <code>mini-player</code>, <code>mini-player-toggle</code>). It starts with <code>appId: ${APP_ID}</code>, because each variant installs under its own id. Run locally with <code>maestro test -e APP_ID=org.imaginativeworld.whynotreactnative.dev .maestro/podcast-smoke.yaml</code>. The flow needs network (iTunes search, enclosure streaming) and ends in <code>takeScreenshot</code>, which doubles as store-screenshot generation. Maestro text selectors are regular expressions matched against every element's text, <em>including a text field's current value</em>: a bare <code>"Syntax.*"</code> also matched the search box after typing "Syntax", so the flow waits for and taps <code>"Syntax.* by .*"</code>, the shape of a result row's text.</p>
 
 <h2 id="milestones">Build order</h2>
 
@@ -576,7 +591,7 @@ fingerprint.yml   nightly + manual
     <li>Queue as pure functions (add-next, add-last, move, take-next), with auto-advance on <code>didJustFinish</code>.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Start an episode, navigate across every tab and into three detail screens. Audio never stutters and the player never remounts.</div>
-  <p><strong>Verify:</strong> <code>queue.test.ts</code> passes with no player; open <code>playback/service.ts</code> and confirm nothing outside it holds an <code>AudioPlayer</code>.</p>
+  <p><strong>Verify:</strong> <code>queue.test.ts</code> and <code>playbackRules.test.ts</code> (start rate, <code>isAtEnd</code>) pass with no player; after an episode ends, play restarts it; open <code>playback/service.ts</code> and confirm nothing outside it holds an <code>AudioPlayer</code>.</p>
 </div>
 
 <div class="milestone">
@@ -711,10 +726,14 @@ fingerprint.yml   nightly + manual
   <li><strong>Update with a missing native module.</strong> <em>Shows up as:</em> a crash on launch for everyone who got the OTA. <em>Handled by:</em> the fingerprint runtime version. Prove it <em>on a test channel</em>: add a native dependency, publish, and watch old builds not receive it.</li>
   <li><strong>Channel/branch confusion.</strong> <em>Shows up as:</em> "nobody got the update". <em>Handled by:</em> publishing with <code>--channel</code> in CI and reading <code>eas channel:view</code> before any manual <code>--branch</code> publish.</li>
   <li><strong>Publishing with the wrong <code>APP_VARIANT</code>.</strong> <em>Shows up as:</em> the update succeeds but no build receives it. <em>Handled by:</em> setting the variant on the publish step.</li>
-  <li><strong>Settings read before hydration.</strong> <em>Shows up as:</em> a headless background run ignoring Wi-Fi-only and the storage cap. <em>Handled by:</em> <code>await ensureSettingsHydrated()</code> at the top of the task.</li>
+  <li><strong>Settings read before hydration.</strong> <em>Shows up as:</em> a headless background run ignoring Wi-Fi-only and the storage cap. <em>Handled by:</em> <code>await ensureSettingsHydrated()</code> at the top of the task, and in <code>PlaybackService.loadEpisode()</code> before it picks the start rate.</li>
   <li><strong>Sleep timer racing the finish event.</strong> <em>Shows up as:</em> the next episode starts after the user asked to sleep. <em>Handled by:</em> capturing the option before the awaited save, plus <code>sleepFired</code>.</li>
   <li><strong>Forgotten source maps.</strong> <em>Shows up as:</em> a production crash report you can't read. <em>Not handled yet:</em> add the upload step once you choose a crash reporter.</li>
   <li><strong>Unbounded storage.</strong> <em>Shows up as:</em> a full device after subscribing to a 500-episode show. <em>Handled by:</em> at most 2 auto-downloads per show per refresh, none on the first sync, and a cap that evicts only played episodes.</li>
+  <li><strong>Play does nothing after an episode ends.</strong> <em>Shows up as:</em> the episode finishes (queue empty), the user taps play and nothing happens. <em>Handled by:</em> <code>play()</code> in <code>service.ts</code> rewinds to 0 first when <code>finished</code> is set or <code>isAtEnd()</code> says the playhead is parked at the end; covered in <code>playbackRules.test.ts</code>.</li>
+  <li><strong>Overlapping SQLite transactions.</strong> <em>Shows up as:</em> intermittent "cannot start a transaction within a transaction", and queue or download writes that silently disappear because the failed call's <code>ROLLBACK</code> undid another transaction. <em>Handled by:</em> <code>writeTransaction()</code> in <code>db/queries.ts</code>, serialized by <code>createSerialQueue()</code> (<code>serial.test.ts</code>).</li>
+  <li><strong>Deleting the file that is playing.</strong> <em>Shows up as:</em> playback errors or stops the moment the user removes the current episode's download. <em>Handled by:</em> <code>releaseLocalFile()</code> moving playback to the stream at the same position before <code>downloadManager.remove()</code>, and <code>removeMany()</code> skipping a file the player still reads.</li>
+  <li><strong>A Maestro selector matching your own input.</strong> <em>Shows up as:</em> the smoke flow "taps the result" but lands on the search box. <em>Handled by:</em> the result-row regex <code>"Syntax.* by .*"</code> in <code>.maestro/podcast-smoke.yaml</code>.</li>
 </ol>
 
 <h2 id="decisions">Architecture decisions</h2>
@@ -722,7 +741,7 @@ fingerprint.yml   nightly + manual
 <ul>
   <li><strong>Containers vs components.</strong> Components receive plain data and callbacks. The few files that must subscribe on their own live in <code>containers/</code>: <code>MiniPlayerHost</code> (player store + service), <code>LiveEpisodeRow</code> and <code>LiveTransferRow</code> (per-row download subscription). The folder makes the rule checkable: nothing in <code>components/</code> imports a store or a service. High-frequency values (playback position) are passed as a slot (<code>progressBar</code> holding <code>NowPlayingProgress</code>) so only the bar re-renders.</li>
   <li><strong>Mini-player host in the project layout.</strong> Scopes it to the project and hides it under the launcher. Because it sits outside the tab layout, the tab bar height is a shared constant (<code>constants/layout.ts</code>) and the host uses <code>useSegments()</code> to dock above the tabs or above the safe area.</li>
-  <li><strong>Pure core, thin I/O shell.</strong> <code>queue.ts</code>, <code>progress.ts</code>, <code>sleepTimer.ts</code>, <code>interruptions.ts</code>, <code>downloads/policy.ts</code>, <code>downloads/paths.ts</code> and <code>feeds/parse.ts</code> have no native imports, so Jest covers them. <code>service.ts</code> and <code>manager.ts</code> only execute their decisions.</li>
+  <li><strong>Pure core, thin I/O shell.</strong> <code>queue.ts</code>, <code>progress.ts</code>, <code>rate.ts</code>, <code>sleepTimer.ts</code>, <code>interruptions.ts</code>, <code>utils/serial.ts</code>, <code>downloads/policy.ts</code>, <code>downloads/paths.ts</code> and <code>feeds/parse.ts</code> have no native imports, so Jest covers them. <code>service.ts</code> and <code>manager.ts</code> only execute their decisions.</li>
   <li><strong>Lazy database instead of a provider.</strong> The playback service, download manager and background task have no React tree, so <code>db/client.ts</code> exposes <code>getDb()</code> (cached promise, cleared on failure so the next call retries) instead of <code>SQLiteProvider</code>.</li>
   <li><strong>Root-level download task.</strong> A project layout only loads when the user opens the project, but the OS can launch the app headless to run a background task. So <code>src/app/_layout.tsx</code> imports <code>downloads/task.ts</code>, whose module-scope <code>defineTask</code> must exist on every JS load. Registration, which persists across launches, stays in the project layout so people who never open the podcast project are never woken for it.</li>
   <li><strong>Query keys and cache hygiene.</strong> One shared <code>QueryClient</code>, so the <code>"podcast"</code> prefix is what stops a blanket invalidation touching another project.</li>

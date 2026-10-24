@@ -381,14 +381,15 @@ QUIZ.register({
         "It exports `queryClient`, so a slice can attach its own persister or defaults without a second provider (the store's `storeQuery.ts` does this)",
         "It maps TanStack focus to `AppState` and online status to expo-network",
         "It skips that wiring on web, where TanStack's default browser focus/online detection already works",
-        "It assigns the client to `window.__TANSTACK_QUERY_CLIENT__` for DevTools",
+        "It assigns the client to `window.__TANSTACK_QUERY_CLIENT__` for DevTools, behind a `typeof window !== \"undefined\"` guard",
         "It persists the entire cache, for all projects, to AsyncStorage",
         "It sets a global 60-second `staleTime` default for every query in the app",
       ],
       answer: [0, 1, 2, 3],
       explain:
-        "The shared provider is intentionally thin: one exported `queryClient` plus process-global wiring that must run exactly once. Persistence and defaults are **owned by the store slice**: `startStorePersistence()` limits `shouldDehydrateQuery` to `[\"store\", ...]` keys, and `setQueryDefaults(queryKeys.all, { staleTime: 60_000 })` matches by key prefix.\n\n- **Why export the client:** a slice can attach a persister or defaults without mounting a second provider (a second cache).\n- **What breaks if the shared file did it:** a global 60 s `staleTime` or whole-cache AsyncStorage persistence would change and leak every other project's data.\n- **Guideline:** doc 00 rule 3, each project owns its query keys, stores and endpoints; `shared` stays small (rule 2).\n- **How you arrive at it:** write the provider in M1, then notice the store needs persistence and ask where that code belongs.",
+        "The shared provider is intentionally thin: one exported `queryClient` plus process-global wiring that must run exactly once. Persistence and defaults are **owned by the store slice**: `startStorePersistence()` limits `shouldDehydrateQuery` to `[\"store\", ...]` keys, and `setQueryDefaults(queryKeys.all, { staleTime: 60_000 })` matches by key prefix.\n\n- **Why export the client:** a slice can attach a persister or defaults without mounting a second provider (a second cache).\n- **What breaks if the shared file did it:** a global 60 s `staleTime` or whole-cache AsyncStorage persistence would change and leak every other project's data.\n- **Guideline:** doc 00 rule 3, each project owns its query keys, stores and endpoints; `shared` stays small (rule 2).\n- **Why the `window` guard:** `app.config.ts` sets `web.output: \"static\"`, so Expo Router renders every route in Node at export time. A bare `window.…` assignment at module scope throws there; native never sees it.\n- **How you arrive at it:** write the provider in M1, then notice the store needs persistence and ask where that code belongs.",
       links: [
+        { title: "Expo Router: static rendering", url: "https://docs.expo.dev/router/web/static-rendering" },
         { title: "TanStack Query: persistQueryClient", url: "https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient" },
         { title: "TanStack Query: React Native", url: "https://tanstack.com/query/latest/docs/framework/react/react-native" },
         { title: "TanStack Query: query keys", url: "https://tanstack.com/query/latest/docs/framework/react/guides/query-keys" },
@@ -612,6 +613,29 @@ QUIZ.register({
       ],
     },
 
+    {
+      id: "launcher-41",
+      type: "mcq",
+      level: 2,
+      topics: ["Expo Config & EAS"],
+      files: ["app.config.ts"],
+      prompt:
+        "In `app.config.ts`, `expo-image-picker`, `expo-camera` and `expo-media-library` all receive the same `CAMERA_PERMISSION` / `PHOTOS_PERMISSION` constants instead of their own wording. What goes wrong if each plugin gets a project-specific string (say, image-picker: \"Take a photo to attach to a journal entry\", camera: \"Capture photos and videos in Camera & Social\")?",
+      choices: [
+        "iOS keeps one `NSCameraUsageDescription` per app; the first plugin in the list wins, so Camera & Social shows the journal wording",
+        "iOS shows each plugin's string when the matching module asks, because usage strings are stored per framework",
+        "Prebuild fails with a duplicate `Info.plist` key error",
+        "Nothing on iOS, but Android shows the last string because `AndroidManifest.xml` keeps one entry per permission",
+      ],
+      answer: 0,
+      explain:
+        "A usage string is an `Info.plist` key, and an app has one `Info.plist`. Every plugin writes the same `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription` key, so only one value survives prebuild, and with plugin mods it is the plugin listed first. The system prompt then names the wrong feature for every other project.\n\n- **Fix in the repo:** one `CAMERA_PERMISSION` and one `PHOTOS_PERMISSION`, worded to cover the journal and Camera & Social, passed to all three plugins.\n- **Why the distractors fail:** iOS has no per-framework usage strings, prebuild silently overwrites rather than erroring, and Android permissions carry no user-facing text in the manifest.\n- **Doc 00 connection:** `app.config.ts` is shared infra, so a per-project setting that maps to one app-wide key must be decided once.\n- **How you arrive at it:** run `npx expo prebuild --platform ios --no-install` and read the generated `Info.plist`.",
+      links: [
+        { title: "Expo: permissions guide", url: "https://docs.expo.dev/guides/permissions" },
+        { title: "expo-camera: config plugin", url: "https://docs.expo.dev/versions/latest/sdk/camera" },
+        { title: "Apple: NSCameraUsageDescription", url: "https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription" },
+      ],
+    },
     // ---------------------------------------------------------------- Level 3
     {
       id: "launcher-29",

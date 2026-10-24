@@ -251,14 +251,14 @@ QUIZ.register({
       prompt:
         "`saveToGallery()` starts with `MediaLibrary.requestPermissionsAsync(true)`. What does the `true` argument ask for, and why?\n\nSearch first: Open `utils/shareOut.ts` and read the comment; then check `requestPermissionsAsync` in the expo-media-library reference to see what its first argument means.",
       choices: [
-        "Write-only access. Adding a file to an album doesn't need read access to the library, and on iOS the add-only prompt is much less alarming.",
+        "Write-only access. Adding a file to the library doesn't need read access to it, and on iOS the add-only prompt is much less alarming.",
         "A forced re-prompt, even if the user denied access before",
         "Access to the GPS location stored in media (ACCESS_MEDIA_LOCATION)",
         "The iOS limited-selection picker, instead of full access",
       ],
       answer: 0,
       explain:
-        "The first parameter of `requestPermissionsAsync` is `writeOnly`. Saving a capture into an album needs no read access to the library, and asking for the narrowest permission that does the job gives a much less alarming prompt (the code comment says exactly that). The function then reuses the dedicated `\"Why Not RN\"` album (`Album.get`, then `Asset.create(uri, album)`) or creates it with the first asset, so captures never scatter across the camera roll.\n\n**Design decision.** Permissions are requested per capability: camera for the preview, microphone for sound, write-only for saving, full read only for the Library tab (`useAssets`). Each has its own failure path.\n\n**Failure mode if done otherwise.** Asking for full library access on the first shutter tap invites a denial that then breaks the Library tab too.\n\nMeet this in milestone **M6** (save to the gallery) and the permission section of docs/02-camera-social.html.",
+        "The first parameter of `requestPermissionsAsync` is `writeOnly`. Saving a capture into an album needs no read access to the library, and asking for the narrowest permission that does the job gives a much less alarming prompt (the code comment says exactly that). The function then reuses the dedicated `\"Why Not RN\"` album (`Album.get`, then `Asset.create(uri, album)`) or creates it with the first asset, so captures never scatter across the camera roll.\n\n**iOS caveat.** Add-only access is enough to add a file, but reading or creating an album needs **full** access. So on iOS the function then calls `getPermissionsAsync(false)`, a read check that never prompts, and when `accessPrivileges !== \"all\"` it saves with `Asset.create(uri)` and no album: the photo lands in Recents instead of the save failing. Only with full access does it go through `Album.get` / `Album.create`.\n\n**Design decision.** Permissions are requested per capability: camera for the preview, microphone for sound, write-only for saving, full read only for the Library tab (`useAssets`). Each has its own failure path.\n\n**Failure mode if done otherwise.** Asking for full library access on the first shutter tap invites a denial that then breaks the Library tab too.\n\nMeet this in milestone **M6** (save to the gallery) and the permission section of docs/02-camera-social.html.",
       links: [
         { title: "expo-media-library API reference", url: "https://docs.expo.dev/versions/latest/sdk/media-library/" },
         { title: "Apple: Delivering an enhanced privacy experience in your Photos app", url: "https://developer.apple.com/documentation/photokit/delivering-an-enhanced-privacy-experience-in-your-photos-app" },
@@ -401,7 +401,7 @@ QUIZ.register({
       ],
       answer: [0, 1, 2, 3],
       explain:
-        "This is a hand-rolled \"live query\": load once, subscribe to `addDatabaseChangeListener`, reload with a short debounce, and guard with a `cancelled` flag on unmount. Events only arrive because the provider is opened with `enableChangeListener: true`. The listener is process-wide, so the file-name filter (`camera-social.db`) keeps other projects' databases from waking the feed. The debounce merges a rapid-fire burst of per-row events into one reload. TanStack Query is not involved: local SQLite is the source of truth, and the app-wide client is for remote data.\n\n`useCaptureItem` wraps `select` in `useCallback([id])` and the other hooks pass stable module-level functions, so the `[db, select]` effect only re-subscribes when the id changes.\n\n**Takeaway.** Subscribe once per hook, filter by source, and keep dependencies stable. See the **Data model** bullets in docs/02-camera-social.html.",
+        "This is a hand-rolled \"live query\": load once, subscribe to `addDatabaseChangeListener`, reload with a short debounce, and guard with a `cancelled` flag on unmount. Events only arrive because the provider is opened with `enableChangeListener: true`. The listener is process-wide, so the file-name filter (`camera-social.db`) keeps other projects' databases from waking the feed. The debounce merges a rapid-fire burst of per-row events into one reload. TanStack Query is not involved: local SQLite is the source of truth, and the app-wide client is for remote data.\n\n`useCaptureItem` wraps `select` in `useCallback([id])` and the other hooks pass stable module-level functions, so the `[db, fallback, select]` effect only re-subscribes when the id changes (`fallback` is the first `initial`, frozen in `useState`). Each result is stamped with the `select` that produced it (`source`), so when the id changes the hook returns the fallback with `loading: true` immediately instead of the previous capture's row.\n\n**Takeaway.** Subscribe once per hook, filter by source, and keep dependencies stable. See the **Data model** bullets in docs/02-camera-social.html.",
       links: [
         { title: "expo-sqlite API reference", url: "https://docs.expo.dev/versions/latest/sdk/sqlite/" },
         { title: "React: useCallback", url: "https://react.dev/reference/react/useCallback" },
@@ -440,10 +440,12 @@ QUIZ.register({
       topics: ["Media", "Performance", "Platform Differences"],
       files: [
         "src/projects/camera-social/hooks/useAssets.ts",
+        "src/projects/camera-social/media/paths.ts",
         "src/projects/camera-social/components/library/AssetCell.tsx",
+        "src/projects/camera-social/__tests__/utils.test.ts",
       ],
       prompt:
-        "`gridUri(id)` in `useAssets.ts` returns `ph://${id}` on iOS and the bare `id` on Android. The library grid never resolves a real file path per cell. Why?\n\nSearch first: Read `gridUri()` and `AssetCell`; look at the expo-image source options and Apple's PHImageManager to see why a sized request is cheaper.",
+        "`useAssets.ts` builds each grid cell's source with `libraryGridUri(id, Platform.OS)` from `media/paths.ts`: on iOS a `ph://` PhotoKit URI, on Android the bare `id`. The library grid never resolves a real file path per cell. Why?\n\nSearch first: Read `libraryGridUri()` and its tests in `__tests__/utils.test.ts`, then `AssetCell`; look at the expo-image source options and Apple's PHImageManager to see why a sized request is cheaper.",
       choices: [
         "Resolving each asset's file is a native round-trip per cell (on iOS possibly an iCloud download). With `ph://`, expo-image asks PhotoKit for a sized thumbnail, and on Android the id is already a `content://` URI.",
         "`ph://` URIs skip the media-library permission check, so the grid can render before access is granted.",
@@ -452,7 +454,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "The grid only needs a thumbnail, and expo-image understands PhotoKit local identifiers: `ph://<id>` makes it ask PhotoKit for a sized thumbnail. Resolving each asset's real file is a native round-trip per cell and on iOS may trigger an iCloud download. On Android the asset id is already a loadable `content://` URI. `AssetCell` adds `allowDownscaling` and `cachePolicy=\"memory\"`, so a 5,000-photo library stays at flat memory. The expensive `resolveLibraryAsset` (info plus EXIF) runs only on an explicit Edit, Add or Share.\n\n**Failure mode if done otherwise.** Resolving files per cell makes scrolling stutter and can download originals nobody looks at (failure mode 5, OOM and cost).\n\n**Takeaway.** Do the cheap thing per cell and the expensive thing per user intent.\n\nThis is milestone **M3** in docs/02-camera-social.html.",
+        "The grid only needs a thumbnail, and expo-image understands PhotoKit local identifiers: `ph://<id>` makes it ask PhotoKit for a sized thumbnail. Resolving each asset's real file is a native round-trip per cell and on iOS may trigger an iCloud download. On Android the asset id is already a loadable `content://` URI. SDK 57's expo-media-library already returns iOS ids as `ph://<localIdentifier>`, so `libraryGridUri` adds the scheme only to a bare id; prefixing every id gave `ph://ph://…` and a blank grid, and the tests pin both forms plus the Android pass-through. `AssetCell` adds `allowDownscaling` and `cachePolicy=\"memory\"`, so a 5,000-photo library stays at flat memory. The expensive `resolveLibraryAsset` (info plus EXIF) runs only on an explicit Edit, Add or Share.\n\n**Failure mode if done otherwise.** Resolving files per cell makes scrolling stutter and can download originals nobody looks at (failure mode 5, OOM and cost).\n\n**Takeaway.** Do the cheap thing per cell and the expensive thing per user intent.\n\nThis is milestone **M3** in docs/02-camera-social.html.",
       links: [
         { title: "expo-media-library API reference", url: "https://docs.expo.dev/versions/latest/sdk/media-library/" },
         { title: "expo-image API reference", url: "https://docs.expo.dev/versions/latest/sdk/image/" },
@@ -548,16 +550,17 @@ QUIZ.register({
       prompt:
         "Trace a photo shared from another app into Why-Not-ReactNative, on iOS and on Android. Explain:\n\n- why both the `dataUrl=` rewrite in `+native-intent.tsx` **and** `useInboundShareRouting` exist\n- why `ShareIntentProvider` sits in the **root** layout with `resetOnBackground: false`\n- why `share-inbound.tsx` calls `share.reset()` after importing\n\nSearch first: Follow the path from `app.config.ts` through `src/app/_layout.tsx`, `+native-intent.tsx` and the routing hook; read the expo-share-intent README for what `resetOnBackground` does.",
       model:
-        "On iOS the expo-share-intent share extension opens the app with a URL like `whynotreactnative://dataUrl=…ShareKey`. That isn't a route, so `rewriteCameraSocialPath` sends it to `/projects/camera-social/share-inbound`, where the provider reads the payload from the native module. On Android a share is a SEND **intent**, not a URL, so `+native-intent` never sees it. Instead `useInboundShareRouting` (mounted at the root through the `ShareIntentRouting` component) watches `hasShareIntent` and pushes the inbound route from wherever the user is. The provider must be at the root because a share can arrive while the user is in the launcher or another project, before the camera-social layout has ever mounted. `resetOnBackground: false` keeps the payload alive until it has been imported, instead of dropping it when the app is backgrounded. After import (or discard) the screen calls `share.reset()`. Otherwise `hasShareIntent` stays true, and the routing effect would push the inbound screen again the next time the pathname changes.",
+        "On iOS the expo-share-intent share extension opens the app with a URL like `whynotreactnative://dataUrl=…ShareKey`. That isn't a route, so `rewriteCameraSocialPath` sends it to `/projects/camera-social/share-inbound`, where the provider reads the payload from the native module. On Android a share is a SEND **intent**, not a URL, so `+native-intent` never sees it. Instead `useInboundShareRouting` (mounted at the root through the `ShareIntentRouting` component) watches `hasShareIntent` and pushes the inbound route from wherever the user is. The provider must be at the root because a share can arrive while the user is in the launcher or another project, before the camera-social layout has ever mounted. `resetOnBackground: false` keeps the payload alive until it has been imported, instead of dropping it when the app is backgrounded. After import (or discard) the screen calls `share.reset()`, which clears the payload so `hasShareIntent` goes false. The hook has a second guard: it remembers the last `shareIntent` object in a ref and routes each object only once, because expo-share-intent creates a new object per share. Swiping the inbound screen away without importing doesn't reset the intent, so keying on \"has files\" alone would push the screen straight back on the next pathname change. Discard also handles a cold start from the share extension, where there's nothing underneath: when `router.canGoBack()` is false it does `router.replace(\"/projects/camera-social\")` instead of `back()`.",
       rubric: [
         "iOS uses a URL callback (`dataUrl=`) rewritten by `+native-intent`; Android uses an intent that only the hook can catch",
         "The provider and routing hook live at the root because shares arrive regardless of which project is open",
         "`resetOnBackground: false` keeps the share until it has been imported",
-        "`reset()` clears `hasShareIntent`, so the effect doesn't re-open the inbound screen",
+        "The hook routes each `shareIntent` object once (ref identity), so dismissing the screen doesn't re-push it; `reset()` clears the payload after import",
         "Importing copies the files out of the extension's shared container through the normal ingest (origin `\"share\"`)",
+        "Optional: Discard falls back to `router.replace` when `canGoBack()` is false (cold start from the extension)",
       ],
       explain:
-        "Inbound sharing arrives by two different paths. On iOS the share extension opens the app with a URL containing `dataUrl=`; that is not a route, so the pure `rewriteCameraSocialPath` sends it to the inbound screen, and the provider reads the payload from the native module. On Android a share is a SEND **intent**, not a URL, so `+native-intent` never sees it; `useInboundShareRouting` watches `hasShareIntent` and pushes the same route from wherever the user is.\n\nThe provider lives in the **root** layout because a share can arrive while the user is in the launcher or another project, before this project's layout has ever mounted. `resetOnBackground: false` keeps the payload until it is imported (the default is true). `share.reset()` clears `hasShareIntent`, otherwise the effect would reopen the screen on the next pathname change.\n\n**Config side.** The `expo-share-intent` plugin in `app.config.ts` needs an App Group, `iosActivationRules` and `androidIntentFilters`.\n\nSee milestone **M6** and the **Launcher** table in docs/02-camera-social.html.",
+        "Inbound sharing arrives by two different paths. On iOS the share extension opens the app with a URL containing `dataUrl=`; that is not a route, so the pure `rewriteCameraSocialPath` sends it to the inbound screen, and the provider reads the payload from the native module. On Android a share is a SEND **intent**, not a URL, so `+native-intent` never sees it; `useInboundShareRouting` watches `hasShareIntent` and pushes the same route from wherever the user is.\n\nThe provider lives in the **root** layout because a share can arrive while the user is in the launcher or another project, before this project's layout has ever mounted. `resetOnBackground: false` keeps the payload until it is imported (the default is true). `share.reset()` clears the payload after import or discard. Because a swiped-away screen leaves the intent in place, the hook also stores the last routed `shareIntent` in a ref and skips an object it has already routed (expo-share-intent makes a new object per share), so the screen is not pushed back on the next pathname change. Discard checks `router.canGoBack()` and falls back to `router.replace(\"/projects/camera-social\")` after a cold start from the extension.\n\n**Config side.** The `expo-share-intent` plugin in `app.config.ts` needs an App Group, `iosActivationRules` and `androidIntentFilters`.\n\nSee milestone **M6** and the **Launcher** table in docs/02-camera-social.html.",
       links: [
         { title: "Expo Router: +native-intent", url: "https://docs.expo.dev/router/advanced/native-intent" },
         { title: "expo-share-intent on GitHub", url: "https://github.com/achorein/expo-share-intent" },
@@ -935,16 +938,16 @@ QUIZ.register({
       prompt:
         "`TrimmedVideoView` sets `p.loop = false` in its `useVideoPlayer` setup and loops by hand: the `timeUpdate` and `playToEnd` listeners both ask `trimLoopSeek(…)` where to seek. `VideoTrimScreen.save` stores the trim end as `null` when the right handle stays at the end of the clip. Walk through a clip with `trimStartMs = 3000` and `trimEndMs = null`. What happens at the end of the clip, and what would go wrong if the setup used `p.loop = end == null` instead?\n\nSearch first: Read `utils/trim.ts` with its tests, then the listeners in `TrimmedVideoView`; check what the expo-video player does when `loop` is true.",
       model:
-        "Setup seeks to 0:03 (`p.currentTime = start` is fine there, because `p` is the callback parameter). During playback, `timeUpdate` calls `trimLoopSeek(currentTime, 3, null)`, which returns null because there is no end trim, so nothing happens. Native looping is off, so the player really stops at the end of the file and `playToEnd` fires. `trimLoopSeek(…, true)` returns 3, the handler seeks back with `seekBy(3 - currentTime)` and calls `play()` again if the page is still `active`. Every loop starts at 0:03. With `p.loop = end == null`, this clip would get native looping, which always restarts at 0:00. The first play would start at 0:03, but every later loop would replay the three seconds the user trimmed away, and the `timeUpdate` check couldn't catch it because it only acts on an end trim. Clips with an end trim would still be fine, since `timeUpdate` seeks back to `start` before the file ends. The cost of looping by hand is a tiny hitch at the loop point, even for untrimmed clips. The gain is one code path that respects the start for every combination of null and non-null start and end.",
+        "Setup seeks to 0:03 (`p.currentTime = start` is fine there, because `p` is the callback parameter). During playback, `timeUpdate` calls `trimLoopSeek(currentTime, 3, null)`. There is no end trim, and the position is not more than 0.1 s before the start, so it returns null and nothing happens. Native looping is off, so the player really stops at the end of the file and `playToEnd` fires. `trimLoopSeek(…, true)` returns 3, the handler seeks back with `seekBy(3 - currentTime)` and calls `play()` again if the page is still `active`. Every loop starts at 0:03. With `p.loop = end == null`, this clip would get native looping, which always restarts at 0:00. The player would jump to 0:00 and show the trimmed-away head until the next `timeUpdate` (every 0.25 s) notices `currentTime < start - 0.1` and seeks back to 0:03. So every loop would flash the footage the user cut, and two loop mechanisms (native restart and the hand-rolled clamp) would fight over the same transition. Clips with an end trim would still be fine, since `timeUpdate` seeks back to `start` before the file ends. The cost of looping by hand is a tiny hitch at the loop point, even for untrimmed clips. The gain is one code path that respects the start for every combination of null and non-null start and end.",
       rubric: [
-        "`timeUpdate` only acts when there is an end trim (`trimLoopSeek` returns null otherwise)",
+        "`timeUpdate` acts only past an end trim or more than 0.1 s before the start; with neither it returns null",
         "With no end trim, `playToEnd` is the loop point, and it seeks to `start`, not 0",
-        "Native `loop` restarts at 0:00, so it would replay the trimmed head when only the start is trimmed",
+        "Native `loop` restarts at 0:00, so the trimmed head would flash on every loop until the next `timeUpdate` clamps it back, with two loop mechanisms competing",
         "Seeks go through `seekBy`, and `play()` only resumes when the page is `active`",
         "The decision lives in the pure `utils/trim.ts` and is unit-tested in `trim.test.ts`",
       ],
       explain:
-        "With `trimStartMs = 3000` and `trimEndMs = null`, setup seeks to 0:03. `timeUpdate` calls `trimLoopSeek(currentTime, 3, null)`, which returns null because there is no end trim. Native looping is off, so the clip really ends and `playToEnd` fires; `trimLoopSeek(..., true)` returns 3, the handler seeks back with `seekBy` and calls `play()` if the page is still active. Every loop starts at 0:03. With `p.loop = end == null`, native looping would restart at 0:00, replaying the head the user trimmed away, and the `timeUpdate` check could not catch it because it only acts on an end trim. Clips with an end trim would be fine, since `timeUpdate` seeks back before the file ends.\n\n**Trade-off.** Looping by hand costs a tiny hitch at the loop point and buys one code path that respects the start for every combination of null start and end.\n\n**Takeaway.** Put the decision in a pure function with tests (`trim.test.ts`). See milestone **M7** in docs/02-camera-social.html.",
+        "With `trimStartMs = 3000` and `trimEndMs = null`, setup seeks to 0:03. `timeUpdate` calls `trimLoopSeek(currentTime, 3, null)`, which returns null: there is no end trim and the position is not before the start. Native looping is off, so the clip really ends and `playToEnd` fires; `trimLoopSeek(..., true)` returns 3, the handler seeks back with `seekBy` and calls `play()` if the page is still active. Every loop starts at 0:03. With `p.loop = end == null`, native looping would restart at 0:00. The start clamp in `trimLoopSeek` (`currentSec < startSec - 0.1` returns `startSec`) would pull it back, but only on the next `timeUpdate`, so each loop would flash up to a quarter second of the trimmed head, and two loop mechanisms would compete. Clips with an end trim would be fine, since `timeUpdate` seeks back before the file ends.\n\n**Trade-off.** Looping by hand costs a tiny hitch at the loop point and buys one code path that respects the start for every combination of null start and end. The 0.1 s tolerance exists because a seek lands near, not exactly on, its target.\n\n**Takeaway.** Put the decision in a pure function with tests (`trim.test.ts`). See milestone **M7** in docs/02-camera-social.html.",
       links: [
         { title: "expo-video API reference", url: "https://docs.expo.dev/versions/latest/sdk/video/" },
         { title: "React: keeping components pure", url: "https://react.dev/learn/keeping-components-pure" },
@@ -978,6 +981,63 @@ QUIZ.register({
       links: [
         { title: "expo-image-manipulator API reference", url: "https://docs.expo.dev/versions/latest/sdk/imagemanipulator/" },
         { title: "Skia: color filters (ColorMatrix)", url: "https://wcandillon.github.io/react-native-skia/v2/docs/color-filters/" },
+        { title: "Skia: images", url: "https://wcandillon.github.io/react-native-skia/v2/docs/images/" },
+      ],
+    },
+    {
+      id: "camera-social-41",
+      type: "mcq",
+      level: 3,
+      topics: ["Reanimated", "Testing"],
+      files: [
+        "src/projects/camera-social/utils/zoom.ts",
+        "src/projects/camera-social/hooks/useCameraController.ts",
+        "src/projects/camera-social/__tests__/utils.test.ts",
+      ],
+      prompt:
+        "An earlier version of `utils/zoom.ts` declared `function factorToZoom(factor: number, max = MAX_ZOOM_FACTOR) { \"worklet\"; … }`. Every Jest test passed and dev builds looked fine, yet a Release build crashed as soon as the camera screen opened. Why, and what does the current code do instead?\n\nSearch first: Read the comment above `factorToZoom` in `utils/zoom.ts`, then find where `useCameraController` calls these helpers from a gesture; check the worklets docs for what a worklet captures from its closure.",
+      choices: [
+        "The worklets plugin captures closure variables used in the function body, but not ones referenced only from a default parameter, so `MAX_ZOOM_FACTOR` is `undefined` on the UI runtime. The helpers now take an optional `maxFactor` and resolve `maxFactor ?? MAX_ZOOM_FACTOR` inside the body.",
+        "Default parameters are a syntax error on the UI runtime, so the helpers now use `arguments.length` to detect a missing argument.",
+        "Exported `const`s are frozen in Release builds, so `MAX_ZOOM_FACTOR` had to become a shared value read with `.get()`.",
+        "Release builds strip the `\"worklet\"` directive, so the helpers ran on the JS thread and the camera's `zoom` prop received a promise.",
+      ],
+      answer: 0,
+      explain:
+        "A worklet is serialized to the UI runtime together with the closure variables the plugin finds in its **body**. A module constant referenced only from a default parameter (`max = MAX_ZOOM_FACTOR`) isn't captured, so on the UI thread the default evaluates to `undefined`, and the zoom math called from the camera's gesture and animated props breaks the Release build as the camera screen opens. The fix keeps the call sites unchanged: the parameter becomes `maxFactor?: number` and the body resolves `const max = maxFactor ?? MAX_ZOOM_FACTOR`, which the plugin does capture.\n\n**Why tests didn't catch it.** Jest calls the helpers as plain functions on the JS thread, where the default parameter works normally. Only a device run of the worklet path (ideally a Release build) exercises the capture.\n\n**Takeaway.** In a `\"worklet\"` function, read every outside value in the body. See milestone **M2** and the failure mode **A worklet that only crashes in Release** in docs/02-camera-social.html.",
+      links: [
+        { title: "Reanimated: worklets", url: "https://docs.swmansion.com/react-native-reanimated/docs/guides/worklets" },
+        { title: "Worklets: troubleshooting", url: "https://docs.swmansion.com/react-native-worklets/docs/guides/troubleshooting" },
+      ],
+    },
+    {
+      id: "camera-social-42",
+      type: "multi",
+      level: 3,
+      topics: ["Media", "Permissions", "Platform Differences", "Config Plugins"],
+      files: [
+        "src/projects/camera-social/hooks/useCapture.ts",
+        "src/projects/camera-social/utils/shareOut.ts",
+        "src/projects/camera-social/editor/nativeDeps.ts",
+        "app.config.ts",
+      ],
+      prompt:
+        "Several camera-social fixes work around platform behaviour rather than app bugs. Select all the statements that match the current code.\n\nSearch first: Read `stopRecording` in `hooks/useCapture.ts`, `saveToGallery` in `utils/shareOut.ts`, `decodeForSkia` in `editor/nativeDeps.ts`, and the permission constants at the top of `app.config.ts`.",
+      choices: [
+        "On iOS a `stopRecording()` that arrives before the native recorder has started is a silent no-op, so `useCapture` re-sends it every 250 ms, up to 20 times, until `recordAsync` settles",
+        "On iOS `saveToGallery` checks `getPermissionsAsync(false)` without prompting and, unless `accessPrivileges` is `\"all\"`, saves with `Asset.create(uri)` and no album",
+        "When Skia can't decode the file (HEIC), `decodeForSkia` transcodes it to JPEG with `expo-image-manipulator` and decodes again",
+        "`expo-camera`, `expo-image-picker` and `expo-media-library` get the same `CAMERA_PERMISSION` / `PHOTOS_PERMISSION` strings, because iOS keeps one usage string per permission and the first plugin to set it wins",
+        "`saveToGallery` requests full library access first and only falls back to write-only if the user declines",
+        "The HEIC fallback converts pixels to a JS array and applies the colour matrix in a loop",
+      ],
+      answer: [0, 1, 2, 3],
+      explain:
+        "All four true statements are platform facts the code accommodates. iOS configures the movie output before recording starts, and `stopRecording()` in that window does nothing, so `useCapture` keeps re-sending it (250 ms, max 20 tries) and `cancelStopRetry()` runs as soon as `recordAsync` resolves or rejects. On iOS, adding to the library works with add-only access, but reading or creating an album needs full access; the non-prompting `getPermissionsAsync(false)` decides whether to use the album or just Recents. Skia's `MakeImageFromEncoded` returns null for HEIC, which a filter-only edit would pass straight through, so `decodeForSkia` lets the platform decoder re-encode it as JPEG first. iOS has one `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription` per app, so every plugin gets the shared constants.\n\nThe false ones: `saveToGallery` only ever *requests* write-only access (`requestPermissionsAsync(true)`), and nothing moves pixels through JS; the fallback is a native transcode.\n\nSee **The media pipeline**, milestones **M6** and **M7**, and the failure modes in docs/02-camera-social.html.",
+      links: [
+        { title: "expo-camera API reference", url: "https://docs.expo.dev/versions/latest/sdk/camera/" },
+        { title: "expo-media-library API reference", url: "https://docs.expo.dev/versions/latest/sdk/media-library/" },
+        { title: "expo-image-manipulator API reference", url: "https://docs.expo.dev/versions/latest/sdk/imagemanipulator/" },
         { title: "Skia: images", url: "https://wcandillon.github.io/react-native-skia/v2/docs/images/" },
       ],
     },

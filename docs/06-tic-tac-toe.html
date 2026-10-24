@@ -1571,10 +1571,11 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
   )
 }
 
-// In Board's return:
-&lt;Text style={styles.status} accessibilityLiveRegion="polite"&gt;
+// In Board's return. ThemedText comes from
+// '@/src/shared/components/themed-text' and follows the colour scheme.
+&lt;ThemedText style={styles.status} accessibilityLiveRegion="polite"&gt;
   {status}
-&lt;/Text&gt;
+&lt;/ThemedText&gt;
 {squares.map((square, squareIndex) =&gt; (
   &lt;Square
     key={`square-${squareIndex}`}
@@ -1597,6 +1598,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
   <li><code>accessibilityState={{ disabled }}</code> is announced as "dimmed" or "disabled"; it does not block presses, which is why <code>handleClick</code> still guards on <code>squares[i] || winner</code>.</li>
   <li><code>accessibilityLiveRegion="polite"</code> announces status changes (<code>Next player: O</code>, <code>Winner X</code>) on Android. It is an Android prop; on iOS it has no effect.</li>
   <li>The move buttons need no <code>accessibilityLabel</code>: their text child (<code>Go to move #2</code>) already reads well. <code>selected</code> tells the user which move is showing.</li>
+  <li>The status line is a <code>ThemedText</code>, not a plain <code>Text</code>. A plain <code>Text</code> defaults to black, so in dark mode it disappears against the dark screen background. <code>ThemedText</code> picks its colour from the scheme (and <code>styles.status</code> gains <code>fontSize: 14, lineHeight: 17</code>). The squares and move buttons keep plain <code>Text</code>, because they sit on a fixed <code>#fff</code> background where black always reads.</li>
 </ul>
 <div class="note">
   <strong>Checkpoint 9: screen-reader pass</strong>
@@ -1610,6 +1612,7 @@ function Square({ value, label, disabled, onSquareClick }: SquareProps) {
   <li><strong>The root Stack</strong>, <code>src/app/_layout.tsx</code>: it generates one <code>Stack.Screen</code> per project. Because <code>singleScreen</code> is set, this one is declared as <code>projects/tic-tac-toe/index</code> with the registry <code>title</code> as its header, since there is no inner layout to supply a header.</li>
   <li><strong>The slice</strong>, <code>src/projects/tic-tac-toe/</code>: only <code>utils/game.ts</code> and <code>__tests__/game.test.ts</code>. Isolation rules apply: nothing in it imports another project, and no other project imports it.</li>
 </ul>
+<p>One launcher-driven change to the tutorial code: the launcher supports dark mode, so the status line uses the shared <code>ThemedText</code> (see <a href="#accessibility">Stage 9</a>) instead of the plain <code>Text</code> shown in earlier stages.</p>
 <p>The store itself stays in the route file as a module-scope <code>useGameStore</code>, so it lives as long as the JS runtime does. Leaving the screen and coming back keeps the game; there is no persistence, so a cold launch starts fresh.</p>
 <div class="note">
   <strong>Checkpoint 10: run it</strong>

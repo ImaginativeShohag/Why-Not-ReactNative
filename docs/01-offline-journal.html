@@ -142,7 +142,7 @@
 <ul>
   <li><strong>Tone:</strong> calm, paper-like, content-forward. Generous whitespace, one accent colour, serif for entry body text and sans for chrome.</li>
   <li><strong>Density:</strong> the timeline is the app. Everything else is a modal or a sheet over it.</li>
-  <li><strong>Themes:</strong> full light/dark support driven by <code>useColorScheme</code>, plus a user override stored locally (system / light / dark) — this repo's <code>themed-text</code> / <code>themed-view</code> pattern already gives you the base.</li>
+  <li><strong>Themes:</strong> full light/dark support driven by <code>useColorScheme</code>, plus a user override stored locally (system / light / dark) — this repo's <code>themed-text</code> / <code>themed-view</code> pattern already gives you the base. The override is scoped to the journal (<code>useJournalScheme()</code>, a nested navigation <code>ThemeProvider</code> and a <code>StatusBar</code> in its layout), never <code>Appearance.setColorScheme</code>, which would change the whole app.</li>
   <li><strong>Motion:</strong> subtle only. Entry insert/delete uses layout animation; nothing bounces.</li>
 </ul>
 
@@ -307,7 +307,8 @@
 │   ├── useSearch.ts, useDebouncedValue.ts, useAutosave.ts, useDeleteWithUndo.ts
 │   ├── useAttachments.ts, useJournalActions.ts (Settings maintenance verbs)
 │   ├── useSyncStatus.ts            display status + useSyncTriggers() mounted once
-│   ├── useAppLock.ts, usePalette.ts, useThemeOverride.ts
+│   ├── useAppLock.ts
+│   ├── usePalette.ts               usePalette() + useJournalScheme(): the journal's own light/dark
 ├── components/                     dumb: EntryCard, MoodPicker, TagChipRow, SwipeToDelete, LockGate,
 │                                   LockScreenView, SyncBanner, UndoSnackbar, Fab, AttachmentStrip,
 │                                   CalendarMonthView, SearchHitRow, HighlightedText, SettingsRows, …
@@ -355,81 +356,96 @@
 </ul>
 
 <h3>Provider stack</h3>
-<p>The journal itself does not use TanStack Query; its reactive reads come from its own <code>useLiveQuery</code>. The root layout already mounts <code>QueryProvider</code>, <code>SafeAreaProvider</code>, <code>GestureHandlerRootView</code> and <code>ThemeProvider</code> globally. Your project layout adds only what's yours:</p>
+<p>The journal itself does not use TanStack Query; its reactive reads come from its own <code>useLiveQuery</code>. The root layout already mounts <code>QueryProvider</code>, <code>SafeAreaProvider</code>, <code>GestureHandlerRootView</code> and <code>ThemeProvider</code> globally. Your project layout adds only what's yours, including a nested <code>ThemeProvider</code> and <code>StatusBar</code> for the journal's own Theme setting:</p>
 <div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/offline-journal/_layout.tsx</span><span class="lang">tsx</span></div><pre><code>import { SQLiteProvider } from "expo-sqlite";
 import { Stack } from "expo-router";
-import { Component, Suspense, useEffect, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "expo-router/react-navigation";
+import { StatusBar } from "expo-status-bar";
+import { Component, useEffect, type ReactNode } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { LockGate } from "@/src/projects/offline-journal/components/LockGate";
 import { DATABASE_NAME } from "@/src/projects/offline-journal/db/client";
 import { initDatabase } from "@/src/projects/offline-journal/db/init";
 import { useAppLock } from "@/src/projects/offline-journal/hooks/useAppLock";
-import { usePalette } from "@/src/projects/offline-journal/hooks/usePalette";
+import {
+  useJournalScheme,
+  usePalette,
+} from "@/src/projects/offline-journal/hooks/usePalette";
 import { useSyncTriggers } from "@/src/projects/offline-journal/hooks/useSyncStatus";
-import { useThemeOverride } from "@/src/projects/offline-journal/hooks/useThemeOverride";
-import { useSettingsStore } from "@/src/projects/offline-journal/stores/settingsStore";
 import { ThemedText } from "@/src/shared/components/themed-text";
 
+// Module scope: the provider reopens the database whenever `options` changes
+// identity, so it must not be a fresh object per render.
+const DB_OPTIONS = { enableChangeListener: true };
+
 export default function JournalLayout() {
+  // Not `useSuspense`: suspense mode caches the open promise module-wide, and a
+  // rejected one is never retried (even a new options object chains onto it),
+  // so "Try again" could never recover. Without it the provider throws the
+  // open error into the boundary below, and a reset remounts it with a fresh
+  // open. While opening it renders nothing, which is a frame or two.
   return (
     &lt;DatabaseErrorBoundary&gt;
-      &lt;Suspense fallback={&lt;Booting /&gt;}&gt;
-        &lt;SQLiteProvider
-          databaseName={DATABASE_NAME}
-          options={{ enableChangeListener: true }}
-          onInit={initDatabase}
-          useSuspense
-        &gt;
-          &lt;JournalStack /&gt;
-        &lt;/SQLiteProvider&gt;
-      &lt;/Suspense&gt;
+      &lt;SQLiteProvider
+        databaseName={DATABASE_NAME}
+        options={DB_OPTIONS}
+        onInit={initDatabase}
+      &gt;
+        &lt;JournalStack /&gt;
+      &lt;/SQLiteProvider&gt;
     &lt;/DatabaseErrorBoundary&gt;
   );
 }
 
 function JournalStack() {
   const { locked, obscured, authenticate, lockNow } = useAppLock();
-  const theme = useSettingsStore((state) =&gt; state.theme);
+  const scheme = useJournalScheme();
   const palette = usePalette();
-  useThemeOverride(theme);
   useSyncTriggers();
   // Leaving the journal for the launcher re-arms the lock, so coming back in
   // asks again. (No-op when the lock is off: `locked` is gated on the setting.)
   useEffect(() =&gt; lockNow, [lockNow]);
 
   return (
-    &lt;LockGate locked={locked} obscured={obscured} onUnlock={authenticate}&gt;
-      &lt;Stack
-        screenOptions={{
-          headerTintColor: palette.accent,
-          contentStyle: { backgroundColor: palette.paper },
-        }}
-      &gt;
-        &lt;Stack.Screen name="(tab)" options={{ headerShown: false }} /&gt;
-        &lt;Stack.Screen name="entry/[id]" options={{ title: "Entry" }} /&gt;
-        &lt;Stack.Screen
-          name="entry/compose"
-          options={{ presentation: "modal", title: "New entry" }}
-        /&gt;
-        &lt;Stack.Screen
-          name="onboarding"
-          options={{ headerShown: false, gestureEnabled: false }}
-        /&gt;
-        &lt;Stack.Screen
-          name="lock"
-          options={{ headerShown: false, animation: "fade" }}
-        /&gt;
-      &lt;/Stack&gt;
-    &lt;/LockGate&gt;
-  );
-}
-
-function Booting() {
-  return (
-    &lt;View style={styles.center}&gt;
-      &lt;ActivityIndicator /&gt;
-    &lt;/View&gt;
+    // The Theme setting is applied by nesting a navigation theme and a status
+    // bar style, both scoped to this subtree: leaving the journal unmounts them
+    // and the launcher is back on the system scheme.
+    &lt;ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}&gt;
+      &lt;StatusBar style={scheme === "dark" ? "light" : "dark"} /&gt;
+      &lt;LockGate locked={locked} obscured={obscured} onUnlock={authenticate}&gt;
+        &lt;Stack
+          screenOptions={{
+            headerTintColor: palette.accent,
+            contentStyle: { backgroundColor: palette.paper },
+          }}
+        &gt;
+          {/* The title is what a pushed screen's back button shows; without it
+              iOS falls back to the route group name, "(tab)". */}
+          &lt;Stack.Screen
+            name="(tab)"
+            options={{ headerShown: false, title: "Journal" }}
+          /&gt;
+          &lt;Stack.Screen name="entry/[id]" options={{ title: "Entry" }} /&gt;
+          &lt;Stack.Screen
+            name="entry/compose"
+            options={{ presentation: "modal", title: "New entry" }}
+          /&gt;
+          &lt;Stack.Screen
+            name="onboarding"
+            options={{ headerShown: false, gestureEnabled: false }}
+          /&gt;
+          &lt;Stack.Screen
+            name="lock"
+            options={{ headerShown: false, animation: "fade" }}
+          /&gt;
+        &lt;/Stack&gt;
+      &lt;/LockGate&gt;
+    &lt;/ThemeProvider&gt;
   );
 }
 
@@ -554,7 +570,7 @@ export default function JournalTabLayout() {
   <strong>Do not mount a second QueryClientProvider here</strong>
   <p>Even "for the sync layer only." A second client is a second independent cache — the store project already learned this the hard way when its tab layout mounted one and login-time data was invisible to the tab screens. The global client in <code>src/app/_layout.tsx</code> is the only one.</p>
 </div>
-<p><code>SQLiteProvider</code> sits inside <code>Suspense</code> (the open is not instant on a cold start with a large file) and inside a <code>DatabaseErrorBoundary</code>: a bad migration or full disk then shows a message and a retry instead of a red screen. Note what <code>JournalStack</code> mounts: <code>useAppLock</code> for the gate, <code>useSyncTriggers</code> exactly once, and a cleanup that re-arms the lock when the user leaves the journal for the launcher.</p>
+<p><code>SQLiteProvider</code> sits inside a <code>DatabaseErrorBoundary</code>: a bad migration or full disk then shows a message and a retry instead of a red screen. There is deliberately no <code>Suspense</code> and no <code>useSuspense</code>. Suspense mode keeps <em>one</em> database for the whole app and caches the open promise, including a rejected one, so after a failed open "Try again" re-rendered into the same cached error and could never recover. Without it the provider renders nothing for the frame or two the open takes, throws an open or <code>onInit</code> error into the boundary, and a reset remounts it with a fresh open. The <code>options</code> object lives at module scope (<code>DB_OPTIONS</code>) because the provider's open effect depends on that prop's identity (and suspense mode's cache compares it with <code>===</code>), so a fresh literal on a re-render can close and reopen the database under your screens. Note what <code>JournalStack</code> mounts: <code>useAppLock</code> for the gate, <code>useSyncTriggers</code> exactly once, a cleanup that re-arms the lock when the user leaves the journal for the launcher, and the journal's Theme setting as a scoped <code>ThemeProvider</code> (from <code>expo-router/react-navigation</code>) plus an <code>expo-status-bar</code> <code>StatusBar</code>. Leaving the journal unmounts both, so the launcher is back on the system scheme. The <code>(tab)</code> screen gets <code>title: "Journal"</code> even though its header is hidden: that title is what a pushed screen's back button shows, and without it iOS shows the group name, "(tab)".</p>
 
 <h2 id="data">Data model &amp; flow</h2>
 
@@ -799,9 +815,10 @@ export type TagCount = { name: string; count: number };</code></pre></div>
    │
    ├─► BEGIN TRANSACTION
    │     UPSERT entries  SET …, dirty = 1, updated_at = now
-   │     enqueue(): fold into the waiting never-attempted outbox row
-   │                for this entity (create+update -> create,
-   │                any+delete -> delete), else INSERT a new row
+   │     enqueue(): fold into this entity's latest outbox row, even an
+   │                attempted or dead-lettered one (create+update -> create,
+   │                any+delete -> delete), resetting attempts = 0,
+   │                next_attempt_at = 0, last_error = NULL; else INSERT
    │   COMMIT
    │
    ├─► UI re-renders from the local read (instant, no network)
@@ -817,8 +834,7 @@ export type TagCount = { name: string; count: number };</code></pre></div>
                                     other 4xx┴─► dead-letter (attempts = MAX), show in
                                                  Settings, retry or discard from there</code></pre>
 <p class="figcap">The transaction is non-negotiable: the row change and the outbox entry must land together or not at all.</p>
-<p>Compaction exists because autosave writes every typing pause; shipping each as its own request is waste. It only folds into rows with <code>attempts = 0</code>: a row that has been attempted may already have reached the server, so a newer op has to follow it in order.</p>
-<p class="figcap">The transaction is non-negotiable: the row change and the outbox entry must land together or not at all.</p>
+<p>Compaction exists because autosave writes every typing pause; shipping each as its own request is waste. It folds into the entity's latest outbox row <em>whatever its attempt count</em>, dead letters included, and re-inserts it in place of the old one: the folded row is a new request, so it gets a fresh id and a clean retry state (<code>attempts = 0</code>, <code>next_attempt_at = 0</code>, <code>last_error = NULL</code>). The fresh id matters because the <code>idempotency-key</code> header is <code>&lt;ULID&gt;:&lt;outbox id&gt;</code>. Updating the row in place would send a new body under the old key, and a server that caches responses by key would answer with the old response and drop the edit. <code>id</code> is <code>AUTOINCREMENT</code>, so an id is never handed out twice. That is safe because every payload is the entry's full latest state and every request is idempotent (a PUT or DELETE on the ULID), so resending is always correct. An earlier version only folded into never-attempted rows and queued a second row otherwise. That broke ordering: the old row was backing off, the newer one landed first, and then the old retry landed and overwrote it, or revived an entry the newer row had deleted.</p>
 
 <p>In code, that diagram is one <code>withTransactionAsync</code> call (the file also holds the set-based <code>softDeleteAll</code> and the careful <code>purgeDeleted</code>, which you will need by M7):</p>
 
@@ -874,12 +890,20 @@ export async function saveEntry(db: SQLiteDatabase, input: EntryInput) {
 
     if (tags) await writeTags(db, id, tags);
 
+    // An update keeps the row's original created_at, so read it back: the
+    // server needs it, and a pull rejects any entry without one.
+    const created = await db.getFirstAsync&lt;{ created_at: number }&gt;(
+      "SELECT created_at FROM entries WHERE id = ?",
+      id,
+    );
+
     await enqueue(db, input.id ? "update" : "create", id, {
       id,
       title: input.title,
       body: input.body,
       mood: input.mood,
       tags: tags ?? (await tagNames(db, id)),
+      created_at: created?.created_at ?? now,
       updated_at: now,
     });
   });
@@ -906,8 +930,9 @@ export async function softDeleteEntry(db: SQLiteDatabase, id: string) {
  * Danger zone. Still soft + queued, so the server replicates the wipe.
  *
  * Set-based rather than `softDeleteEntry` per row, so it mirrors `enqueue`'s
- * coalescing in SQL: an unattempted outbox row for the entry becomes the delete
- * (a delete always wins the merge), everything else gets a fresh delete row.
+ * coalescing in SQL: the entry's latest outbox row is replaced by the delete (a
+ * delete always wins the merge), re-inserted so it gets a fresh id — and so a
+ * fresh idempotency key — and a fresh retry state.
  */
 export async function softDeleteAll(db: SQLiteDatabase) {
   const now = Date.now();
@@ -916,25 +941,17 @@ export async function softDeleteAll(db: SQLiteDatabase) {
 
   await db.withTransactionAsync(async () =&gt; {
     await db.runAsync(
-      `UPDATE outbox SET
-         op              = 'delete',
-         payload         = json_object('id', entity_id, 'deleted_at', ?),
-         next_attempt_at = 0
-       WHERE id IN (
+      `DELETE FROM outbox WHERE id IN (
          SELECT MAX(id) FROM outbox
-         WHERE attempts = 0 AND entity_id IN (${live})
+         WHERE entity_id IN (${live})
          GROUP BY entity_id
        )`,
-      now,
     );
     await db.runAsync(
       `INSERT INTO outbox (op, entity, entity_id, payload, created_at)
        SELECT 'delete', 'entry', id, json_object('id', id, 'deleted_at', ?), ?
        FROM entries e
-       WHERE e.deleted_at IS NULL
-         AND NOT EXISTS (
-           SELECT 1 FROM outbox o WHERE o.entity_id = e.id AND o.attempts = 0
-         )`,
+       WHERE e.deleted_at IS NULL`,
       now,
       now,
     );
@@ -992,10 +1009,9 @@ export async function purgeDeleted(
   });
 
   return { purged, files };
-}
-</code></pre></div>
+}</code></pre></div>
 
-<p>And the outbox itself — a table with a backoff column, which is all a retry queue really is. Read <code>completeItem</code> twice: its <code>payload = ?</code> check is what stops a successful response from deleting an edit that was folded in while the request was in flight.</p>
+<p>And the outbox itself — a table with a backoff column, which is all a retry queue really is. Read <code>completeItem</code> twice. An edit folded in while a request is in flight replaces the row under a new id, so a successful response deletes only the request that was actually sent, and the folded edit stays queued. The <code>payload = ?</code> check is a second guard for queues written before folding re-inserted. <code>failItem</code> has the same guards for the opposite case: a failure belongs to the request that was sent, so a fresh edit folded in meanwhile keeps its clean retry state instead of inheriting the old row's backoff. And <code>claimBatch</code> only hands out the oldest live row per entity (the <code>NOT EXISTS</code> on an earlier row with <code>attempts &lt; MAX</code>), so a newer row can never overtake an older one that is backing off. With today's compaction an entity has at most one row; the guard covers queues written before that, and any future path that inserts directly. <code>discardDeadLetters</code> runs in a transaction that also clears <code>dirty</code> on the affected entries (unless another change is still queued): a row left dirty would be skipped by every pull, forever.</p>
 
 <div class="codeblock"><div class="codehead"><span class="fname">src/projects/offline-journal/db/queries/outbox.ts</span><span class="lang">ts</span></div><pre><code>import type { SQLiteDatabase } from "expo-sqlite";
 
@@ -1007,10 +1023,16 @@ export { MAX_ATTEMPTS };
 /**
  * Must be called inside the same transaction as the row change it describes.
  *
- * Compaction: if an item for this entity is still waiting and has never been
- * attempted, fold the new op into it instead of queueing another request. An
- * item that has been attempted is left alone — the server may already have
- * seen it, so the new op must follow it in order.
+ * Compaction: if an item for this entity is still queued, fold the new op into
+ * it instead of queueing another request — even if it has been attempted (or
+ * dead-lettered). Every payload is the entry's full latest state and every
+ * request is idempotent, so resending the folded row is always correct. A
+ * second row is what broke ordering: a retry backing off behind a newer row let
+ * the newer one land first, and the old retry then overwrote it (or revived a
+ * delete). The folded row is a new request, so it is re-inserted: a fresh id
+ * gives it a fresh idempotency key (`id` is AUTOINCREMENT, never reused) and a
+ * fresh retry state. Reusing the old id would replay the old key with a new
+ * body, and a server that caches responses by key would drop the edit.
  */
 export async function enqueue(
   db: SQLiteDatabase,
@@ -1020,49 +1042,56 @@ export async function enqueue(
 ) {
   const waiting = await db.getFirstAsync&lt;{ id: number; op: OutboxOp }&gt;(
     `SELECT id, op FROM outbox
-     WHERE entity_id = ? AND attempts = 0
+     WHERE entity_id = ?
      ORDER BY id DESC LIMIT 1`,
     entityId,
   );
 
   if (waiting) {
-    await db.runAsync(
-      "UPDATE outbox SET op = ?, payload = ?, next_attempt_at = 0 WHERE id = ?",
-      mergeOutboxOp(waiting.op, op),
-      JSON.stringify(payload),
-      waiting.id,
-    );
-    return;
+    await db.runAsync("DELETE FROM outbox WHERE id = ?", waiting.id);
   }
 
   await db.runAsync(
     `INSERT INTO outbox (op, entity, entity_id, payload, created_at)
      VALUES (?, 'entry', ?, ?, ?)`,
-    op,
+    waiting ? mergeOutboxOp(waiting.op, op) : op,
     entityId,
     JSON.stringify(payload),
     Date.now(),
   );
 }
 
-/** Oldest-first, skipping items still inside their backoff window. */
+/**
+ * Oldest-first, skipping items still inside their backoff window. Only the
+ * oldest live item per entity is eligible: rows queued before compaction
+ * folded attempted items could hold two for one entry, and the newer one must
+ * not overtake an older one that is backing off.
+ */
 export async function claimBatch(db: SQLiteDatabase, limit = 25) {
   return db.getAllAsync&lt;OutboxItem&gt;(
     `SELECT id, op, entity, entity_id, payload, attempts
      FROM outbox
      WHERE next_attempt_at &lt;= ? AND attempts &lt; ?
+       AND NOT EXISTS (
+         SELECT 1 FROM outbox earlier
+         WHERE earlier.entity_id = outbox.entity_id
+           AND earlier.id &lt; outbox.id
+           AND earlier.attempts &lt; ?
+       )
      ORDER BY id
      LIMIT ?`,
     Date.now(),
+    MAX_ATTEMPTS,
     MAX_ATTEMPTS,
     limit,
   );
 }
 
 /**
- * Deletes the item only if its payload is still the one we sent. Compaction
- * may have folded a newer edit into this row while the request was in flight —
- * deleting it then would silently drop that edit.
+ * Deletes the item only if it is still the request we sent. Compaction may
+ * have folded a newer edit in while the request was in flight — that replaces
+ * the row under a new id, so deleting by id alone already spares it; the
+ * payload check also covers an outbox written before folding re-inserted.
  */
 export async function completeItem(db: SQLiteDatabase, item: OutboxItem) {
   const result = await db.runAsync(
@@ -1073,6 +1102,11 @@ export async function completeItem(db: SQLiteDatabase, item: OutboxItem) {
   return result.changes &gt; 0;
 }
 
+/**
+ * Same payload guard as `completeItem`: if a newer edit was folded in while
+ * the request was in flight, the failure belongs to the old payload, and the
+ * fresh one keeps its clean retry state.
+ */
 export async function failItem(
   db: SQLiteDatabase,
   item: OutboxItem,
@@ -1082,11 +1116,13 @@ export async function failItem(
   const attempts = options.permanent ? MAX_ATTEMPTS : item.attempts + 1;
 
   await db.runAsync(
-    "UPDATE outbox SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?",
+    `UPDATE outbox SET attempts = ?, next_attempt_at = ?, last_error = ?
+     WHERE id = ? AND payload = ?`,
     attempts,
     Date.now() + backoffDelay(attempts),
     message,
     item.id,
+    item.payload,
   );
 }
 
@@ -1109,8 +1145,24 @@ export async function retryDeadLetters(db: SQLiteDatabase) {
   );
 }
 
+/**
+ * Gives up on the dead letters. Their entries are no longer waiting on
+ * anything, so `dirty` is cleared too (unless another change is still queued):
+ * a row left dirty would be skipped by every pull, forever.
+ */
 export async function discardDeadLetters(db: SQLiteDatabase) {
-  await db.runAsync("DELETE FROM outbox WHERE attempts &gt;= ?", MAX_ATTEMPTS);
+  await db.withTransactionAsync(async () =&gt; {
+    await db.runAsync(
+      `UPDATE entries SET dirty = 0
+       WHERE id IN (SELECT entity_id FROM outbox WHERE attempts &gt;= ?)
+         AND NOT EXISTS (
+           SELECT 1 FROM outbox o WHERE o.entity_id = entries.id AND o.attempts &lt; ?
+         )`,
+      MAX_ATTEMPTS,
+      MAX_ATTEMPTS,
+    );
+    await db.runAsync("DELETE FROM outbox WHERE attempts &gt;= ?", MAX_ATTEMPTS);
+  });
 }
 
 export async function getMeta(db: SQLiteDatabase, key: string) {
@@ -1471,7 +1523,7 @@ export const entries = sqliteTable(
 <h3>Sync semantics to decide (and write down)</h3>
 <ul>
   <li>Conflict rule: last-write-wins by <code>updated_at</code>? Or field-level merge? LWW is fine here — but state it explicitly.</li>
-  <li>Idempotency: the client-generated ULID <em>is</em> the idempotency key. The server must upsert on it.</li>
+  <li>Idempotency: the client-generated ULID makes every write an upsert (<code>PUT</code>/<code>DELETE /entries/:id</code>), so replaying one is harmless. The server must upsert on it. Each request also carries an <code>idempotency-key</code> header, <code>&lt;ULID&gt;:&lt;outbox id&gt;</code>, which names one request: a retry reuses it, and a folded edit gets a new one.</li>
   <li>Backoff: exponential with jitter, capped at five minutes. Cap the attempt count (6) and dead-letter after that. 408 and 429 are retried; every other 4xx is dead-lettered because the server will never accept that payload.</li>
   <li>Dead letters are surfaced, not hidden: Settings offers retry and discard.</li>
   <li>Never trust the wire: validate pull responses and drop malformed rows rather than poison the database.</li>
@@ -1544,7 +1596,7 @@ createServer(async (req, res) =&gt; {
 <tr><td>Two trees</td><td>Routes only under <code>src/app/</code>; everything else under <code>src/projects/offline-journal/</code>.</td><td>Any file under <code>src/app/</code> is a reachable route. A component parked there becomes a real URL.</td></tr>
 <tr><td>Own providers</td><td><code>SQLiteProvider</code> and <code>LockGate</code> go in the journal's layout, not the root.</td><td>Opening the launcher must not open the journal's database or ask for Face ID.</td></tr>
 <tr><td>Root-level side effects</td><td>In <code>src/app/_layout.tsx</code>: <code>import ".../offline-journal/sync/task"</code> and call <code>startJournalNotificationRouting()</code>.</td><td>A headless launch (background task) or a notification tap on a killed app never mounts the journal layout. Anything that must exist then has to start at the root.</td></tr>
-<tr><td>Process-global APIs</td><td>Notification payloads carry a <code>url</code> that must start with <code>/projects/offline-journal/</code>; <code>useLiveQuery</code> matches the database file name as well as the table name.</td><td>The notification handler and expo-sqlite's change listener are global to the process. Other projects fire through the same channels.</td></tr>
+<tr><td>Process-global APIs</td><td>Notification payloads carry a <code>url</code> that must start with <code>/projects/offline-journal/</code>; <code>useLiveQuery</code> matches the database file name as well as the table name. The Theme setting is applied with a nested <code>ThemeProvider</code> and <code>StatusBar</code>, not <code>Appearance.setColorScheme</code>.</td><td>The notification handler, expo-sqlite's change listener and <code>Appearance.setColorScheme</code> are global to the process. Other projects fire through the same channels, and a colour-scheme override set by the journal stays on the launcher: resetting it to <code>"unspecified"</code> on the way out leaves React Native's cached scheme stale.</td></tr>
 <tr><td>Way back</td><td>The tab layout adds a header-left button that navigates to <code>/</code>.</td><td>The root Stack hides its header for this project, so there is otherwise no way back to the launcher.</td></tr>
 <tr><td>Isolation</td><td>Import nothing from another project; promote to <code>src/shared/</code> only when a second project needs it.</td><td>ESLint's <code>no-restricted-imports</code> enforces it. Never import <code>@react-navigation/*</code>; use <code>expo-router/react-navigation</code> (it fails the bundle, not <code>tsc</code>).</td></tr>
 <tr><td>Config</td><td>Plugins in <code>app.config.ts</code>: <code>expo-sqlite</code>, <code>expo-background-task</code>, <code>expo-notifications</code>, <code>expo-local-authentication</code> (with <code>faceIDPermission</code>), <code>expo-image-picker</code>. The sync URL is <code>extra.journalSyncUrl</code> (from <code>JOURNAL_SYNC_URL</code>), read via <code>src/shared/constants/env.ts</code>; empty means <code>localhost</code> (iOS) or <code>10.0.2.2</code> (Android emulator).</td><td>Native changes must be expressible in config (continuous native generation); the emulator host differs by platform, so the default is decided at runtime.</td></tr>
@@ -1560,7 +1612,7 @@ createServer(async (req, res) =&gt; {
   <div class="goal">Goal: a tab shell with a real SQLite database behind it.</div>
   <ul>
     <li>Create the route tree (tab group, entry detail, compose modal, lock, onboarding) and the slice folder alongside; register the project as described in <a href="#launcher">Fitting into the launcher</a>.</li>
-    <li>Install <code>expo-sqlite</code> and add it to the config plugins; wire <code>SQLiteProvider</code> with <code>options={{ enableChangeListener: true }}</code>, <code>useSuspense</code> and an <code>onInit</code> — in <em>your</em> layout, not the root one.</li>
+    <li>Install <code>expo-sqlite</code> and add it to the config plugins; wire <code>SQLiteProvider</code> with <code>options={{ enableChangeListener: true }}</code> (a stable module-scope object, not an inline literal) and an <code>onInit</code>, inside an error boundary — in <em>your</em> layout, not the root one.</li>
     <li>Write migration v1 (all tables) with <code>PRAGMA journal_mode = WAL</code> and the <code>user_version</code> gate. At this milestone ship only V1; add V2–V4 in the later milestones that need them.</li>
     <li>Seed 30 fake entries on first launch so the list has substance. Gate on a <code>sync_meta</code> flag, not on "is the table empty?", or a user who deletes everything gets the fakes back.</li>
     <li>Make <code>migrateOnce()</code> memoize the migration promise: <code>onInit</code> and a headless <code>getDb()</code> can overlap on one native connection.</li>
@@ -1633,7 +1685,7 @@ export function getDb(): Promise&lt;SQLiteDatabase&gt; {
 
 <div class="note">
   <strong>Two ways in, one connection — deliberately</strong>
-  <p><code>SQLiteProvider</code> opens the database for the React tree and <code>getDb()</code> opens it lazily for the sync engine and the background task. With the same name <em>and</em> the same options, expo-sqlite hands both the same native connection, so a write from the sync engine wakes the live queries in your screens (both pass <code>enableChangeListener</code>). Because they share a connection, two overlapping <code>migrate()</code> calls would collide on <code>BEGIN</code>; <code>migrateOnce()</code> memoizes the promise (and clears it on failure so a retry works). What is <em>not</em> fine is a screen calling <code>getDb()</code>: it would bypass Suspense and the error boundary. <code>getDb()</code> is lazy so a cold launch that never touches the journal never opens its database.</p>
+  <p><code>SQLiteProvider</code> opens the database for the React tree and <code>getDb()</code> opens it lazily for the sync engine and the background task. With the same name <em>and</em> the same options, expo-sqlite hands both the same native connection, so a write from the sync engine wakes the live queries in your screens (both pass <code>enableChangeListener</code>). Because they share a connection, two overlapping <code>migrate()</code> calls would collide on <code>BEGIN</code>; <code>migrateOnce()</code> memoizes the promise (and clears it on failure so a retry works). What is <em>not</em> fine is a screen calling <code>getDb()</code>: it would bypass the provider's error boundary and migration guarantee. <code>getDb()</code> is lazy so a cold launch that never touches the journal never opens its database.</p>
 </div>
 
 <p><code>db/migrations.ts</code> is in the <a href="#data">data model section</a> above. <code>db/init.ts</code> is the <code>onInit</code> the layout passes, and then come the two files everything else depends on: the id generator and the seeder.</p>
@@ -1789,7 +1841,7 @@ npx jest --no-watchman src/projects/offline-journal/__tests__/migrations.test.ts
   <p>Grouping first, as a pure function you can test without a renderer:</p>
 
 <div class="codeblock"><div class="codehead"><span class="fname">src/projects/offline-journal/utils/timeline.ts</span><span class="lang">ts</span></div><pre><code>import type { Entry } from "../models/Entry";
-import { DAY_MS, dayKey } from "./date";
+import { dayKey, yesterdayKey } from "./date";
 
 export type TimelineRow =
   | { kind: "header"; key: string; label: string }
@@ -1838,12 +1890,14 @@ export function headerIndices(rows: TimelineRow[]) {
 function labelFor(date: Date, now: number) {
   const day = dayKey(date);
   const today = dayKey(new Date(now));
-  const yesterday = dayKey(new Date(now - DAY_MS));
+  const yesterday = yesterdayKey(now);
 
   if (day === today) return `TODAY · ${DAY.format(date)}`;
   if (day === yesterday) return `YESTERDAY · ${DAY.format(date)}`;
   return DAY.format(date).toUpperCase();
 }</code></pre></div>
+
+<p><code>yesterdayKey(now)</code> (in <code>utils/date.ts</code>) steps back one <em>calendar</em> day with <code>setDate(getDate() - 1)</code> instead of subtracting 24 hours: on the day after a DST change, <code>now - DAY_MS</code> can land on the wrong local day, and the header says "YESTERDAY" for the wrong date.</p>
 
 <div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/offline-journal/(tab)/index.tsx</span><span class="lang">tsx</span></div><pre><code>import Ionicons from "@expo/vector-icons/Ionicons";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
@@ -1988,6 +2042,8 @@ export default function TimelineScreen() {
             iconComponent={Ionicons}
             iconName="calendar-clear-outline"
             title="Nothing written that day"
+            titleColor={palette.text}
+            descriptionColor={palette.muted}
             description="Pick another day in the calendar, or clear the filter."
           /&gt;
         ) : (
@@ -1995,6 +2051,8 @@ export default function TimelineScreen() {
             iconComponent={Ionicons}
             iconName="book-outline"
             title="Your journal is empty"
+            titleColor={palette.text}
+            descriptionColor={palette.muted}
             description="Everything you write stays on this device. Tap the pen to start."
           /&gt;
         )
@@ -2049,6 +2107,8 @@ const styles = StyleSheet.create({
   },
   filterText: { fontSize: 14 },
 });</code></pre></div>
+
+<p>Note the <code>titleColor</code> / <code>descriptionColor</code> on both empty states. The shared <code>ContentUnavailableView</code> colours itself from the <em>system</em> scheme (<code>useThemeColor</code>), which does not know about the journal's own Theme setting; with the system in light mode and the journal set to Dark it drew dark text on the dark paper. Anything shared that picks its own colours gets the palette passed in.</p>
 
 <p>The row: props and callbacks only. It doesn't know a database exists.</p>
 
@@ -2424,7 +2484,7 @@ const styles = StyleSheet.create({
 
 <div class="note">
   <strong>The compose snippet is condensed</strong>
-  <p>The version above shows the essential shape. The shipped <code>entry/compose.tsx</code> additionally edits an existing entry via <code>?id=</code>, seeds its inputs once (a live query feeding the inputs would fight typing), chains saves on a promise queue so an autosave and an Attach tap cannot both insert before the first id exists, skips saves whose JSON snapshot equals the last one, and holds tags and attachments. It keeps the first save's id in a ref for the save path and in state for the attachments query, because refs must not be read during render under the React Compiler.</p>
+  <p>The version above shows the essential shape. The shipped <code>entry/compose.tsx</code> additionally edits an existing entry via <code>?id=</code> (an id that no longer exists shows a not-found state instead of an empty editor that would save a new entry), seeds its inputs once (a live query feeding the inputs would fight typing), chains saves on a promise queue so an autosave and an Attach tap cannot both insert before the first id exists, skips saves whose JSON snapshot equals the last one, and holds tags and attachments. It keeps the first save's id in a ref for the save path and in state for the attachments query, because refs must not be read during render under the React Compiler.</p>
 </div>
 
 <div class="codeblock"><div class="codehead"><span class="fname">verify</span><span class="lang">bash</span></div><pre><code>npm run typecheck && npm run lint
@@ -2916,8 +2976,11 @@ const handledResponses = new Set&lt;string&gt;();
 function open(response: Notifications.NotificationResponse) {
   const url = journalUrl(response.notification);
   if (!url) return; // Not ours — the store routes its own pushes.
-  const id = `${response.notification.request.identifier}:${response.actionIdentifier}`;
   // Cold start can deliver the same tap via the listener AND the last response.
+  // The delivery date is part of the key: the daily reminder reuses one
+  // request identifier, so without it every tap after the first was dropped.
+  const { notification, actionIdentifier } = response;
+  const id = `${notification.request.identifier}:${notification.date}:${actionIdentifier}`;
   if (handledResponses.has(id)) return;
   handledResponses.add(id);
   // Before the root navigator mounts this lands in expo-router's routing
@@ -2949,19 +3012,22 @@ export function startJournalNotificationRouting() {
   Notifications.addNotificationResponseReceivedListener(open);
 }</code></pre></div>
 
-<div class="checkpoint"><b>Checkpoint</b> — Force-quit the app, tap a delivered notification, land directly on the compose screen. Force-quit and relaunch normally: you must <em>not</em> land on compose again (the last response was cleared). Cold-start routing is the part everyone gets wrong.</div>
+<p>Look at the dedup key in <code>open()</code>: <code>identifier:date:actionIdentifier</code>. The cold-start path and the listener can both deliver the same tap, so a set of handled keys is needed, but the daily reminder is scheduled once under one fixed identifier (<code>REMINDER_ID</code>) and every day's delivery reuses it. Keyed on identifier alone, the first tap routed and every later reminder tap in the same process was silently dropped. The delivery <code>date</code> tells two days' reminders apart.</p>
+
+<div class="checkpoint"><b>Checkpoint</b> — Force-quit the app, tap a delivered notification, land directly on the compose screen. Force-quit and relaunch normally: you must <em>not</em> land on compose again (the last response was cleared). Leave the app running and tap the reminder on two different days (or set it a minute ahead twice): both taps must open compose. Cold-start routing is the part everyone gets wrong.</div>
 </div>
 
 <div class="milestone">
   <h3><span class="tag">M6</span> Sync engine</h3>
   <div class="goal">Goal: the outbox drains reliably and exactly once.</div>
   <ul>
-    <li>Outbox table + transactional writes, with compaction of never-attempted rows.</li>
+    <li>Outbox table + transactional writes, with compaction into the entity's latest row (attempted or dead-lettered too), re-inserted under a new id, so it gets a fresh idempotency key and retry state.</li>
     <li>Pure policy module first (<code>sync/policy.ts</code>) and its tests; then the engine: pull (since cursor) → merge → push (drain outbox) → update cursor.</li>
     <li>Validate the pull response, check the network cheaply before spending a backoff step, and read settings via <code>ensureSettingsHydrated()</code> because a headless launch runs before persisted state loads.</li>
     <li>Trigger on: entering the journal, app foreground, network regained (an edge-triggered <code>expo-network</code> listener), manual button, a 10-second debounced kick after local writes, and a periodic background task.</li>
     <li>Register a background task with <code>expo-background-task</code>; log every invocation so you can see how rarely iOS actually runs it.</li>
-    <li>Sync status UI: idle / syncing / N pending / error, in Settings and as a subtle timeline banner. Pending and dead counts come from the outbox table; the run phase lives in an in-memory store.</li>
+    <li>Sync status UI: idle / syncing / N pending / error, in Settings and as a subtle timeline banner. Pending and dead counts come from the outbox table; the run phase lives in an in-memory store. Settings shows the last error through <code>describeSyncError()</code>, because the stored raw message from a native fetch failure can carry a Swift file and line.</li>
+    <li>Make <code>kick()</code> impossible to reject: most callers fire and forget (<code>void kick()</code>), so a throw from settings hydration or the database open would surface as an unhandled promise rejection. It catches into an error result like every other failure.</li>
   </ul>
   <p>Start with the pure rules, then the thin transport, then the engine that uses them:</p>
 
@@ -3007,10 +3073,11 @@ export function classifyStatus(status: number): ResponseClass {
 
 /**
  * Outbox compaction. Autosave writes every ~800 ms, and shipping each keystroke
- * as its own request is waste — so a new op folds into the not-yet-sent item
- * for the same entity. The rule is "what does the server need to end up
- * correct?":
- *   create + update -&gt; create (server never saw it; send the latest body)
+ * as its own request is waste — so a new op folds into the entity's latest
+ * queued item, even one already attempted or dead-lettered (`enqueue`
+ * re-queues it under a new id and retry state). The rule is "what does the
+ * server need to end up correct?":
+ *   create + update -&gt; create (the PUT upserts; send the latest body)
  *   update + update -&gt; update
  *   any    + delete -&gt; delete
  *   delete + create/update -&gt; the new op (an undo that re-saved the row)
@@ -3081,6 +3148,25 @@ export function sanitizeMood(mood: number | null): 1 | 2 | 3 | 4 | 5 | null {
   if (mood === null || !Number.isInteger(mood) || mood &lt; 1 || mood &gt; 5)
     return null;
   return mood as 1 | 2 | 3 | 4 | 5;
+}
+
+/**
+ * The stored sync error is the raw message (a native fetch error can carry a
+ * Swift file and line). Settings shows this instead: what happened, in words.
+ */
+export function describeSyncError(raw: string): string {
+  const status = /HTTP (\d{3})/.exec(raw)?.[1];
+  if (status) {
+    const code = Number(status);
+    if (code &gt;= 500) return `The server had a problem (HTTP ${code})`;
+    if (code === 401 || code === 403)
+      return `The server refused access (HTTP ${code})`;
+    return `The server rejected the request (HTTP ${code})`;
+  }
+  if (/^pull: /.test(raw)) return "The server sent an unexpected response";
+  if (/fetch|network|connect|abort|timed? ?out|offline|host/i.test(raw))
+    return "Couldn't reach the server";
+  return "Sync failed. Your changes are safe on this device";
 }</code></pre></div>
 
 <div class="codeblock"><div class="codehead"><span class="fname">src/projects/offline-journal/sync/http.ts</span><span class="lang">ts</span></div><pre><code>import type { SyncSettings } from "../stores/settingsStore";
@@ -3170,7 +3256,10 @@ import { classifyStatus, parsePullResponse, sanitizeMood } from "./policy";
  *
  * Conflict rule, stated explicitly: last-write-wins by `updated_at`, and a row
  * with unsent local edits (dirty = 1) is never overwritten by a pull. The
- * client ULID is the idempotency key, so replaying any request is harmless.
+ * client ULID makes every PUT/DELETE an upsert, so replaying any request is
+ * harmless; the `idempotency-key` header (`&lt;ULID&gt;:&lt;outbox id&gt;`) names one
+ * request, and compaction gives a folded edit a new outbox id, so a new body
+ * never travels under an old key.
  */
 
 const CURSOR_KEY = "last_pulled_at";
@@ -3202,13 +3291,20 @@ export function kick(): Promise&lt;SyncResult&gt; {
     again = true;
     return inFlight;
   }
-  inFlight = run().finally(() =&gt; {
-    inFlight = null;
-    if (again) {
-      again = false;
-      void kick();
-    }
-  });
+  // `run` records failures it expects, but the hydration or the db open can
+  // still throw. Settle those as an error result too, so the fire-and-forget
+  // callers (`void kick()`) can never produce an unhandled rejection.
+  inFlight = run()
+    .catch((cause) =&gt;
+      finish({ pulled: 0, pushed: 0, failed: 0, error: errorText(cause) }),
+    )
+    .finally(() =&gt; {
+      inFlight = null;
+      if (again) {
+        again = false;
+        void kick();
+      }
+    });
   return inFlight;
 }
 
@@ -3254,12 +3350,15 @@ async function run(): Promise&lt;SyncResult&gt; {
     await deleteMeta(db, LAST_ERROR_KEY);
     return finish({ pulled, pushed, failed });
   } catch (cause) {
-    const error = cause instanceof Error ? cause.message : String(cause);
+    const error = errorText(cause);
     await setMeta(db, LAST_ERROR_KEY, error).catch(() =&gt; undefined);
     // Offline is not an emergency: the outbox still holds every change.
     return finish({ pulled: 0, pushed: 0, failed: 0, error });
   }
 }
+
+const errorText = (cause: unknown) =&gt;
+  cause instanceof Error ? cause.message : String(cause);
 
 function finish(result: SyncResult) {
   useSyncStore.getState().finish(result);
@@ -3318,6 +3417,7 @@ async function push(db: SQLiteDatabase, settings: SyncSettings) {
   let failed = 0;
 
   for (const item of batch) {
+    let status: number;
     try {
       // PUT on the client-generated ULID: replaying it is a no-op, so a lost
       // response costs nothing. That is what makes retries safe.
@@ -3333,23 +3433,26 @@ async function push(db: SQLiteDatabase, settings: SyncSettings) {
           body: item.op === "delete" ? undefined : item.payload,
         },
       );
-
-      const verdict = classifyStatus(response.status);
-      if (verdict === "ok") {
-        await markDone(db, item);
-        pushed++;
-      } else if (verdict === "dead") {
-        // The server will never accept this. Dead-letter it and surface it.
-        await failItem(db, item, `HTTP ${response.status}`, {
-          permanent: true,
-        });
-        failed++;
-      } else {
-        await failItem(db, item, `HTTP ${response.status}`); // retry with backoff
-        failed++;
-      }
+      status = response.status;
     } catch (cause) {
       await failItem(db, item, String(cause)); // offline: stay queued, no drama
+      failed++;
+      continue;
+    }
+
+    const verdict = classifyStatus(status);
+    if (verdict === "ok") {
+      // The server has it. A local write failing now is not a server failure,
+      // so it must not burn an attempt: the row just stays queued, and the
+      // idempotent replay next run clears it.
+      await markDone(db, item).catch(() =&gt; undefined);
+      pushed++;
+    } else if (verdict === "dead") {
+      // The server will never accept this. Dead-letter it and surface it.
+      await failItem(db, item, `HTTP ${status}`, { permanent: true });
+      failed++;
+    } else {
+      await failItem(db, item, `HTTP ${status}`); // retry with backoff
       failed++;
     }
   }
@@ -3555,7 +3658,7 @@ export function useSyncTriggers() {
 }</code></pre></div>
 
 <div class="codeblock"><div class="codehead"><span class="fname">verify</span><span class="lang">bash</span></div><pre><code>npx jest --no-watchman src/projects/offline-journal/__tests__/policy.test.ts src/projects/offline-journal/__tests__/syncEngine.test.ts</code></pre></div>
-<p><code>syncEngine.test.ts</code> drives the real <code>kick()</code> against real SQLite (the in-flight-edit and run-lock cases are the ones to read) with the network edge mocked.</p>
+<p><code>syncEngine.test.ts</code> drives the real <code>kick()</code> against real SQLite (the in-flight-edit and run-lock cases are the ones to read) with the network edge mocked. Two more blocks pin down this milestone's ordering rules: <code>describe("per-entity ordering")</code> (an edit folds into a failed item under a new idempotency key, a retry replays its own key, delete-all gives every wiped entry a fresh key, a delete is never resurrected behind a retrying update, a newer row never overtakes one that is backing off, a fresh edit keeps its retry state when the old payload's request fails) and <code>describe("payload and failure handling")</code> (<code>created_at</code> is sent and kept on update, a local write error after a 2xx does not burn an attempt, discarding dead letters clears <code>dirty</code>, and <code>kick()</code> settles instead of rejecting when the database cannot open).</p>
 
 <div class="checkpoint"><b>Checkpoint</b> — Airplane mode, create/edit/delete 20 entries, force-quit, reopen, disable airplane mode. Server ends up with exactly the right operations (compaction means fewer than one per keystroke). No duplicates. Set the artificial failure rate to 100 percent and watch items back off, then dead-letter after six attempts and appear under <em>Retry failed changes</em>.</div>
 </div>
@@ -3564,11 +3667,12 @@ export function useSyncTriggers() {
   <h3><span class="tag">M7</span> Lock, export, polish</h3>
   <div class="goal">Goal: shippable feel.</div>
   <ul>
-    <li>Biometric lock with <code>expo-local-authentication</code>; re-lock when the app goes to background past a threshold (<code>AppState</code> listener). Cover the content as soon as the app goes <code>inactive</code>, whatever the grace period, so the app-switcher snapshot is clean.</li>
+    <li>Biometric lock with <code>expo-local-authentication</code>; re-lock when the app goes to background past a threshold (<code>AppState</code> listener). Cover the content as soon as the app goes <code>inactive</code>, whatever the grace period, so the app-switcher snapshot is clean, but start the grace clock only on <code>background</code>, and ignore the <code>inactive</code> caused by your own Face ID sheet.</li>
     <li>Gate the lock on settings hydration: before AsyncStorage loads you cannot rule the lock out, so stay covered. If nothing is enrolled, unlock rather than brick the user out of their data.</li>
     <li>Export to JSON and Markdown; save via <code>expo-sharing</code>.</li>
     <li>Onboarding flow, gated by a persisted flag <em>and</em> by hydration (otherwise every cold start flashes onboarding).</li>
     <li>Haptics on save/delete (this repo already has <code>expo-haptics</code>).</li>
+    <li>Accessibility pass on Settings with VoiceOver / TalkBack on. A <code>SettingsRow</code> without an <code>onPress</code> renders a plain <code>View</code>, not a disabled <code>Pressable</code>: a <code>Pressable</code> is a single accessibility element, so it hid the picker radios and stepper buttons nested inside it from the screen reader.</li>
     <li>App icon, splash, and a real name.</li>
   </ul>
   <div class="codeblock"><div class="codehead"><span class="fname">src/projects/offline-journal/stores/lockStore.ts</span><span class="lang">ts</span></div><pre><code>import { create } from "zustand";
@@ -3614,13 +3718,25 @@ export async function canAuthenticate() {
   );
 }
 
+/**
+ * True while the system auth sheet is up. On iOS that sheet makes the app
+ * "inactive"; the lock must not read it as the user leaving, or an "Instant"
+ * lock re-locks on return and prompts again, in a loop.
+ */
+let authenticating = false;
+
 export async function promptAuthentication(message: string) {
-  const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: message,
-    fallbackLabel: "Use passcode",
-    cancelLabel: "Cancel",
-  });
-  return result.success;
+  authenticating = true;
+  try {
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: message,
+      fallbackLabel: "Use passcode",
+      cancelLabel: "Cancel",
+    });
+    return result.success;
+  } finally {
+    authenticating = false;
+  }
 }
 
 export function useAppLock() {
@@ -3643,10 +3759,13 @@ export function useAppLock() {
         if (leftAt !== null &amp;&amp; Date.now() - leftAt &gt;= graceMs) lock();
         leftAt = null;
       } else {
+        if (authenticating) return; // our own Face ID sheet, not a departure
         // "inactive" fires for the app switcher too — that is the moment the
         // OS takes the snapshot, so cover NOW, whatever the grace period says.
         setObscured(true);
-        leftAt ??= Date.now();
+        // Only actually leaving starts the grace clock. "inactive" is also a
+        // Control Center pull or a system sheet over the app.
+        if (state === "background") leftAt ??= Date.now();
       }
     });
 
@@ -3679,6 +3798,8 @@ export function useAppLock() {
     lockNow: lock,
   };
 }</code></pre></div>
+
+<p>Two details in the <code>AppState</code> listener came from real bugs. First, <code>authenticating</code>: on iOS the system Face ID sheet itself makes the app <code>inactive</code>. Read as a departure, it covered the content and started the grace clock, so with the lock set to "Instant" the return to <code>active</code> re-locked the app and prompted again, forever. Even with a longer delay, covering flipped <code>obscured</code>, and <code>LockGate</code>'s prompt effect depends on it, so a <em>cancelled</em> prompt re-prompted the moment the sheet closed. While our own prompt is up the listener ignores the change. Second, only <code>background</code> starts the grace clock. <code>inactive</code> also fires for the app switcher, a Control Center pull or any system sheet over the app; those still <em>cover</em> (the switcher snapshot is taken at that moment) but they are not the user leaving, so they must not count toward re-locking.</p>
 
 <div class="codeblock"><div class="codehead"><span class="fname">src/projects/offline-journal/components/LockGate.tsx</span><span class="lang">tsx</span></div><pre><code>import { useEffect, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
@@ -3877,7 +3998,7 @@ EXPO_OFFLINE=1 CI=1 npx expo export --platform ios --output-dir /tmp/wnrn-export
 <div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface (look these up)</th></tr></thead>
 <tbody>
-<tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>SQLiteProvider</code> (<code>options={{ enableChangeListener: true }}</code>, <code>onInit</code>, <code>useSuspense</code>), <code>useSQLiteContext</code>, <code>openDatabaseAsync</code>, <code>db.databasePath</code>, <code>execAsync</code>, <code>runAsync</code>, <code>getAllAsync</code>, <code>getFirstAsync</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code> (event: <code>databaseFilePath</code>, <code>tableName</code>), <code>PRAGMA user_version</code></td></tr>
+<tr><td>Database</td><td><code>expo-sqlite</code></td><td><code>SQLiteProvider</code> (<code>options</code> as a stable module-scope object with <code>enableChangeListener: true</code>, <code>onInit</code>), <code>useSQLiteContext</code>, <code>openDatabaseAsync</code>, <code>db.databasePath</code>, <code>execAsync</code>, <code>runAsync</code>, <code>getAllAsync</code>, <code>getFirstAsync</code>, <code>withTransactionAsync</code>, <code>addDatabaseChangeListener</code> (event: <code>databaseFilePath</code>, <code>tableName</code>), <code>PRAGMA user_version</code></td></tr>
 <tr><td>Typed ORM (optional, not used)</td><td><code>drizzle-orm</code> + <code>drizzle-kit</code></td><td><code>drizzle(db)</code>, <code>sqliteTable</code>, <code>useLiveQuery</code>, <code>useMigrations</code>, generated SQL migrations</td></tr>
 <tr><td>DB inspector (optional)</td><td><code>expo-drizzle-studio-plugin</code></td><td>Works with plain expo-sqlite too — you don't need Drizzle to use it. Not installed by the repo.</td></tr>
 <tr><td>Lists</td><td><code>@shopify/flash-list</code> <span class="chip green">installed</span></td><td>v2 API — no more <code>estimatedItemSize</code> requirement; <code>getItemType</code> for mixed rows, <code>stickyHeaderIndices</code></td></tr>
@@ -3909,7 +4030,8 @@ EXPO_OFFLINE=1 CI=1 npx expo export --platform ios --output-dir /tmp/wnrn-export
   <li><strong>Migration that drops data.</strong> <em>Provoke:</em> write a bad v2 migration (a table recreate without a backfill) and run it against real data. <em>Shows up:</em> entries vanish, or old entries are unsearchable. <em>Handled by:</em> one transaction per step with the <code>user_version</code> bump inside it, an explicit FTS backfill, and ADD COLUMN for V3. Shipped migrations are never edited; V4 replaces the V2 trigger as a new step.</li>
   <li><strong>FTS drift.</strong> <em>Provoke:</em> update a row without the trigger in place. <em>Shows up:</em> search returns stale text. <em>Handled by:</em> three triggers (narrowed to <code>UPDATE OF title, body</code> in V4) and <code>rebuildSearchIndex()</code> as the repair, exposed in Settings.</li>
   <li><strong>Duplicate sync.</strong> <em>Provoke:</em> kick the sync engine twice concurrently with no mutex. <em>Shows up:</em> the server gets two copies. <em>Handled by:</em> the <code>inFlight</code> run-lock plus one queued follow-up, and an idempotency key on every request.</li>
-  <li><strong>Edit lost in flight.</strong> <em>Provoke:</em> type while a PUT is in flight and delete the outbox row by id alone. <em>Shows up:</em> the newer edit never reaches the server. <em>Handled by:</em> <code>completeItem</code> deleting only if the payload is unchanged, and <code>markDone</code> clearing <code>dirty</code> only when nothing is queued.</li>
+  <li><strong>Edit lost in flight.</strong> <em>Provoke:</em> type while a PUT is in flight and delete the outbox row by id alone. <em>Shows up:</em> the newer edit never reaches the server. <em>Handled by:</em> compaction re-inserting the folded row under a new id, <code>completeItem</code> also checking the payload, and <code>markDone</code> clearing <code>dirty</code> only when nothing is queued.</li>
+  <li><strong>Folded edit swallowed by the server's idempotency cache.</strong> <em>Provoke:</em> fold a new edit into a row that was already sent, keep its outbox id, and point the app at a server that answers a repeated <code>idempotency-key</code> from its cache. <em>Shows up:</em> the server replies 2xx with the old response, the row is marked done, and the edit never lands. Nothing is logged. <em>Handled by:</em> <code>enqueue</code> and <code>softDeleteAll</code> deleting the old row and inserting a new one, so each distinct body travels under its own key (<code>id</code> is <code>AUTOINCREMENT</code>, never reused). A retry of the same row keeps its key, which is the point of having one.</li>
   <li><strong>Pull clobbers local edits.</strong> <em>Provoke:</em> remove <code>entries.dirty = 0</code> from the upsert. <em>Shows up:</em> an unsent edit reverts after a sync. <em>Handled by:</em> the WHERE clause plus pull-before-push.</li>
   <li><strong>Background task that never fires.</strong> <em>Provoke:</em> register on iOS, wait a day. <em>Shows up:</em> it fired zero or once. <em>Handled by:</em> treating it as a hint (every other trigger works without it), logging each invocation, and defining it at module scope from the root layout.</li>
   <li><strong>Headless run reads default settings.</strong> <em>Provoke:</em> read <code>getState()</code> in the task. <em>Shows up:</em> logs say "disabled" while Settings says sync is on. <em>Handled by:</em> <code>ensureSettingsHydrated()</code> and the lazy, memoized <code>getDb()</code>.</li>
@@ -3918,6 +4040,13 @@ EXPO_OFFLINE=1 CI=1 npx expo export --platform ios --output-dir /tmp/wnrn-export
   <li><strong>Blocked JS thread.</strong> <em>Provoke:</em> run a large synchronous query during a scroll. <em>Handled by:</em> async queries, paging by <code>limit</code>, and coalescing change events behind a 50 ms timer.</li>
   <li><strong>App switcher leak and unprotected cold start.</strong> <em>Provoke:</em> lock the app but forget to cover on <code>inactive</code>, or unlock before settings hydrate. <em>Shows up:</em> entries readable in the switcher or on first launch. <em>Handled by:</em> the <code>obscured</code> flag and treating "not hydrated" as locked.</li>
   <li><strong>Hydration flash.</strong> <em>Provoke:</em> remove the <code>hydrated &amp;&amp;</code> check before the onboarding redirect. <em>Shows up:</em> every cold start flashes onboarding. <em>Handled by:</em> <code>useSettingsHydrated()</code> built on <code>useSyncExternalStore</code>.</li>
+  <li><strong>Theme leaks into the launcher.</strong> <em>Provoke:</em> apply the Theme setting with <code>Appearance.setColorScheme(theme)</code> and reset it to <code>"unspecified"</code> when the journal unmounts. <em>Shows up:</em> set the journal to Dark, go back: the launcher and every other project stay dark. <em>Handled by:</em> never touching the process-wide override; <code>useJournalScheme()</code> resolves the setting, and the layout nests an <code>expo-router/react-navigation</code> <code>ThemeProvider</code> and an <code>expo-status-bar</code> <code>StatusBar</code> that unmount with the journal.</li>
+  <li><strong>"Try again" does nothing.</strong> <em>Provoke:</em> make <code>onInit</code> throw once, with <code>SQLiteProvider useSuspense</code> under a <code>Suspense</code>. <em>Shows up:</em> the error boundary appears, and "Try again" lands right back on it even after the cause is gone. <em>Handled by:</em> no suspense mode (it caches the rejected open promise app-wide, and even a new options object chains onto it), so a boundary reset remounts the provider with a fresh open; and a module-scope <code>DB_OPTIONS</code>, so a re-render never hands the provider a new options identity.</li>
+  <li><strong>Face ID loop on "Instant" lock.</strong> <em>Provoke:</em> set the lock delay to Instant on an iPhone, drop the <code>authenticating</code> check and start the grace clock on <code>inactive</code> as well. <em>Shows up:</em> authenticate and the app re-locks immediately and prompts again, in a loop; cancel and it prompts again too, because the sheet toggled <code>obscured</code> under <code>LockGate</code>. <em>Handled by:</em> ignoring <code>AppState</code> changes while our own <code>authenticateAsync</code> sheet is up, and starting the grace clock only on <code>background</code>.</li>
+  <li><strong>Second reminder tap ignored.</strong> <em>Provoke:</em> dedupe responses on <code>request.identifier</code> alone, keep the app running, tap the daily reminder on two days. <em>Shows up:</em> the first tap opens compose, every later one does nothing. <em>Handled by:</em> a dedup key of <code>identifier:date:actionIdentifier</code>; a repeating trigger reuses one identifier for every delivery.</li>
+  <li><strong>Settings controls invisible to VoiceOver.</strong> <em>Provoke:</em> wrap every settings row in <code>&lt;Pressable disabled={!onPress}&gt;</code> and swipe through Settings with VoiceOver or TalkBack. <em>Shows up:</em> the Theme / Font size options and the reminder stepper are skipped; the row reads as one element. <em>Handled by:</em> <code>SettingsRow</code> rendering a plain <code>View</code> when there is no <code>onPress</code>.</li>
+  <li><strong>Back button reads "(tab)".</strong> <em>Provoke:</em> declare <code>&lt;Stack.Screen name="(tab)" options={{ headerShown: false }} /&gt;</code> with no title, then open an entry on iOS. <em>Shows up:</em> the back button label is the route group name. <em>Handled by:</em> <code>title: "Journal"</code> on the group's screen; a hidden header still supplies the back title.</li>
+  <li><strong>Empty state unreadable in the journal's theme.</strong> <em>Provoke:</em> system in light mode, journal Theme set to Dark, clear the timeline. <em>Shows up:</em> dark text on dark paper. <em>Handled by:</em> passing <code>titleColor</code> / <code>descriptionColor</code> from the journal palette to the shared <code>ContentUnavailableView</code>, which otherwise follows the system scheme.</li>
 </ol>
 
 <h2 id="testing">Testing &amp; verification</h2>

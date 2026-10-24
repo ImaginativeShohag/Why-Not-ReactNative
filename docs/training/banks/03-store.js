@@ -150,7 +150,7 @@ QUIZ.register({
         { title: "Stripe: PaymentIntents", url: "https://docs.stripe.com/payments/payment-intents" },
       ],
       explain:
-        "The machine has two axes. The **step** (`CHECKOUT_STEPS`) is where the user is in the form. The **phase** (`editing` → `awaiting_payment` → `completed`) is where the order is. `ORDER_PLACED` is ignored unless `step === \"review\"`, and after it `isLocked` freezes the earlier steps, because the server priced the order from them. `COMPLETED` is ignored without an `orderId`.\n\nThe decision is to keep \"where am I in checkout\" in an explicit, pure, persisted state rather than in navigation or component state. That makes the flow interruption-safe: background or force-quit at any step and the same state rehydrates. If it lived in component state, a relaunch at the payment step would drop the user at the bag with the idempotency key lost. Being pure, it is also unit-tested without React (`checkout.test.ts`).\n\nDoc: milestone **M5** and failure mode \"Double order\".",
+        "The machine has two axes. The **step** (`CHECKOUT_STEPS`) is where the user is in the form. The **phase** (`editing` → `awaiting_payment` → `completed`) is where the order is. `ORDER_PLACED` is accepted only while the phase is `editing`, no `orderId` is recorded yet, and `canEnter(state, \"review\")` holds. It is gated on Review's prerequisites, not on `step`: after Review → Edit → back to the bag, `step` still says where the user last edited, yet the bag resumes straight to Review. So the event also sets `step` to `review`. When it was gated on `step`, that order was dropped, the old idempotency key stayed alive, and the next checkout replayed the already-paid order (`checkout.test.ts`: \"records the order even when step is stale after Edit → back\"). After it, `isLocked` freezes the earlier steps, because the server priced the order from them. `COMPLETED` is ignored without an `orderId`.\n\nThe decision is to keep \"where am I in checkout\" in an explicit, pure, persisted state rather than in navigation or component state. That makes the flow interruption-safe: background or force-quit at any step and the same state rehydrates. If it lived in component state, a relaunch at the payment step would drop the user at the bag with the idempotency key lost. Being pure, it is also unit-tested without React (`checkout.test.ts`).\n\nDoc: milestone **M5** and failure mode \"Double order\".",
     },
     {
       id: "store-08",
@@ -324,10 +324,11 @@ QUIZ.register({
         "The cached product catalogue (`[\"store\", \"products\", …]`)",
         "The `store.onboarded` flag, so the next user sees onboarding again",
         "This device's push token registration on the backend (`unregisterForPushAsync`)",
+        "The saved checkout address (`forgetSavedAddress`) and recent searches (`clearRecents`)",
       ],
-      answer: [0, 1, 2, 5],
+      answer: [0, 1, 2, 5, 6],
       explain:
-        "`clearUserScopedCache` removes only `orders.all`, `wishlist.all` and `user.all`. The catalogue is the same for every user and is kept on purpose, so the next session starts instantly. Onboarding is a per-device flag and survives. Unregistering push matters too: otherwise the previous user's order updates would keep arriving on this phone (`push.api.ts`).\n\nThe decision is that sign-out is a **wipe of everything user-scoped**, ordered so local secrets and PII are gone before the state flips. The failure mode is \"cached PII\": persist the query cache including profile data, log out, and the next person on the device sees the previous user's orders. The scoping is only possible because of the `\"store\"`-rooted key factory.\n\nDoc: **Auth > Sign-out is a wipe** and the failure-mode table (\"Cached PII\").",
+        "`clearUserScopedCache` removes only `orders.all`, `wishlist.all` and `user.all`. The catalogue is the same for every user and is kept on purpose, so the next session starts instantly. Onboarding is a per-device flag and survives. Unregistering push matters too: otherwise the previous user's order updates would keep arriving on this phone (`push.api.ts`). `RESET` deliberately keeps a saved address for the same user's next checkout, so sign-out also calls `forgetSavedAddress()`, and `clearRecents()` drops the search history. The cart auto-sync is stopped before `clearCart()`, or the empty bag would be pushed over the server cart.\n\nThe decision is that sign-out is a **wipe of everything user-scoped**, ordered so local secrets and PII are gone before the state flips. The failure mode is \"cached PII\": persist the query cache including profile data, log out, and the next person on the device sees the previous user's orders. The scoping is only possible because of the `\"store\"`-rooted key factory.\n\nDoc: **Auth > Sign-out is a wipe** and the failure-mode table (\"Cached PII\").",
     },
     {
       id: "store-16",
@@ -598,7 +599,7 @@ QUIZ.register({
       prompt:
         "Trace the idempotency key's life: where it's created, where it's stored, how it's reused, and when a new one is minted. Then explain what would break if `usePlaceOrder` generated a fresh `Crypto.randomUUID()` on every tap instead. Search for `idempotencyKey` across `checkout/`, `hooks/useCheckout.ts` and `api/mockServer.ts` and follow it end to end.",
       model:
-        "The key is created once per checkout attempt, when `useStartCheckout` sends `START` with a UUID. `transition` keeps the existing key if an unfinished attempt exists, so a resume never swaps it. It lives in the checkout machine, which `checkoutStore` persists to AsyncStorage, so it survives a force-quit. `usePlaceOrder` sends `checkout.idempotencyKey` with every attempt, and once `orderId` is known it just calls `fetchOrder`. The server, or `mockServer.placeOrder`, maps key → order, so a double tap, a retry after a timeout or a relaunch all return the same order. A new key is only minted after `COMPLETED`, or after `RESET` (\"Start over\") followed by `START`. If each tap made its own key, a lost response followed by a retry would create a second order, and the user could be charged twice.",
+        "The key is created once per checkout attempt, when `useStartCheckout` sends `START` with a UUID. `transition` keeps the existing key if an unfinished attempt exists, so a resume never swaps it. It lives in the checkout machine, which `checkoutStore` persists to AsyncStorage, so it survives a force-quit. `usePlaceOrder` sends `checkout.idempotencyKey` with every attempt, and once `orderId` is known it just calls `fetchOrder`. The server, or `mockServer.placeOrder`, maps key → order, so a double tap, a retry after a timeout or a relaunch all return the same order. A new key is only minted after `COMPLETED`, or after `RESET` (\"Start over\") followed by `START`. `COMPLETED` is ignored without an `orderId`, so the key only rotates after a purchase if `ORDER_PLACED` was recorded; that is why the machine gates it on Review's prerequisites rather than on a possibly stale `step`. If each tap made its own key, a lost response followed by a retry would create a second order, and the user could be charged twice.",
       rubric: [
         "Key created by `START` (useStartCheckout) and kept on resume",
         "Persisted with the machine in AsyncStorage (checkoutStore), so it survives relaunch",
@@ -897,7 +898,10 @@ QUIZ.register({
         "Return early if `signingOut.current` is set, so concurrent auth failures run it once",
         "Revoke the session and unregister the push token with `Promise.allSettled` (best effort, works offline)",
         "`clearTokens()` then `clearUser()`",
-        "`clearUserScopedCache()`, `clearCart()` and checkout `RESET`",
+        "`clearUserScopedCache()`",
+        "`stopCartAutoSync()`",
+        "`clearCart()`, then checkout `RESET`",
+        "`forgetSavedAddress()`, then search `clearRecents()`",
         "`setState({ status: \"signedOut\" })`, after which Stack.Protected swaps `(app)` for `(auth)`",
       ],
       links: [
@@ -905,7 +909,7 @@ QUIZ.register({
         { title: "OWASP Mobile Top 10 2023: M9 Insecure Data Storage", url: "https://owasp.org/www-project-mobile-top-10/2023-risks/m9-insecure-data-storage" },
       ],
       explain:
-        "The ref guard matters because the refresh test shows `onAuthFailure` can fire once per failed request. Network cleanup is `allSettled`, so a dead connection can't block local sign-out. Local secrets and PII are wiped **before** the state flip, so by the time the UI re-renders there's nothing left to leak. Navigation isn't imperative: changing the status is enough for the guards, which swap `(app)` for `(auth)`.\n\nThe design decision is an ordering one: best-effort remote cleanup first (it may fail), mandatory local cleanup next (it must not), and the state flip last because it is the only step the UI reacts to. Flip first and a re-render could briefly show the previous user's data; await the network first and an offline user can never sign out.\n\nDoc: **Auth > Sign-out is a wipe** and failure mode \"Cached PII\".",
+        "The ref guard matters because the refresh test shows `onAuthFailure` can fire once per failed request. Network cleanup is `allSettled`, so a dead connection can't block local sign-out. `stopCartAutoSync()` must run before `clearCart()`: the auto-sync subscribes to the bag and pushes every change, so clearing first would push an empty bag and wipe the user's server cart. Local secrets and PII are wiped **before** the state flip, so by the time the UI re-renders there's nothing left to leak. Navigation isn't imperative: changing the status is enough for the guards, which swap `(app)` for `(auth)`.\n\nThe design decision is an ordering one: best-effort remote cleanup first (it may fail), mandatory local cleanup next (it must not), and the state flip last because it is the only step the UI reacts to. Flip first and a re-render could briefly show the previous user's data; await the network first and an offline user can never sign out.\n\nDoc: **Auth > Sign-out is a wipe** and failure mode \"Cached PII\".",
     },
     {
       id: "store-40",
@@ -953,7 +957,7 @@ QUIZ.register({
       prompt:
         "Set the dev flag \"Simulated payment outcome\" to `network_drop` and place an order. Explain what `mockServer.confirmSimulatedPayment` does in that case, what `pay()` reports, and why the user still ends up on a paid order. Then explain how `useReconcilePendingCheckout` covers the case where the app is killed right after the charge. Follow `confirmSimulatedPayment` in `mockServer.ts`, then `handlePlaceOrder` in `review.tsx` and `useReconcilePendingCheckout`. Try the `network_drop` dev setting if you can.",
       model:
-        "`network_drop` simulates a charge that succeeded but whose response was lost: the mock server marks the order `paid` (and records `paidAt`), then throws a `network` `ApiError`. `usePayment.pay()` catches that and returns `{ status: \"failed\" }`, because that's all the client saw. `handlePlaceOrder` in review.tsx never trusts that result: it always calls `fetchOrder(order.id)`, and since the server says `paid` (`isPaid`), it calls `finish()`, which runs `complete()` (cache update, clear the bag, `COMPLETED`) and navigates to the order. If the app dies after the charge, the persisted machine is still in `awaiting_payment` with an `orderId`. On the next launch, the `(app)` layout's `useReconcilePendingCheckout(signedIn)` fetches the order and either completes the checkout or records `PAYMENT_FAILED`. Order status is server-owned (`OrderStatus` is never advanced by the client), which is what makes both paths recoverable.",
+        "`network_drop` simulates a charge that succeeded but whose response was lost: the mock server marks the order `paid` (and records `paidAt`), then throws a `network` `ApiError`. `usePayment.pay()` catches that and returns `{ status: \"failed\" }`, because that's all the client saw. `handlePlaceOrder` in review.tsx never trusts that result: it always calls `fetchOrder(order.id)`, and since the server says `paid` (`isPaid`), it calls `finish()`, which runs `complete()` (cache update, remove only the ordered lines from the bag with `removePurchased` / `removeOrderedLines`, `COMPLETED`) and navigates to the order. If the app dies after the charge, the persisted machine is still in `awaiting_payment` with an `orderId`. On the next launch, the `(app)` layout's `useReconcilePendingCheckout(signedIn)` fetches the order and either completes the checkout or records `PAYMENT_FAILED`. Order status is server-owned (`OrderStatus` is never advanced by the client), which is what makes both paths recoverable.",
       rubric: [
         "network_drop: server marks paid, then the response fails",
         "pay() reports failed; the client's view is not the truth",
@@ -963,6 +967,52 @@ QUIZ.register({
       ],
       explain:
         "The general rule for money: the client reports what it *saw*, and the server decides what *happened*. `network_drop` simulates a charge that succeeded but whose response was lost; `pay()` returns `failed` because that is all the client saw, but `review.tsx` always re-reads the order, finds it paid and finishes. Persisting the machine plus reconciling on launch turns \"killed mid-payment\" into a normal resume path, not a support ticket.\n\nThe decision is **server-owned status**: `OrderStatus` is never advanced by the client, and the amount charged is computed server-side from the order (`createPaymentIntent`). The failure mode otherwise is the nightmare one: the card is charged, the app shows an error, the user pays again.\n\nDoc: milestone **M6** (checkpoint: \"kill the app immediately after confirming payment\") and failure mode \"Charge succeeded, response lost\".",
+    },
+    {
+      id: "store-42",
+      type: "mcq",
+      level: 2,
+      topics: ["Accessibility", "React Fundamentals"],
+      files: [
+        "src/projects/store/components/ui/product-item.tsx",
+        "src/projects/store/components/ui/ProductGrid.tsx",
+      ],
+      links: [
+        { title: "React Native: Accessibility (accessible)", url: "https://reactnative.dev/docs/accessibility#accessible" },
+      ],
+      prompt:
+        "In `product-item.tsx`, the `Pressable` with `accessibilityRole=\"link\"` wraps only the image and the info block; the wishlist heart and the add/remove buttons are rendered as its siblings. Why not wrap the whole card in one link and keep the buttons inside it? Read the comment above the `Pressable` and the React Native docs on `accessible`.",
+      choices: [
+        "An accessible element is one focus stop: VoiceOver reads its children as part of its label and can't focus them, so buttons nested in a card-wide link become unreachable",
+        "`Pressable` can't contain another `Pressable`; nesting them throws at render time",
+        "A nested button's `onPress` would fire the card's `onPress` as well, so a tap on the heart would also open the product",
+        "Only for layout: the heart is absolutely positioned and must not be clipped by the link's bounds",
+      ],
+      answer: 0,
+      explain:
+        "`accessible={true}` (which `Pressable` sets by default) groups a view and all its children into **one** accessibility element. That's what you want for the card's title, price and rating, which read as one sentence through the link's `accessibilityLabel`. It's wrong for the controls: inside the link, VoiceOver and TalkBack can't focus \"Add one … to bag\" or the heart at all, so a screen-reader user can't add to the bag from the grid.\n\nNesting pressables is legal, and the innermost responder wins the touch, so touch users never noticed the problem. That's the trap: it only shows up in a real screen-reader pass. The fix is structural: make the link and the buttons siblings, each with its own role and label.\n\nDoc: milestone **M8** (Accessibility pass).",
+    },
+    {
+      id: "store-43",
+      type: "mcq",
+      level: 2,
+      topics: ["React Hooks", "Payments"],
+      files: ["src/app/projects/store/(app)/checkout/review.tsx"],
+      links: [
+        { title: "React: useRef", url: "https://react.dev/reference/react/useRef" },
+        { title: "React: State as a snapshot", url: "https://react.dev/learn/state-as-a-snapshot" },
+      ],
+      prompt:
+        "`handlePlaceOrder` in `review.tsx` used to start with `if (busy || !checkout.paymentMethod) return;`. It now checks and sets `placingRef.current` instead, and clears it in `finally`. What does the ref fix that the `busy` check didn't? Read the comment above `placingRef`.",
+      choices: [
+        "Two taps in the same frame both run with the same render's `busy === false`; a ref is written synchronously, so the second tap sees `true` and returns",
+        "The React Compiler memoises `busy`, so it never changes after the first render",
+        "A ref survives a force-quit, so a relaunch can't place the order again",
+        "Nothing functional: the ref only avoids a re-render when the order is placed",
+      ],
+      answer: 0,
+      explain:
+        "State is a snapshot. Every handler created during a render sees that render's values, and a state update only shows up on the **next** render. Two taps that land before React re-renders both see `busy === false` and both call `mutateAsync()`. A ref is a plain mutable box: the first tap sets `placingRef.current = true` synchronously, so the second one bails immediately.\n\nThe idempotency key would still collapse the two requests into one order on the server, so this is defence in depth (the code calls it \"belt and braces\"). It also stops the client from opening a second payment flow for the same order. A ref doesn't survive a relaunch; the persisted machine and the key cover that.\n\nDoc: milestone **M5** and failure mode \"Double order\".",
     },
   ],
 });

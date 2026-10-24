@@ -75,14 +75,14 @@ QUIZ.register({
       prompt:
         "Every `Point` carries a `segment` number. When does it change, and why does the code care?\n\nSearch: `grep -rn segment src/projects/fitness-tracker --include=*.ts` and list who reads it.",
       choices: [
-        "It increments on every resume, so distance, moving time and the drawn route never bridge a pause",
+        "It increments on every resume, after a gap of more than 60 s and on a speed-gate re-anchor, so distance, moving time and the drawn route never bridge a pause or a hole in the data",
         "It is the 1 km split index, used to build the splits table",
         "It increments on every batch the OS delivers, so batches can be replayed in order",
-        "It marks GPS signal loss, so the map can draw a dashed line across the gap",
+        "It increments whenever a fix is rejected for accuracy, so the map can draw weak-signal stretches dashed",
       ],
       answer: 0,
       explain:
-        "`resumeSession` in `state.ts` returns `segment: session.segment + 1`. `totalDistance`, `movingTime`, `computeSplits`, `simplifyRoute`, `paceColoredSegments` and the GPX export all skip or split on a segment change. A pause followed by a 2 km bus ride must not count as distance, and a straight line must not be drawn across the gap.\n\n`processFix` also skips the implied-speed and jitter checks against a point from the previous segment and restarts the Kalman smoother, so the first fix after a resume is accepted on its own merits.\n\nIf you skip the segment counter, the bug shows up only on real routes with pauses: totals look plausible in a straight-line test. The tutorial introduces segments in Architecture (the two rules that make the background path trustworthy) and lists Pause bridged by distance under failure modes. The counter lives in the persisted session, so it survives a process kill.",
+        "`resumeSession` in `state.ts` returns `segment: session.segment + 1`. `processFix` can also open a new segment itself: after a gap of more than `MAX_GAP_MS` (60 s, measured from the last fix the filter saw) and when the speed gate re-anchors on the 3rd rejection in a row; the pipeline adopts `point.segment`. Rejected fixes never touch the counter. `totalDistance`, `movingTime`, `computeSplits`, `simplifyRoute`, `paceColoredSegments` and the GPX export all skip or split on a segment change. A pause followed by a 2 km bus ride must not count as distance, and a straight line must not be drawn across the gap; the same holds for a killed process or a dead GPS.\n\n`processFix` also skips the implied-speed and jitter checks against a point from the previous segment and restarts the Kalman smoother, so the first fix after a resume is accepted on its own merits.\n\nIf you skip the segment counter, the bug shows up only on real routes with pauses: totals look plausible in a straight-line test. The tutorial introduces segments in Architecture (the two rules that make the background path trustworthy) and lists Pause bridged by distance under failure modes. The counter lives in the persisted session, so it survives a process kill.",
     },
     {
       id: "fitness-tracker-05",
@@ -322,8 +322,9 @@ QUIZ.register({
       items: [
         "`isValidFix`: reject non-finite or out-of-range coordinates, and (0, 0) \"null island\"",
         "Accuracy gate: reject if `fix.accuracy` > 25 m",
-        "Stale gate: reject if the timestamp is not after the last accepted point's `t`",
-        "Implied-speed gate (same segment only): reject if distance / time > `MAX_SPEED_MPS[activity]`",
+        "Stale gate: reject if the timestamp is before `notBefore` (the session start) or not after the last accepted point's `t`",
+        "Gap check: more than `MAX_GAP_MS` since the last fix the filter saw starts a new segment",
+        "Implied-speed gate (same segment only): reject if distance / time > `MAX_SPEED_MPS[activity]`, but re-anchor in a new segment on the 3rd rejection in a row",
         "`kalmanStep` smooths lat/lng, using the fix's accuracy as measurement noise",
         "Jitter gate: reject if the smoothed point is < 5 m from the last accepted point",
       ],
@@ -331,7 +332,7 @@ QUIZ.register({
         { title: "Expo Location", url: "https://docs.expo.dev/versions/latest/sdk/location/" },
       ],
       explain:
-        "That is the order in the code and in the tutorial's point-processing list. Cheap validity and accuracy gates run first. The stale check precedes the speed check (next question). Smoothing only runs on fixes that passed the outlier gates, so a GPS jump never drags the estimate. The jitter gate runs last, on the smoothed point, so standing still produces no new points.\n\nEach stage is a pure function of `(state, fix)` and has its own case in `filters.test.ts`, which is how you verify tracking correctness without going outside for every change. Persisting `FilterState` in the session row is what lets the same pipeline continue across background invocations.\n\nBuild it in M2 against a recorded GPX, before the background task exists.",
+        "That is the order in the code and in the tutorial's point-processing list. Cheap validity and accuracy gates run first. The stale check rejects cached positions from before the session start (`notBefore`) as well as duplicates, and precedes the speed check (next question). The gap check runs before the speed gate, so a fix after a 60 s hole opens a new segment instead of being judged by an implied speed across the hole. The speed gate only rejects up to two fixes in a row (`speedRejects`); the third (`SPEED_RESET_AFTER`) means the anchor itself is wrong, so the filter re-anchors on the new fix in a fresh segment instead of locking out forever. Smoothing only runs on fixes that passed the outlier gates, so a GPS jump never drags the estimate. The jitter gate runs last, on the smoothed point, so standing still produces no new points.\n\nEach stage is a pure function of `(state, fix)` and has its own case in `filters.test.ts`, which is how you verify tracking correctness without going outside for every change. Persisting `FilterState` in the session row is what lets the same pipeline continue across background invocations.\n\nBuild it in M2 against a recorded GPX, before the background task exists.",
     },
     {
       id: "fitness-tracker-16",
@@ -341,7 +342,7 @@ QUIZ.register({
       files: ["src/projects/fitness-tracker/tracking/filters.ts"],
       prompt:
         "In `processFix`, the stale check (`fix.timestamp <= last.t`) runs **before** the implied-speed check. What would go wrong if you swapped them?\n\nSearch: write the failing input by hand (same position, equal timestamps) and trace it through the snippet, then check the stale test in `filters.test.ts`.",
-      code: "const dt = (fix.timestamp - last.t) / 1000;\nconst d = haversine(last, { lat: fix.latitude, lng: fix.longitude });\nif (d / dt > MAX_SPEED_MPS[options.activity]) return reject(\"speed\");",
+      code: "const dt = (fix.timestamp - last.t) / 1000;\nconst d = haversine(last, { lat: fix.latitude, lng: fix.longitude });\nif (d / dt > MAX_SPEED_MPS[options.activity]) {\n  const streak = (state.speedRejects ?? 0) + 1;\n  if (streak < SPEED_RESET_AFTER) {\n    return reject(\"speed\", { ...state, speedRejects: streak });\n  }\n  // 3rd in a row: re-anchor on this fix in a new segment\n  continues = false;\n  segment = options.segment + 1;\n}",
       choices: [
         "`dt` could be 0 or negative, giving Infinity, NaN or a negative speed. Duplicate or out-of-order fixes could then pass the speed gate (NaN or negative compares false) or be rejected for the wrong reason",
         "Nothing. Both checks are pure, so their order can't change the result",
@@ -350,7 +351,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "The speed gate divides by `dt`. With `dt = 0` and an identical position, `0 / 0` is `NaN`, and `NaN > max` is `false`, so the duplicate would pass. A negative `dt` gives a negative speed, which also passes. Only `d > 0` with `dt = 0` gets caught, and it is mislabelled as a speed outlier. Checking stale first guarantees `dt > 0` before any division.\n\nPure functions can still have order-dependent correctness. Batches from the OS can contain duplicates and out-of-order fixes (the pipeline also sorts each batch by timestamp), so this is not a theoretical case.\n\nThe tutorial's pipeline list carries the note: after the stale check, so the speed division always has dt > 0. When you write gates, ask what each one assumes about the data the previous gate already guaranteed.",
+        "The speed gate divides by `dt`. With `dt = 0` and an identical position, `0 / 0` is `NaN`, and `NaN > max` is `false`, so the duplicate would pass. A negative `dt` gives a negative speed, which also passes. Only `d > 0` with `dt = 0` gets caught, and it is mislabelled as a speed outlier, which also bumps the `speedRejects` streak toward a bogus re-anchor. Checking stale first guarantees `dt > 0` before any division.\n\nPure functions can still have order-dependent correctness. Batches from the OS can contain duplicates and out-of-order fixes (the pipeline also sorts each batch by timestamp), so this is not a theoretical case.\n\nThe tutorial's pipeline list carries the note: after the stale check, so the speed division always has dt > 0. When you write gates, ask what each one assumes about the data the previous gate already guaranteed.",
     },
     {
       id: "fitness-tracker-17",
@@ -359,7 +360,7 @@ QUIZ.register({
       topics: ["Location & Sensors", "Testing"],
       files: ["src/projects/fitness-tracker/tracking/filters.ts", "src/projects/fitness-tracker/__tests__/filters.test.ts"],
       prompt:
-        "On a jitter rejection, `processFix` returns `reject(\"jitter\", { last, kalman })`. It keeps the **old** `last` but stores the **new** Kalman state. Why not move `last` forward too?\n\nSearch: read the `reject(\"jitter\", ...)` line and the test that feeds 300 noisy stationary fixes.",
+        "On a jitter rejection, `processFix` returns `reject(\"jitter\", { last, kalman, speedRejects: 0 })`. It keeps the **old** `last` but stores the **new** Kalman state. Why not move `last` forward too?\n\nSearch: read the `reject(\"jitter\", ...)` line and the test that feeds 300 noisy stationary fixes.",
       choices: [
         "The 5 m check is always against the last accepted point, so a slow drift of many sub-5 m steps can't add up to fake distance. The smoother still stays warm",
         "Moving `last` would make the next fix fail the stale check",
@@ -368,7 +369,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "The 5 m check is always against the last accepted point. If `last` advanced on every jittery fix, each fix would be within 5 m of the previous one and the anchor would creep: some later fix would eventually be more than 5 m from an anchor that had already drifted, recording distance while standing still. Keeping the anchor fixed means a real net 5 m of movement is required.\n\nUpdating `kalman` keeps the variance and timestamp current, so the next real movement is not over-smoothed. The test stops standing-still drift from accumulating distance feeds 300 noisy stationary fixes and expects fewer than 10 accepted points.\n\nThis is the filter-level fix for the tutorial's failure mode GPS drift while stationary: stand still for five minutes without it and you record 200 m. Separate what you smooth (always) from what you commit (only on real movement).",
+        "The 5 m check is always against the last accepted point. If `last` advanced on every jittery fix, each fix would be within 5 m of the previous one and the anchor would creep: some later fix would eventually be more than 5 m from an anchor that had already drifted, recording distance while standing still. Keeping the anchor fixed means a real net 5 m of movement is required.\n\nUpdating `kalman` keeps the variance and timestamp current, so the next real movement is not over-smoothed, and the gap check (measured from `max(last.t, kalman.t)`) does not mistake standing at a light for a 60 s hole while jitter fixes keep arriving. A plausible fix also resets the speed-rejection streak. The test stops standing-still drift from accumulating distance feeds 300 noisy stationary fixes and expects fewer than 10 accepted points.\n\nThis is the filter-level fix for the tutorial's failure mode GPS drift while stationary: stand still for five minutes without it and you record 200 m. Separate what you smooth (always) from what you commit (only on real movement).",
     },
     {
       id: "fitness-tracker-18",
@@ -419,7 +420,7 @@ QUIZ.register({
       ],
       answer: 0,
       explain:
-        "The header of `autoPause.ts` says it: pausing late is cheap, resuming late loses real distance. While auto-paused the pipeline drops fixes (`session.status !== \"active\"`), so every extra second before resuming is distance gone for good. Hence 8 s to pause and 3 s to resume. A moving sample also resets the still timer, so one blip never pauses and one still sample never resumes.\n\n`stepAutoPause` is a pure state machine fed by two sources: GPS speed in the pipeline (works in the background) and DeviceMotion variance in `useMotionAutoPause` (faster, foreground only). Pure means the thresholds are unit-tested with plain timestamps.\n\nThe tutorial's M5 checkpoint sets targets (pause within 10 s, resume within 5 s) and tells you to tune: asymmetric thresholds are the first tuning step.",
+        "The header of `autoPause.ts` says it: pausing late is cheap, resuming late loses real distance. While auto-paused the pipeline does not accept fixes (`session.status !== \"active\"`), so the code goes further than a short window: it keeps the last 10 s of fixes in `session.resumeBuffer`, and on a resume it restarts the clock at `movingSince` (when movement began, not when it was confirmed) and replays the buffered fixes from that instant through `accept()`. Motion resumes do the same through `autoPauseFromMotion(\"resume\", at)` and `ingestNow`. A moving sample also resets the still timer, so one blip never pauses and one still sample never resumes.\n\n`stepAutoPause` is a pure state machine fed by two sources: GPS speed in the pipeline (works in the background) and DeviceMotion variance in `useMotionAutoPause` (faster, foreground only). `gpsMayAct` stops them fighting: a motion decision from the last 60 s (`MOTION_PRIORITY_MS`) beats GPS. There is also a silence path, because with a distance filter a standing user produces no fixes at all, so no \"still\" sample ever arrives: `silentStopAt` pauses retroactively, one stop window after the last fix. Pure means all of it is unit-tested with plain timestamps.\n\nThe tutorial's M5 checkpoint sets targets (pause within 10 s, resume within 5 s) and tells you to tune: asymmetric thresholds are the first tuning step.",
     },
     {
       id: "fitness-tracker-21",
@@ -635,6 +636,60 @@ QUIZ.register({
         "The rolling values exist only so the live UI and Live Activity can show totals without re-reading thousands of points. `addRolling` increments in SQL (`distance_m = distance_m + ?`), so batches cannot lose an update through a read-modify-write race, and `RETURNING *` hands back the new row without a second query.\n\nPoints are the source of truth. At finish, `stopWorkout` runs the same pure functions the tests verify against the GPX fixture and overwrites the totals; the code comment says the rolling values are for display only. `summarize` also produces what incremental totals cannot: kilometre splits with interpolated boundaries, max speed, the thumbnail path and calories from final moving time. Any drift in the incremental path therefore never reaches history.\n\nThis incremental-for-display, authoritative-at-finish split is described in the tutorial under Tracking pipeline.",
     },
 
+    {
+      id: "fitness-tracker-43",
+      type: "mcq",
+      level: 2,
+      topics: ["Location & Sensors", "Background Tasks"],
+      files: [
+        "src/projects/fitness-tracker/tracking/autoPause.ts",
+        "src/projects/fitness-tracker/tracking/config.ts",
+        "src/projects/fitness-tracker/tracking/pipeline.ts",
+        "src/app/projects/fitness-tracker/workout/active.tsx",
+      ],
+      prompt:
+        "Accurate mode records with `distanceInterval: 5`. With auto-pause on, the user stops at a crossing for 30 s. A version of the pipeline that only fed GPS speed into `stepAutoPause` never paused here. Why not, and what does the current code do instead?\n\nSearch: read `silenceMeansStillMs` and `silentStopAt` in `autoPause.ts`, `stillAfterSilenceMs` in `config.ts`, then grep `silentStopAt` in `pipeline.ts` and `active.tsx`.",
+      choices: [
+        "With a distance filter the OS delivers no fixes at all while the user stands still, so no \"still\" sample ever reaches `stepAutoPause`. Now silence longer than `stillAfterSilenceMs(mode)` (about 9.3 s in accurate mode) counts as stopped: the pipeline pauses retroactively at `silentStopAt` when the next fix arrives, and the active screen calls `autoPauseFromSilence()` in the foreground",
+        "iOS stops delivering updates when it thinks the user has stopped, so the code now sets `pausesUpdatesAutomatically: true` and pauses when updates stop",
+        "GPS speed while standing is noisy and stays above 0.6 m/s, so the code now averages speed over the last 30 s before stepping the state machine",
+        "The \"GPS signal lost\" banner appears after 20 s of silence and cancels auto-pause, so the code now hides the banner while auto-pause is on",
+      ],
+      answer: 0,
+      links: [
+        { title: "Expo Location", url: "https://docs.expo.dev/versions/latest/sdk/location/" },
+        { title: "Apple: distanceFilter", url: "https://developer.apple.com/documentation/corelocation/cllocationmanager/distancefilter" },
+      ],
+      explain:
+        "`distanceInterval` is a distance filter: the OS only reports a new location after the device has moved that far. Standing still therefore means silence, not a stream of zero-speed fixes, and a state machine waiting for \"still\" samples waits forever while the clock keeps running. `silenceMeansStillMs` turns the filter into a time: one distance interval at stopping speed (`5 m / 0.6 m/s`) plus one time interval, at least the 8 s stop window, so about 9.3 s in accurate mode and about 52 s in saver mode.\n\nThe pipeline can only see silence when the next fix arrives, so it pauses **retroactively** at `silentStopAt` (the previous fix plus 8 s). In the foreground the active screen checks the same function on its 1 s tick and calls the queued `autoPauseFromSilence()`, so the pause appears while you are still standing. `pausesUpdatesAutomatically` stays `false`, and the GPS-lost banner was changed for the same reason: silence after good fixes is not a lost signal.\n\nThe tutorial lists this under failure modes (Auto-pause never fires with a distance filter) and in M5.",
+    },
+    {
+      id: "fitness-tracker-44",
+      type: "mcq",
+      level: 2,
+      topics: ["Location & Sensors", "Layout & Styling", "React Hooks"],
+      files: [
+        "src/projects/fitness-tracker/components/map/RouteMap.tsx",
+        "src/projects/fitness-tracker/utils/region.ts",
+        "src/app/projects/fitness-tracker/workout/[id].tsx",
+      ],
+      prompt:
+        "An earlier `RouteMap` called `fitToCoordinates(fitTo)` once in a `useEffect` after mount. On the workout summary the map often showed only the start of the route, zoomed in, with no error logged. What is going on, and how does the current component fix it?\n\nSearch: read the comment above `fit` in `RouteMap.tsx`, its `initialRegion`, `onMapReady` and `onLayout` props, and `regionForCoordinates` in `utils/region.ts`.",
+      choices: [
+        "`react-native-maps` ignores `fitToCoordinates` until the native map is ready and has a size, and the effect ran before that. Now the first frame uses a bounds-based `initialRegion` from `regionForCoordinates`, and `fit()` runs again in `onMapReady`, in `onLayout` and when the route length changes",
+        "`fitToCoordinates` throws on Android when given more than 1,000 points, so the component now simplifies the route before fitting",
+        "The React Compiler memoised the effect, so it never re-ran; the fix is an explicit `useMemo` around the coordinates",
+        "`initialRegion` overrides any later camera change, so the component now removes `initialRegion` entirely",
+      ],
+      answer: 0,
+      links: [
+        { title: "react-native-maps: MapView", url: "https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md" },
+        { title: "Expo MapView", url: "https://docs.expo.dev/versions/latest/sdk/map-view/" },
+      ],
+      explain:
+        "Imperative camera methods act on the native map view, and before `onMapReady` (or while the view still has zero size) there is nothing to fit, so the call is dropped silently. A mount-time effect runs too early, and a `fitted` flag set on that first call guaranteed it never ran again.\n\nThe current `RouteMap` keeps a `ready` ref set in `onMapReady` and calls `fit()` from `onMapReady`, `onLayout` and an effect keyed on the route length. Because even a correct fit happens a frame late, `initialRegion` is computed from the route's bounds with 25 % padding (`regionForCoordinates`), so the first frame already shows the whole route. `initialRegion` only applies on mount; later fits still move the camera.\n\nThe lesson is general for native views driven through refs: an imperative call needs the native side to be ready, so do it from the ready/layout callbacks and give the view a correct declarative starting state. See M4 and the failure mode Map fit silently ignored.",
+    },
+
     // ------------------------------------------------------------ Level 3
     {
       id: "fitness-tracker-31",
@@ -643,7 +698,7 @@ QUIZ.register({
       topics: ["Background Tasks", "SQLite", "Offline & Sync"],
       files: ["src/projects/fitness-tracker/tracking/state.ts", "src/projects/fitness-tracker/tracking/pipeline.ts", "src/projects/fitness-tracker/db/schema.ts"],
       prompt:
-        "`Session` (stored as JSON in a single-row `session` table) holds `filter`, `elevationRef`, `autoPauseState`, `segment`, `pausedAt` and `pausedTotalMs`. Explain why this state lives in SQLite and not in module variables, and give at least two **concrete** bugs you'd see after the OS kills the JS runtime between two task batches if it were kept in memory.\n\nSearch: read `Session` in `state.ts`, then trace how each field is used in `pipeline.ts`.",
+        "`Session` (stored as JSON in a single-row `session` table) holds `filter`, `elevationRef`, `autoPauseState`, `segment`, `pausedAt` and `pausedTotalMs`, plus optional fields added later (`lastRaw`, `resumedAt`, `resumeBuffer`, `motionDecision`) that older persisted sessions simply lack. Explain why this state lives in SQLite and not in module variables, and give at least two **concrete** bugs you'd see after the OS kills the JS runtime between two task batches if it were kept in memory.\n\nSearch: read `Session` in `state.ts`, then trace how each field is used in `pipeline.ts`.",
       model:
         "The JS runtime can be killed between two task invocations, and the next batch may start in a fresh headless runtime. So everything the next invocation needs must be persisted, and it's saved in the same transaction as the points. If `filter.last` were in memory, the first fix after a restart would skip the speed and jitter gates, and a GPS jump would be recorded. The Kalman smoother would also restart cold. Losing `elevationRef` restarts the hysteresis, and losing `autoPauseState` resets the still/moving timers, so auto-pause fires late or never. Losing `pausedAt` / `pausedTotalMs` breaks the elapsed clock, which is derived from timestamps (`activeElapsedMs`), not from a stopwatch. The single transaction also means the session can never be ahead of or behind the points it describes.",
       rubric: [
@@ -658,7 +713,7 @@ QUIZ.register({
         { title: "Expo TaskManager", url: "https://docs.expo.dev/versions/latest/sdk/task-manager/" },
       ],
       explain:
-        "See the header comment in `state.ts`, the `CHECK (id = 1)` single-row table in `schema.ts`, and `useElapsed`. The JS runtime can die between two task invocations and the next batch may start in a fresh headless runtime, so everything it needs must be in the database, saved in the same transaction as the points.\n\nConcrete bugs if kept in memory: without `filter.last` the first fix after a restart skips the speed and jitter gates and a GPS jump is recorded; the Kalman smoother restarts cold. Losing `elevationRef` resets the hysteresis. Losing `autoPauseState` resets the still and moving timers so auto-pause fires late or never. Losing `pausedAt` and `pausedTotalMs` breaks the clock, which is derived from timestamps in `activeElapsedMs`, not a stopwatch.\n\nThe tutorial states the rule in Architecture (the session lives in SQLite). Design every background-resumable feature around \"what must the next invocation know?\"",
+        "See the header comment in `state.ts`, the `CHECK (id = 1)` single-row table in `schema.ts`, and `useElapsed`. The JS runtime can die between two task invocations and the next batch may start in a fresh headless runtime, so everything it needs must be in the database, saved in the same transaction as the points.\n\nConcrete bugs if kept in memory: without `filter.last` the first fix after a restart skips the speed and jitter gates and a GPS jump is recorded; the Kalman smoother restarts cold. Losing `elevationRef` resets the hysteresis. Losing `autoPauseState` resets the still and moving timers so auto-pause fires late or never. Losing `pausedAt` and `pausedTotalMs` breaks the clock, which is derived from timestamps in `activeElapsedMs`, not a stopwatch. Losing `lastRaw` would hide a long silence, so the retroactive auto-pause could not fire; losing `resumeBuffer` would drop the fixes a GPS resume replays.\n\nThe newer fields are typed optional (`lastRaw?`, `resumeBuffer?`) and read with `?? null` / `?? []`, because a session row written by an older build must still load after an update mid-workout.\n\nThe tutorial states the rule in Architecture (the session lives in SQLite). Design every background-resumable feature around \"what must the next invocation know?\"",
     },
     {
       id: "fitness-tracker-32",
@@ -879,7 +934,7 @@ QUIZ.register({
         { title: "Android: NotificationCompat.Builder", url: "https://developer.android.com/reference/androidx/core/app/NotificationCompat.Builder" },
       ],
       explain:
-        "`syncWidget`'s comment says \"Never on a timer\": pushes are event-driven and bucketed (every 100 steps, debounced 2 s), and a finished workout pushes immediately. The Live Activity wrapper throttles to about 1 Hz and always sends the latest state. The clock ticks natively from `timerStart` (`Text(timerInterval:)` on iOS, `setUsesChronometer` on Android), so JS never pushes once per second for the clock.\n\n`TodayProvider.getTimeline` uses a 30-minute `.after` policy only as a fallback to keep \"today\" correct across midnight. Real refreshes come from `WidgetCenter.reloadAllTimelines()` inside `setWidgetData`, and WidgetKit still budgets them. On iOS `update` also sets a 10-minute `staleDate`, so a dead pipeline greys the activity out instead of freezing a \"live\" distance.\n\nThe tutorial's M7 asks you to understand why you cannot update a widget every second.",
+        "`syncWidget`'s comment says \"Never on a timer\": pushes are event-driven and bucketed (every 100 steps, debounced 2 s), and a finished workout pushes immediately. The Live Activity wrapper throttles to about 1 Hz and always sends the latest state. The clock ticks natively from `timerStart` (`Text(timerInterval:)` on iOS, `setUsesChronometer` on Android), so JS never pushes once per second for the clock.\n\n`TodayProvider.getTimeline` uses a 30-minute `.after` policy only as a fallback to keep \"today\" correct across midnight. Real refreshes come from `WidgetCenter.reloadAllTimelines()` inside `setWidgetData`, and WidgetKit still budgets them. On iOS `update` also sets a 10-minute `staleDate` (except while paused, when it is `nil`: a paused workout gets no updates on purpose), so a dead pipeline greys the activity out instead of freezing a \"live\" distance.\n\nThe tutorial's M7 asks you to understand why you cannot update a widget every second.",
     },
     {
       id: "fitness-tracker-41",

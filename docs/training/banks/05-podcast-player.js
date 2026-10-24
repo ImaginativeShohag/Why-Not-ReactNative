@@ -150,7 +150,7 @@ QUIZ.register({
         { title: "Zustand: persisting store data", url: "https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data.html" },
       ],
       explain:
-        "The file comment gives the reasons: settings are tiny, read synchronously after hydration, and needed by the singletons. `PlaybackService.skipForward()` and `DownloadManager.pump()` call `getSettings()` inline, and an async SQLite read there would add awaits to every path.\n\nThe cost of a synchronous read is that it returns `DEFAULT_SETTINGS` until hydration finishes, so code that can run before any screen (the headless background task) awaits `ensureSettingsHydrated()` first. Skip that and a background run ignores the user's Wi-Fi-only and storage-cap choices. `partialize` keeps the `update` function out of what is persisted, and the key `podcast-player/settings` is scoped to this project. AsyncStorage is not encrypted (that is expo-secure-store), and SQLite stores booleans as integers without trouble.\n\nThe doc explains this in **Architecture** (data model) and failure mode 10.",
+        "The file comment gives the reasons: settings are tiny, read synchronously after hydration, and needed by the singletons. `PlaybackService.skipForward()` and `DownloadManager.pump()` call `getSettings()` inline, and an async SQLite read there would add awaits to every path.\n\nThe cost of a synchronous read is that it returns `DEFAULT_SETTINGS` until hydration finishes, so code that can run before any screen awaits `ensureSettingsHydrated()` first: the headless background task, and `PlaybackService.loadEpisode()` (it needs `defaultRate` for `resolveStartRate()`, and an episode loaded right after launch would otherwise start at the built-in default instead of the user's Default speed). Skip that and a background run ignores the user's Wi-Fi-only and storage-cap choices. `partialize` keeps the `update` function out of what is persisted, and the key `podcast-player/settings` is scoped to this project. AsyncStorage is not encrypted (that is expo-secure-store), and SQLite stores booleans as integers without trouble.\n\nThe doc explains this in **Architecture** (data model) and failure mode 10.",
     },
     {
       id: "podcast-player-08",
@@ -355,14 +355,14 @@ QUIZ.register({
       prompt:
         "The storage cap is full, and every downloaded episode is **unplayed**. The user taps download on another episode. What happens?\n\nSearch: read `chooseEvictions` in `downloads/policy.ts` and the `ensureCapacity` path in `manager.ts`. Which files are eligible for eviction?",
       choices: [
-        "`chooseEvictions` evicts nothing (only played episodes can be evicted) and returns `fits: false`, so `start()` marks the download `failed` with \"Storage cap reached — delete played episodes or raise the cap\"",
+        "`chooseEvictions` evicts nothing (only played episodes can be evicted) and returns `fits: false`, so `run()` marks the download `failed` with \"Storage cap reached — delete played episodes or raise the cap\"",
         "The oldest download by `completedAt` is deleted to make room",
         "The download goes ahead past the cap, and the next auto-delete run trims storage",
         "It stays `queued` and retries with exponential backoff until space is freed",
       ],
       answer: 0,
       explain:
-        "The policy comment says it plainly: silently deleting something the user has not heard yet is worse than refusing a new download. Eviction looks only at played files that are not protected (the episode now playing is protected), oldest-played first, and removes only as many as needed.\n\n`ensureCapacity` first checks device free space against `estimateBytes()` (enclosure lengths are often 0 or wrong). It then returns an error string, and `start()` writes `failed` directly. That path skips `onFailure`, so there is no backoff loop retrying something that cannot succeed.\n\nThis is the answer to \"unbounded storage\" (failure mode 13), together with the 2-per-show auto-download limit. See **Download manager** and Milestone M5.",
+        "The policy comment says it plainly: silently deleting something the user has not heard yet is worse than refusing a new download. Eviction looks only at played files that are not protected (the episode now playing is protected), oldest-played first, and removes only as many as needed.\n\n`ensureCapacity` first checks device free space against `estimateBytes()` (enclosure lengths are often 0 or wrong). It then returns an error string, and `run()` (the body that `start()` calls once it has claimed the slot) writes `failed` directly. That path skips `onFailure`, so there is no backoff loop retrying something that cannot succeed.\n\nThis is the answer to \"unbounded storage\" (failure mode 13), together with the 2-per-show auto-download limit. See **Download manager** and Milestone M5.",
     },
     {
       id: "podcast-player-18",
@@ -460,7 +460,7 @@ QUIZ.register({
         "src/projects/podcast-player/downloads/policy.ts",
       ],
       prompt:
-        "Wi-Fi only is on. Put this download's life in order, from tap to finished file, including a Wi-Fi drop partway through.\n\nSearch: follow one download through `enqueue`, `pump`, `setNetwork`, `pauseAndSnapshot` and `start` in `downloads/manager.ts`.",
+        "Wi-Fi only is on. Put this download's life in order, from tap to finished file, including a Wi-Fi drop partway through.\n\nSearch: follow one download through `enqueue`, `pump`, `setNetwork`, `pauseAndSnapshot`, `start` and `run` in `downloads/manager.ts`.",
       items: [
         "`enqueue()` inserts a `queued` row, updates the live store and schedules a pump",
         "`pump()` picks it (priority, then FIFO), `ensureCapacity()` passes, and the row becomes `downloading`",
@@ -473,7 +473,7 @@ QUIZ.register({
         { title: "expo-file-system API reference (DownloadTask)", url: "https://docs.expo.dev/versions/latest/sdk/filesystem" },
       ],
       explain:
-        "Every decision (which downloads to start, whether the network allows it, eviction) comes from pure functions in `policy.ts`, and `manager.ts` only performs the I/O. A pause resolves the running `downloadAsync()`/`resumeAsync()` promise with `null`, so `start()` uses `stopReason` to tell a user pause (row stays `paused`) from a network pause (row goes back to `queued`, to resume automatically).\n\nBecause the snapshot carries `resumeData`, the transfer continues from the same byte instead of starting over. Treating every `null` as a failure would burn retry attempts whenever the user walks out of Wi-Fi range.\n\nSee the **Lifecycle you must get right** list in the Download manager section and Milestone M5.",
+        "Every decision (which downloads to start, whether the network allows it, eviction) comes from pure functions in `policy.ts`, and `manager.ts` only performs the I/O. A pause resolves the running `downloadAsync()`/`resumeAsync()` promise with `null`, so `run()` uses `stopReason` to tell a user pause (row stays `paused`) from a network pause (row goes back to `queued`, to resume automatically).\n\nBecause the snapshot carries `resumeData`, the transfer continues from the same byte instead of starting over. Treating every `null` as a failure would burn retry attempts whenever the user walks out of Wi-Fi range.\n\nSee the **Lifecycle you must get right** list in the Download manager section and Milestone M5.",
     },
     {
       id: "podcast-player-23",
@@ -482,20 +482,22 @@ QUIZ.register({
       topics: ["Media", "Architecture"],
       files: ["src/projects/podcast-player/playback/service.ts"],
       prompt:
-        "Put the steps of `PlaybackService.load(episodeId, { autoplay: true })` in order, for a new episode that has a saved resume position.\n\nSearch: read `PlaybackService.load()` in `playback/service.ts` top to bottom and number the side effects.",
+        "Put the steps of `PlaybackService.load(episodeId, { autoplay: true })` in order, for a new, downloaded episode that has a saved resume position, with no other tap racing it.\n\nSearch: read `load()` and `loadEpisode()` in `playback/service.ts` top to bottom and number the side effects. Note where `stale()` is checked.",
       items: [
+        "Take a token (`++this.loadSeq`), await `init()`, then hand off to `loadEpisode(episodeId, token, options)`",
         "Look up the episode row with `getEpisode()`",
+        "Resolve the local file with `downloadManager.localUriFor()`, then await `ensureSettingsHydrated()`",
         "Flush the previous episode's progress and reset the progress writer and interruption tracker",
-        "Resolve the local file URI (if downloaded) and the resume position",
-        "Publish `nowPlaying` and the initial status to `usePlayerStore`",
-        "Call `player.replace()` with the new source and activate the lock-screen controls",
+        "Resolve the resume position and `resolveStartRate()`, then publish `nowPlaying` and the initial status to `usePlayerStore`",
+        "`replaceSource()`: pause the player, `replace()` the source, set the playback rate",
+        "`await ensureLockScreen(episode, token)` activates the lock-screen controls",
         "On the first `isLoaded` status tick, seek to the pending position, then call `play()`",
       ],
       links: [
         { title: "expo-audio API reference", url: "https://docs.expo.dev/versions/latest/sdk/audio" },
       ],
       explain:
-        "Flushing before switching means the old episode's last position is saved under the old id. Pending work is reset so stale samples and interruption state cannot leak into the new episode. A local file is preferred only when `downloadState === \"done\"` and the file still exists. The store is updated before `replace()`, so the UI shows the new title immediately.\n\nPlayback starts in `onStatus` once the source reports `isLoaded`, after the resume seek has landed. Calling `play()` right after `replace()` instead makes audio start at 0 and jump, or seeks a source that is not loaded yet.\n\nThis ordering is the heart of Milestone M2 (\"Playback core\"); see also \"Progress, resume and the sleep timer\".",
+        "Every `load()` bumps `loadSeq`, and `loadEpisode()` checks `stale()` after each await, so when the user taps three episodes quickly only the last one gets past its next await. That is why the flush and reset come *after* every await (the episode lookup, the file lookup and settings hydration): a superseded load returns before it touches anything, so it can never flush or reset the episode that is actually playing. Flushing before switching still saves the old episode's last position under the old id. A local file is preferred only when `downloadState === \"done\"` and the file still exists. The start rate comes from `resolveStartRate()` (restored session, then a speed picked this run, then the Default speed setting), which is why settings must be hydrated first. The store is updated before the source swap, so the UI shows the new title immediately.\n\n`replaceSource()` pauses before `replace()` because the native `replace()` resumes on its own when the old item was playing; without the pause the new episode would play from 0:00 until the resume seek lands. `ensureLockScreen()` also takes the token, so a newer load's metadata is never overwritten. Playback then starts in `onStatus` once the source reports `isLoaded`, after the resume seek has landed.\n\nThis ordering is the heart of Milestone M2 (\"Playback core\"); see also \"Progress, resume and the sleep timer\".",
     },
     {
       id: "podcast-player-24",
@@ -727,7 +729,7 @@ QUIZ.register({
       topics: ["File System", "Offline & Sync"],
       files: ["src/projects/podcast-player/downloads/manager.ts"],
       prompt:
-        "In `DownloadManager.start()`, which expo-file-system method rebuilds a `DownloadTask` from a stored snapshot so it can `resumeAsync()` from the same byte? (Type the method, for example `Class.method`.)\n\nSearch: find where `start()` in `downloads/manager.ts` builds a task from a stored snapshot, and check the `DownloadTask` entry in the expo-file-system docs.",
+        "In `DownloadManager.run()` (called by `start()`), which expo-file-system method rebuilds a `DownloadTask` from a stored snapshot so it can `resumeAsync()` from the same byte? (Type the method, for example `Class.method`.)\n\nSearch: find where `run()` in `downloads/manager.ts` builds a task from a stored snapshot, and check the `DownloadTask` entry in the expo-file-system docs.",
       accept: ["DownloadTask.fromSavable", "fromSavable", /fromSavable/],
       links: [
         { title: "expo-file-system API reference (DownloadTask)", url: "https://docs.expo.dev/versions/latest/sdk/filesystem" },
@@ -850,13 +852,13 @@ QUIZ.register({
         "src/projects/podcast-player/downloads/paths.ts",
       ],
       prompt:
-        "Walk through `checkpointAll()`. What happens to an active download when the app goes to the background? Why does the stored snapshot hold a `relativePath` instead of the `fileUri` from `savable()`? And what is the `checkpoint` deferred in `ActiveTransfer` for?\n\nSearch: read `checkpointAll()` and the `checkpoint` handling inside `start()` in `downloads/manager.ts`, plus `toRelativePath` in `paths.ts`.",
+        "Walk through `checkpointAll()`. What happens to an active download when the app goes to the background? Why does the stored snapshot hold a `relativePath` instead of the `fileUri` from `savable()`? And what is the `checkpoint` deferred in `ActiveTransfer` for?\n\nSearch: read `checkpointAll()` and the `checkpoint` handling inside `run()` in `downloads/manager.ts`, plus `toRelativePath` in `paths.ts`.",
       model:
-        "On `background`/`inactive`, `checkpointAll()` handles each active transfer: it creates a deferred, sets it as `t.checkpoint`, calls `pauseAsync()`, and saves `task.savable()` as JSON with the file URI turned into a path relative to Documents (`toRelativePath`). It then calls `resumeAsync()` and resolves the deferred with that new promise, so the download keeps going. Inside `start()`, the paused op resolves with `null`. Because `transfer.checkpoint` is set, the loop waits on `cp.promise` instead of treating it as a real pause. If the OS kills the app, `rehydrate()` turns `downloading` back into `queued`, and `start()` rebuilds the task with `DownloadTask.fromSavable` and `resolveUri(relativePath)`, continuing from the saved byte. An absolute `fileUri` would point into the old container UUID after a reinstall or some updates, and the resume would fail. A failed resume goes through `onFailure`, which clears the snapshot and retries from scratch.",
+        "On `background`/`inactive`, `checkpointAll()` handles each active transfer: it creates a deferred, sets it as `t.checkpoint`, calls `pauseAsync()`, and saves `task.savable()` as JSON with the file URI turned into a path relative to Documents (`toRelativePath`). It then calls `resumeAsync()` and resolves the deferred with that new promise, so the download keeps going, but only if the task is still `paused` and has no `stopReason`: a user pause or the network rule that landed during the checkpoint resolves the deferred with `null` instead, so the runner ends as a real pause rather than undoing it. Inside `run()`, the paused op resolves with `null`. Because `transfer.checkpoint` is set, the loop waits on `cp.promise` instead of treating it as a real pause. If the OS kills the app, `rehydrate()` turns `downloading` back into `queued`, and `run()` rebuilds the task with `DownloadTask.fromSavable` and `resolveUri(relativePath)`, continuing from the saved byte. An absolute `fileUri` would point into the old container UUID after a reinstall or some updates, and the resume would fail. A failed resume goes through `onFailure`, which clears the snapshot and retries from scratch.",
       rubric: [
         "On background: pause, save the snapshot, resume immediately (the transfer keeps going)",
         "The snapshot stores a relative path, because the iOS container path can change",
-        "The checkpoint deferred stops `start()` from treating the snapshot pause as a user or network pause",
+        "The checkpoint deferred stops `run()` from treating the snapshot pause as a user or network pause (and a real pause during the checkpoint is not resumed)",
         "After a kill: rehydrate re-queues the row and `fromSavable` resumes from the saved byte",
         "Fallback: an unusable snapshot is dropped and the download restarts",
       ],
@@ -865,7 +867,7 @@ QUIZ.register({
         { title: "expo-task-manager", url: "https://docs.expo.dev/versions/latest/sdk/task-manager" },
       ],
       explain:
-        "The JS side of a `DownloadTask` does not survive the process. On iOS the native transfer runs on a background URLSession and may keep going while the app is suspended, but if the app is killed the promise, progress callbacks and DB bookkeeping are gone (and Android stops the transfer with the process). So the manager checkpoints whenever it might lose the process: pause, save `savable()`, resume.\n\nThe `checkpoint` deferred tells `start()` that the `null` from the paused promise is a snapshot, not a real pause, so the loop waits for the resumed operation. The snapshot stores `relativePath` rather than the `fileUri`, because the DB never stores absolute paths and a changed container would make the resume fail. A failed resume goes through `onFailure`, which clears the snapshot and retries from scratch.\n\nSee \"Lifecycle you must get right\" in the Download manager section.",
+        "The JS side of a `DownloadTask` does not survive the process. On iOS the native transfer runs on a background URLSession and may keep going while the app is suspended, but if the app is killed the promise, progress callbacks and DB bookkeeping are gone (and Android stops the transfer with the process). So the manager checkpoints whenever it might lose the process: pause, save `savable()`, resume.\n\nThe `checkpoint` deferred tells `run()` that the `null` from the paused promise is a snapshot, not a real pause, so the loop waits for the resumed operation. It resumes only when `state === \"paused\" && !t.stopReason`; if the user (or the Wi-Fi rule) paused the task while the snapshot was being written, the deferred resolves `null` and the download stays paused. The snapshot stores `relativePath` rather than the `fileUri`, because the DB never stores absolute paths and a changed container would make the resume fail. A failed resume goes through `onFailure`, which clears the snapshot and retries from scratch.\n\nSee \"Lifecycle you must get right\" in the Download manager section.",
     },
     {
       id: "podcast-player-39",
@@ -1003,6 +1005,57 @@ QUIZ.register({
       ],
       explain:
         "The job is warn-only for drift by design: a changed fingerprint means \"the next release needs a store build, not an OTA\", which is information, not breakage. The exit code cannot carry it, because the CLI returns success either way, so the step parses the `--json` output, buffering all of stdin before `JSON.parse` (a large document arrives in several chunks).\n\nErrors still have to be loud, which is why the step uses `set -euo pipefail` and nothing swallows a failing command with `|| echo`. The local fingerprint must be computed with the production build's inputs: `eas.json`'s `env` only applies to builds, and `app.config.ts` changes the bundle id and name per `APP_VARIANT`, so without it every night would report false drift. `--environment production` pulls the EAS server-side variables the build saw.\n\nSee the nightly entry in the doc's **CI pipeline** and Milestone M7.",
+    },
+    {
+      id: "podcast-player-44",
+      type: "mcq",
+      level: 3,
+      topics: ["SQLite", "Architecture"],
+      files: [
+        "src/projects/podcast-player/db/queries.ts",
+        "src/projects/podcast-player/utils/serial.ts",
+        "src/projects/podcast-player/__tests__/serial.test.ts",
+      ],
+      prompt:
+        "`upsertEpisodes`, `saveQueue` and `updateDownloads` in `db/queries.ts` no longer call `db.withTransactionAsync()` directly. They go through `writeTransaction(db, task)`, which runs `transactions.run(() => db.withTransactionAsync(task))` on a `createSerialQueue()`. What goes wrong without the queue?\n\nSearch: read the comment above `writeTransaction` in `db/queries.ts`, `createSerialQueue` in `utils/serial.ts`, and the `withTransactionAsync` entry in the expo-sqlite docs.",
+      choices: [
+        "`withTransactionAsync` is a plain `BEGIN … COMMIT` on the one shared connection. When a feed upsert and a queue save overlap, the second `BEGIN` fails, and that call's `ROLLBACK` undoes the first transaction's writes, so data silently disappears",
+        "expo-sqlite queues transactions natively, so the JS queue only makes them run in call order",
+        "Without the queue, the second transaction deadlocks waiting for the first, freezing the JS thread",
+        "WAL mode allows only one transaction per second, so the queue throttles them",
+      ],
+      answer: 0,
+      links: [
+        { title: "expo-sqlite API reference", url: "https://docs.expo.dev/versions/latest/sdk/sqlite/" },
+      ],
+      explain:
+        "On a shared connection a transaction is connection state, not a lock: queries started elsewhere while it is open run inside it, and a second `BEGIN` fails with \"cannot start a transaction within a transaction\". Its error path then issues `ROLLBACK`, which rolls back the transaction that is actually open, the first caller's. The playback service, the download manager and feed sync are separate singletons that can all write at once, so this is not hypothetical.\n\n`createSerialQueue()` is a promise chain: each task starts after the previous one settles, and a failing task rejects only its own caller (`tail.then(task, task)`, with the rejection swallowed on the chain). `withExclusiveTransactionAsync()` is the library's other option, but it opens a separate connection (native only), and competing writes then fail with \"database is locked\" instead of waiting.\n\nSee the warning under **Data model** and the \"Overlapping SQLite transactions\" failure mode.",
+    },
+    {
+      id: "podcast-player-45",
+      type: "multi",
+      level: 2,
+      topics: ["Media"],
+      files: [
+        "src/projects/podcast-player/playback/service.ts",
+        "src/projects/podcast-player/playback/progress.ts",
+        "src/projects/podcast-player/__tests__/playbackRules.test.ts",
+      ],
+      prompt:
+        "Which of these expo-audio behaviours does `PlaybackService` work around? Select all that apply.\n\nSearch: read `play()`, `replaceSource()` and `releaseLocalFile()` in `playback/service.ts`, and `isAtEnd` in `playback/progress.ts`.",
+      choices: [
+        "Calling `play()` on a player parked at the end of its item does nothing, so `play()` seeks to 0 first when `finished` is set or `isAtEnd()` is true (within 0.5 s of the end)",
+        "`replace()` resumes playback on its own when the old item was playing, so `replaceSource()` calls `pause()` before `replace()`",
+        "A file being played can't simply be deleted, so `releaseLocalFile()` moves the current episode onto its stream URL at the same position before the download is removed",
+        "`seekTo()` is ignored until the item has been played once, so the service always calls `play()` before seeking",
+        "`setPlaybackRate()` resets after every `replace()`, so the rate is stored only in SQLite",
+      ],
+      answer: [0, 1, 2],
+      links: [
+        { title: "expo-audio API reference", url: "https://docs.expo.dev/versions/latest/sdk/audio" },
+      ],
+      explain:
+        "All three are real failure modes from building this app. The end-of-item rule shows up as \"play does nothing after an episode ends\": `onStatus` sets `finished` on the finish event, and `play()` rewinds, then starts only if the user has not paused in the meantime. The `replace()` auto-resume would play a new episode from 0:00 until the resume seek lands, so the service pauses first and lets `onStatus` start playback once the pending seek completes. `releaseLocalFile()` reuses the same pending-seek path to continue on the stream, and `removeMany()` refuses to delete a file the player still reads.\n\nThe last two choices are invented: the service seeks before playing (that is what `pendingSeek` is for), and `replaceSource()` sets the rate right after `replace()`; the session rate is stored in the `kv` table.\n\nSee \"Progress, resume and the sleep timer\" in **Audio session model** and the failure modes list.",
     },
   ],
 });

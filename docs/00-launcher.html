@@ -196,10 +196,15 @@
 <thead><tr><th>Piece</th><th>Owns</th><th>Receives</th></tr></thead>
 <tbody>
 <tr><td>Home screen (<code>src/app/index.tsx</code>)</td><td>Reads the registry and calls <code>router.push</code>; no other state</td><td>—</td></tr>
-<tr><td><code>ProjectListItem</code> (<code>src/shared/components/project-list-item.tsx</code>)</td><td>Nothing — pure presentation</td><td>A <code>Project</code> object and an <code>onPress</code> callback</td></tr>
+<tr><td><code>ProjectListItem</code> (<code>src/shared/components/project-list-item.tsx</code>)</td><td>Nothing — pure presentation (it reads theme colours through <code>useThemeColor</code>, never a store)</td><td>A <code>Project</code> object and an <code>onPress</code> callback</td></tr>
 </tbody>
 </table></div>
 <p>The row lives in <code>shared</code>, not in the route file: a route file's default export is the screen, and extra component exports from it turn into confusion about what is a route.</p>
+
+<div class="warn">
+  <strong>Hardcoded text colours break dark mode</strong>
+  <p>A plain <code>Text</code> defaults to black, and hex greys such as <code>#666</code>, <code>#888</code> or an <code>#e0e0e0</code> border are tuned for a white background. With the root <code>ThemeProvider</code> following the system scheme, the screen turns dark and that text all but vanishes. Use the shared <code>ThemedText</code> for titles, and <code>useThemeColor</code> for the rest: the muted subtitle is <code>useThemeColor({}, "icon")</code>, and the card border is <code>useThemeColor({ light: "#e0e0e0", dark: "#2c2f31" }, "icon")</code>. Text on a fixed light surface (an emoji, a white button) can stay plain <code>Text</code>. The splash screen needs the same care: give the <code>expo-splash-screen</code> plugin in <code>app.config.ts</code> a <code>dark: { backgroundColor: "#000000" }</code> next to its light <code>backgroundColor</code>.</p>
+</div>
 
 <h2 id="routing">Routing strategy</h2>
 
@@ -243,7 +248,7 @@
   <li><strong>Each project owns its query keys, Zustand stores, database and API endpoint files.</strong> Query keys are prefixed with the project root (<code>["store", …]</code>, <code>["podcast", …]</code>). The shared axios instance has defaults only; projects derive their own with <code>axiosInstance.create({ baseURL })</code> and install their own interceptors.</li>
   <li><strong>Components stay dumb.</strong> They take plain data and callbacks, never a store or view model, and never assume a project's provider tree unless they live in that project.</li>
   <li><strong><code>src/app/</code> is routes only.</strong> Sheets, rows, helpers and tests belong in a slice or <code>shared</code>.</li>
-  <li><strong>Mount <code>QueryProvider</code> exactly once</strong>, at the root. It also wires the process-global <code>focusManager</code> (AppState) and <code>onlineManager</code> (expo-network) for every project.</li>
+  <li><strong>Mount <code>QueryProvider</code> exactly once</strong>, at the root. It also wires the process-global <code>focusManager</code> (AppState) and <code>onlineManager</code> (expo-network) for every project. Any module-scope browser global it touches must be guarded: the web build uses <code>web.output: "static"</code>, so Expo Router renders every route in Node at export time, where <code>window</code> does not exist. The DevTools hook is therefore <code>if (typeof window !== "undefined") window.__TANSTACK_QUERY_CLIENT__ = queryClient;</code>.</li>
 </ol>
 
 <h2 id="milestones">Build order</h2>
@@ -290,7 +295,7 @@
   <div class="goal">Goal: Home becomes a data-driven list and the root layout stops knowing project names.</div>
   <ul>
     <li>Write <code>src/shared/config/projects.ts</code> with the <code>Project</code> type and the <code>PROJECTS</code> array.</li>
-    <li>Write <code>ProjectListItem</code> in <code>shared/components</code> as a pure component, then render <code>src/app/index.tsx</code> by mapping the registry to it with <code>router.push(item.route)</code>.</li>
+    <li>Write <code>ProjectListItem</code> in <code>shared/components</code> as a pure component, then render <code>src/app/index.tsx</code> by mapping the registry to it with <code>router.push(item.route)</code>. Build both with <code>ThemedText</code> and <code>useThemeColor</code>, not hardcoded greys, so the list reads in dark mode.</li>
     <li>In <code>src/app/_layout.tsx</code> generate the <code>Stack.Screen</code> entries from <code>PROJECTS</code>, branching on <code>singleScreen</code>. Declare <code>index</code> with <code>headerShown: false</code>.</li>
     <li>Mount <code>QueryProvider</code>, gesture root, safe-area and theme providers once here.</li>
     <li>Add <code>+native-intent.tsx</code> with an empty rewriter list; each project registers its rewriter when it needs one.</li>
@@ -318,7 +323,7 @@
   <li><strong>HTTP:</strong> <code>axios</code>, derived per project with <code>create({ baseURL })</code>.</li>
   <li><strong>Lint:</strong> <code>eslint</code> flat config with <code>defineConfig</code>, <code>eslint-config-expo/flat</code> and the core <code>no-restricted-imports</code> rule.</li>
   <li><strong>Providers:</strong> <code>react-native-gesture-handler</code>, <code>react-native-safe-area-context</code>, <code>expo-status-bar</code>.</li>
-  <li><strong>Config:</strong> a dynamic <code>app.config.ts</code> with <code>APP_VARIANT</code>; install packages with <code>npx expo install</code>.</li>
+  <li><strong>Config:</strong> a dynamic <code>app.config.ts</code> with <code>APP_VARIANT</code>; install packages with <code>npx expo install</code>. It is shared by every project, so permission strings are too: iOS keeps one <code>NSCameraUsageDescription</code> and one <code>NSPhotoLibraryUsageDescription</code> per app, and when several plugins (<code>expo-image-picker</code>, <code>expo-camera</code>, <code>expo-media-library</code>) set one, the first plugin in the list wins. Define <code>CAMERA_PERMISSION</code> and <code>PHOTOS_PERMISSION</code> once, worded to cover every project, and pass the same constant to each plugin.</li>
 </ul>
 
 <h2 id="pitfalls">Failure modes to experience deliberately</h2>
@@ -334,6 +339,9 @@
   <li><strong>A background task defined in a project layout.</strong> Move a <code>TaskManager.defineTask</code> import from the root layout into a project layout and trigger the task from a cold, headless launch. Nothing is registered, so nothing runs. The same applies to a notification-tap listener: a cold-start tap lands on the launcher and is lost.</li>
   <li><strong>A cross-project import.</strong> Import one slice from another. Without the lint rule it works and quietly couples two projects; with it, <code>npm run lint</code> fails with "No cross-project imports".</li>
   <li><strong>Process-global state shared by accident.</strong> Send a push payload without a <code>project</code> field and watch every project's notification router try to handle it. Add the discriminator and make each router ignore foreign payloads.</li>
+  <li><strong>Dark mode on the launcher.</strong> Switch the simulator to dark appearance with the launcher rows built from plain <code>Text</code> and <code>#666</code>/<code>#888</code> greys. The title is black on near-black. Swap in <code>ThemedText</code> and <code>useThemeColor</code>.</li>
+  <li><strong>A permission prompt that names the wrong project.</strong> Give <code>expo-image-picker</code> a journal-only <code>cameraPermission</code> and <code>expo-camera</code> its own wording, then open Camera &amp; Social on a fresh install. iOS shows the journal text, because the app has one camera usage string and the first plugin's value wins. Share one constant.</li>
+  <li><strong>A browser global at module scope.</strong> Remove the <code>typeof window</code> guard in <code>QueryProvider.tsx</code> and run <code>npx expo export --platform web</code>. The static render runs in Node and fails with <code>window is not defined</code>; native builds never notice.</li>
   <li><strong>Back button landing in the wrong place.</strong> A <code>router.replace</code> inside a project's entry chain can eat a back entry. Re-test back navigation to the launcher whenever that chain changes.</li>
 </ol>
 
