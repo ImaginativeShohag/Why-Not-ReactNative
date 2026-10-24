@@ -274,6 +274,11 @@ Cautions:
 - E2E: the Maestro flows in `.maestro/` use `appId: ${APP_ID}`. Pass
   `-e APP_ID=org.imaginativeworld.whynotreactnative.dev` (or `.preview`, as CI does).
 - A milestone is done when typecheck, lint, test and both `expo export` platforms all pass.
+- After a behaviour fix, update that project's write-up and quiz bank in the same change.
+  `validate.mjs` only checks bank shape and that files exist, so stale listings and answer keys
+  pass it. The journal page promises whole-file listings (except the condensed `compose.tsx`).
+- The journal outbox's `idempotency-key` is `<ULID>:<outbox id>`. Compaction re-inserts a folded
+  row so a new body never reuses a key. Never fold with an in-place `UPDATE`.
 
 ## Path Configuration
 
