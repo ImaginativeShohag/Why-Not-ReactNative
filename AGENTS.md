@@ -15,7 +15,7 @@ routes, components, hooks, stores, API calls and models, kept under its own dire
 | 03 | Production commerce app (auth, refresh, checkout, payments, push) | `store` | `docs/03-commerce-platform.html` |
 | 04 | Background fitness tracker (location task, sensors, native module, widgets) | `fitness-tracker` | `docs/04-fitness-tracker.html` |
 | 05 | Podcast player & release pipeline (audio, downloads, EAS Update, CI) | `podcast-player` | `docs/05-podcast-player.html`, `docs/05-release.html` |
-| 06 | Tic-tac-toe with Zustand (warm-up) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
+| 06 | Tic-tac-toe (Zustand combine + persist, minimax CPU, Reanimated + SVG animation, haptics) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
 
 **Key Tech Stack:**
 - Expo SDK 57, React Native 0.86.3, React 19.2.3 with the React Compiler, TypeScript 6
@@ -106,9 +106,12 @@ hardcoded knowledge of any project.
   (`projects/<slug>`, `headerShown: false`, generated from `PROJECTS`). Each project's own
   `_layout.tsx` owns its inner Stack: tabs, modals, `SQLiteProvider`, mini-player host, and so on.
 - `projects/tic-tac-toe/index.tsx` is the one single-route project (`singleScreen: true`, declared
-  as `projects/tic-tac-toe/index` with the registry `title` as its header). Its `combine` store and
-  components stay in the route file. The pure game helpers live in
-  `src/projects/tic-tac-toe/utils/game.ts` so they can be unit-tested.
+  as `projects/tic-tac-toe/index` with the registry `title` as its header). The route file is a
+  thin screen; its inline `Stack.Screen` themes that header and adds the mode/difficulty icon
+  buttons through `headerRight`. The game rules (`utils/game.ts`), the minimax CPU (`utils/ai.ts`), the persisted
+  store (`stores/gameStore.ts`, which enforces every rule, including scoring once and `canJumpTo`)
+  and the dumb Reanimated/SVG components (`components/`) live in the slice. The board stays
+  disabled until `useGameHydrated()` reports the saved game has loaded.
 - **Routes come from the file tree, not from `Stack.Screen` declarations.** Any file under
   `src/app/` is a reachable route. Non-route components must live in a slice, never under
   `src/app/`.
@@ -157,7 +160,9 @@ and each router ignores payloads that aren't its own.
   query keys in `src/projects/<slug>/utils/queryKeys.ts`, prefixed with its own root
   (`["store", …]`, `["podcast", …]`). The store persists only keys that start with `"store"`.
 - **Zustand:** per-project stores in `src/projects/<slug>/stores/`. Persisted stores use
-  AsyncStorage through `zustand/middleware`. Tic-tac-toe uses `combine`, declared inline.
+  AsyncStorage through `zustand/middleware`. Tic-tac-toe wraps `combine` in `persist`
+  (`partialize` keeps data only). It is at `version: 2` (scores kept per mode); bump the
+  version and extend `migrateGame` whenever the saved shape changes.
 - **SQLite:** each project opens its own database file and runs its own `PRAGMA user_version`
   migrations in WAL mode. The journal and camera use `SQLiteProvider onInit` in their layouts
   (the journal's sync task uses a lazy `getDb()`; both paths go through `migrateOnce`, because
