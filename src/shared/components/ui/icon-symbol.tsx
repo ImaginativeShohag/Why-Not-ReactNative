@@ -20,6 +20,12 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "arrow.uturn.backward": "undo",
+  "arrow.clockwise": "refresh",
+  "iphone.radiowaves.left.and.right": "vibration",
+  "iphone.slash": "mobile-off",
+  "person.2.fill": "people",
+  desktopcomputer: "computer",
 } as const satisfies IconMapping;
 
 /**

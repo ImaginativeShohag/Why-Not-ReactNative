@@ -50,7 +50,7 @@ export const PROJECTS: Project[] = [
     slug: "tic-tac-toe",
     emoji: "🎮",
     title: "Tic-Tac-Toe",
-    subtitle: "Zustand · Project 06",
+    subtitle: "Zustand + Reanimated · Project 06",
     route: "/projects/tic-tac-toe",
     singleScreen: true,
   },
