@@ -4,11 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
-<title>06 · Tic-Tac-Toe with Zustand — Expo Learning Path</title>
+<title>06 · Tic-Tac-Toe with Zustand &amp; Reanimated — Expo Learning Path</title>
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .source { color: var(--fg-faint); font-size: 0.85rem; margin-top: 40px; border-top: 1px solid var(--border-soft); padding-top: 16px; }
-  h2.appendix { margin-top: 48px; border-top: 1px solid var(--border-soft); padding-top: 28px; }
 </style>
 <link rel="stylesheet" href="assets/nav.css">
 <script>
@@ -40,7 +39,7 @@
           <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
           <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
           <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
-          <a href="06-tic-tac-toe.html" aria-current="page"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+          <a href="06-tic-tac-toe.html" aria-current="page"><span class="n">06</span>Tic-tac-toe<small>Zustand + Reanimated</small></a>
         </div>
       </details>
       <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
@@ -54,18 +53,20 @@
     <div>
       <div class="crumb"><a href="learning-path.html">← Learning path</a> / Project 06</div>
       <div class="lp-eyebrow">Project 06</div>
-      <h1>Tic-Tac-Toe <span class="lp-grad">in TypeScript &amp; React Native</span></h1>
-      <p class="subtitle">The official Zustand tic-tac-toe tutorial, ported twice over: every JavaScript snippet typed, and every DOM element replaced with a React Native primitive so the code actually runs on device.</p>
+      <h1>Tic-Tac-Toe <span class="lp-grad">with Zustand &amp; Reanimated</span></h1>
+      <p class="subtitle">A small game built like a production app: pure, tested rules; one Zustand store that persists the round, the scoreboard and your settings; an unbeatable minimax opponent; SVG marks that draw themselves on with Reanimated 4; haptics; and a screen that stays usable with VoiceOver, TalkBack and Reduce Motion.</p>
     </div>
     <aside class="wu-panel" aria-label="About this step">
       <b>At a glance</b>
       <div class="meta-row">
-  <span class="chip accent">Zustand v5</span>
-  <span class="chip">React 19</span>
-  <span class="chip green">TypeScript</span>
-  <span class="chip purple">combine middleware</span>
-  <span class="chip">React Native / Expo</span>
-  <span class="chip green">Typechecks under strict</span>
+  <span class="chip green">Warm-up tier</span>
+  <span class="chip">~1 weekend</span>
+  <span class="chip accent">Zustand combine + persist</span>
+  <span class="chip purple">Reanimated 4</span>
+  <span class="chip">react-native-svg</span>
+  <span class="chip">Minimax AI</span>
+  <span class="chip">expo-haptics</span>
+  <span class="chip green">Jest</span>
 </div>
       <div class="lp-cta">
         <a class="btn primary" href="training/index.html#/quiz/tic-tac-toe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Take the quiz</a>
@@ -79,26 +80,18 @@
   <nav class="lp-toc" aria-label="On this page">
     <b>On this page</b>
     <ol>
-      <li><a href="#building-a-game">Building a game</a></li>
-      <li><a href="#objectives">Learning objectives</a></li>
-      <li><a href="#what-are-you-building">What are you building?</a></li>
-      <li><a href="#setup-the-four-types">Setup: the four types</a></li>
-      <li><a href="#building-the-board">Building the board</a></li>
-      <li><a href="#lifting-state-up">Lifting state up</a></li>
-      <li><a href="#taking-turns">Taking turns</a></li>
-      <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
-      <li><a href="#adding-time-travel">Adding time travel</a></li>
-      <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
-      <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
-      <li><a href="#final-cleanup">Final cleanup</a></li>
-      <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
-      <li><a href="#accessibility">Make it accessible</a></li>
-      <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
-      <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
-      <li><a href="#stretch-goals">Stretch goals</a></li>
-      <li><a href="#wrapping-up">Wrapping up</a></li>
-      <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
-      <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
+      <li><a href="#build">What you'll build</a></li>
+      <li><a href="#layout">How the slice is laid out</a></li>
+      <li><a href="#rules">Pure game rules</a></li>
+      <li><a href="#store">The store: <code>combine</code> + <code>persist</code></a></li>
+      <li><a href="#cpu">The computer opponent</a></li>
+      <li><a href="#animation">Animating with Reanimated 4</a></li>
+      <li><a href="#theming">Theming with a project palette</a></li>
+      <li><a href="#haptics">Haptics</a></li>
+      <li><a href="#a11y">Accessibility</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#pitfalls">Pitfalls this slice avoids</a></li>
+      <li><a href="#next">Exercises and where to go next</a></li>
     </ol>
   </nav>
 
@@ -106,1352 +99,399 @@
 <details class="wu-toc-m">
   <summary>On this page</summary>
   <ol>
-      <li><a href="#building-a-game">Building a game</a></li>
-      <li><a href="#objectives">Learning objectives</a></li>
-      <li><a href="#what-are-you-building">What are you building?</a></li>
-      <li><a href="#setup-the-four-types">Setup: the four types</a></li>
-      <li><a href="#building-the-board">Building the board</a></li>
-      <li><a href="#lifting-state-up">Lifting state up</a></li>
-      <li><a href="#taking-turns">Taking turns</a></li>
-      <li><a href="#declaring-a-winner-or-draw">Declaring a winner or draw</a></li>
-      <li><a href="#adding-time-travel">Adding time travel</a></li>
-      <li><a href="#lifting-state-up-again">Lifting state up, again</a></li>
-      <li><a href="#showing-the-past-moves">Showing the past moves</a></li>
-      <li><a href="#final-cleanup">Final cleanup</a></li>
-      <li><a href="#extract-helpers">Extract the helpers and test them</a></li>
-      <li><a href="#accessibility">Make it accessible</a></li>
-      <li><a href="#in-the-launcher">How it sits in the launcher</a></li>
-      <li><a href="#failure-modes">Failure modes and common mistakes</a></li>
-      <li><a href="#stretch-goals">Stretch goals</a></li>
-      <li><a href="#wrapping-up">Wrapping up</a></li>
-      <li><a href="#the-conversion-in-one-table">The conversion, in one table</a></li>
-      <li><a href="#appendix-web">Appendix: if you came from the web tutorial</a></li>
+      <li><a href="#build">What you'll build</a></li>
+      <li><a href="#layout">How the slice is laid out</a></li>
+      <li><a href="#rules">Pure game rules</a></li>
+      <li><a href="#store">The store: <code>combine</code> + <code>persist</code></a></li>
+      <li><a href="#cpu">The computer opponent</a></li>
+      <li><a href="#animation">Animating with Reanimated 4</a></li>
+      <li><a href="#theming">Theming with a project palette</a></li>
+      <li><a href="#haptics">Haptics</a></li>
+      <li><a href="#a11y">Accessibility</a></li>
+      <li><a href="#testing">Testing</a></li>
+      <li><a href="#pitfalls">Pitfalls this slice avoids</a></li>
+      <li><a href="#next">Exercises and where to go next</a></li>
   </ol>
 </details>
-<h2 id="building-a-game">Building a game</h2>
-<p>You will build a small tic-tac-toe game during this tutorial, in <strong>TypeScript</strong>, running on <strong>React Native</strong>. It assumes existing React knowledge. The techniques here are fundamental to building any React app, and fully understanding it will give you a deep understanding of React and Zustand.</p>
 <div class="note">
-  <strong>About this page</strong>
-  <p>This is the official Zustand <a href="https://zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe">Tutorial: Tic-Tac-Toe</a> with two ports applied on top of it: every JavaScript snippet converted to TypeScript, and every DOM element converted to a React Native component. Prose is from the original tutorial (which itself draws inspiration from React's tic-tac-toe tutorial); the code, the typing notes and the React Native notes are the port. Files are <code>.tsx</code> wherever JSX appears, <code>.ts</code> otherwise.</p>
-  <p>Snippets are labelled <code>App.tsx</code> to match the upstream tutorial. In this repo the finished screen lives at <code>src/app/projects/tic-tac-toe/index.tsx</code> — an Expo Router route, so the default export is the screen.</p>
-  <p>If you want the original DOM version — or you pasted the upstream code into an Expo app and hit a render error — jump to the <a href="#appendix-web">appendix</a>.</p>
+  <strong>How to use this write-up</strong>
+  <p>This page walks through the finished code in <code>src/projects/tic-tac-toe/</code> and its one route, <code>src/app/projects/tic-tac-toe/index.tsx</code>. Every listing is copied from those files; the caption names the file it came from. Read a section, open the file next to it, then try the <a href="#next">exercises</a> at the end. The <a href="training/index.html#/quiz/tic-tac-toe">quiz</a> asks you to find answers in the same code.</p>
 </div>
-<div class="warn">
-  <strong>Why the upstream snippets cannot be pasted into React Native</strong>
-  <p>The Zustand tutorial builds its board out of <code>&lt;button&gt;</code> and <code>&lt;div&gt;</code>. React Native has no DOM: a lowercase JSX tag is looked up as a <em>native</em> host component, and there is nothing registered under the name <code>button</code>, so the renderer throws <code>View config getter callback for component "button" must be a function (received undefined)</code>. The fix is not a shim — it is using the platform's own primitives, which is what every snippet below does. The <a href="#appendix-web">appendix</a> explains the error in full.</p>
+
+<div class="note">
+  <strong>Why a game, at the end of the path</strong>
+  <p>Projects 01 to 05 spend most of their effort on the platform: databases, cameras, payments, background tasks and release pipelines. Tic-tac-toe has none of that, so the interesting parts are the ones every app has: where the rules live, what state is stored and what is derived, how a timer is cleaned up, how an animation stays on the UI thread, and how a screen reader hears the board. It is small enough to read in one sitting and strict enough to be worth reading.</p>
 </div>
-<p>The tutorial is divided into several sections:</p>
+
+<h2 id="build">1 · What you'll build</h2>
+
+<p>One screen, reachable from the launcher as <strong>Tic-Tac-Toe</strong>. From top to bottom:</p>
 <ul>
-  <li><strong>Setup</strong> — the types you will use everywhere.</li>
-  <li><strong>Overview</strong> — the fundamentals of React: components, props, and state.</li>
-  <li><strong>Completing the game</strong> — the most common techniques in React development.</li>
-  <li><strong>Adding time travel</strong> — a deeper insight into the unique strengths of React.</li>
+  <li><strong>Mode button</strong> (header, top right): an icon that toggles between <em>2 players</em> (both on one device, two people) and <em>vs CPU</em> (a computer). Against the computer you are always X and you always move first; the CPU is O.</li>
+  <li><strong>Difficulty button</strong> (header, vs CPU only): signal-strength bars that cycle <em>Easy</em> → <em>Medium</em> → <em>Hard</em> with each tap. <em>Easy</em> plays at random, <em>Medium</em> wins if it can and otherwise blocks, <em>Hard</em> runs minimax and never loses.</li>
+  <li><strong>Scoreboard:</strong> X wins, draws and O wins, kept separately for each mode (a two-player win isn't a win against the CPU) and persisted across launches. The tile of the player to move is highlighted, and a count bumps when it changes. <em>Reset scores</em> clears the current mode's tally only, and asks before it does (on native).</li>
+  <li><strong>Status banner:</strong> "Your turn", "Computer is thinking…" (with bouncing dots), "X wins!", "It's a draw". Screen readers announce each change.</li>
+  <li><strong>Board:</strong> X and O are SVG strokes that draw themselves on; the winning line draws across the three cells and the losing marks fade back.</li>
+  <li><strong>Action bar:</strong> <em>Undo</em>, <em>New round</em> (which pulses as <em>Play again</em> once there is a result) and a haptics toggle (hidden on web).</li>
+  <li><strong>Move timeline:</strong> one chip per move ("3 · X B2"). Tap a chip to travel back to it; play from there and the old future is thrown away.</li>
 </ul>
+
+<p>Undo and the timeline lock once the round has a result, so a counted win can never be rewound and replayed. The whole game (board, history, mode, difficulty, both score tallies and the haptics setting) survives an app restart. The board takes the height that is left between the controls, so a whole round fits on one screen and the timeline stays clear of the home indicator.</p>
+
+<h3 id="file-map">File map</h3>
+
+<div class="wu-scroll"><table>
+<thead><tr><th>File</th><th>What it holds</th></tr></thead>
+<tbody>
+<tr><td><code>src/app/projects/tic-tac-toe/index.tsx</code></td><td>The only route. A thin screen: reads the store, runs the two hooks, derives a few flags, measures the space left for the board and lays out the components.</td></tr>
+<tr><td><code>utils/game.ts</code></td><td>Pure rules and types: <code>LINES</code>, <code>findWinningLine</code>, <code>countRemainingTurns</code>, <code>nextPlayer</code>, <code>deriveGame</code>, <code>canJumpTo</code>, <code>statusText</code>, <code>squareLabel</code>, <code>moveSquare</code>, and the header's cycling helpers <code>nextMode</code>, <code>nextDifficulty</code>, <code>difficultyLevel</code>.</td></tr>
+<tr><td><code>utils/ai.ts</code></td><td>The computer: <code>pickMove(squares, cpu, difficulty, random)</code>, plus <code>emptySquares</code> and <code>findImmediateWin</code>.</td></tr>
+<tr><td><code>utils/palette.ts</code></td><td>The project's own light and dark colours and <code>useTicTacToePalette()</code>.</td></tr>
+<tr><td><code>stores/gameStore.ts</code></td><td><code>useGameStore</code> (<code>persist(combine(…))</code> on AsyncStorage, <code>version: 2</code>), the <code>Scores</code> / <code>ScoresByMode</code> types, <code>migrateGame</code> and <code>useGameHydrated()</code>.</td></tr>
+<tr><td><code>hooks/useCpuTurn.ts</code></td><td>Plays the CPU's move after <code>CPU_DELAY_MS</code> (450&nbsp;ms) and returns <code>thinking</code>.</td></tr>
+<tr><td><code>hooks/useGameHaptics.ts</code></td><td>Fires a haptic when the move count changes.</td></tr>
+<tr><td><code>components/Board.tsx</code></td><td>The card, the grid lines, nine <code>Square</code>s and the <code>WinLine</code> overlay.</td></tr>
+<tr><td><code>components/Square.tsx</code></td><td>One cell: press-scale spring, win highlight and pulse, fade when it lost.</td></tr>
+<tr><td><code>components/XMark.tsx</code>, <code>OMark.tsx</code></td><td>SVG marks drawn on with <code>strokeDashoffset</code>.</td></tr>
+<tr><td><code>components/WinLine.tsx</code></td><td>The stroke across the winning three, and its pure geometry, <code>winLineEndpoints</code>.</td></tr>
+<tr><td><code>components/StatusBanner.tsx</code></td><td>The keyed banner pill with enter/exit animations and the thinking dots.</td></tr>
+<tr><td><code>components/Scoreboard.tsx</code></td><td>Three score tiles for one mode's tally and the reset button.</td></tr>
+<tr><td><code>components/HeaderIconButton.tsx</code></td><td>A round, icon-only header button with a press spring and a "pop" whenever its value changes.</td></tr>
+<tr><td><code>components/DifficultyBars.tsx</code></td><td>The three-bar difficulty icon; <code>level</code> 1–3 bars are filled.</td></tr>
+<tr><td><code>components/MoveTimeline.tsx</code></td><td>Horizontal move chips and <code>moveChipLabel</code>.</td></tr>
+<tr><td><code>components/ActionBar.tsx</code></td><td>Undo, New round / Play again and the haptics switch.</td></tr>
+<tr><td><code>__tests__/game.test.ts</code>, <code>ai.test.ts</code>, <code>gameStore.test.ts</code></td><td>The rules, the opponent and the store, under Jest.</td></tr>
+</tbody>
+</table></div>
+
+<p>Unless a path starts with <code>src/</code>, it is relative to <code>src/projects/tic-tac-toe/</code>.</p>
+
 <h3 id="objectives">Learning objectives</h3>
-<p>By the end you will be able to:</p>
 <ul>
-  <li>Build a typed Zustand store with the <code>combine</code> middleware and read it with selector hooks.</li>
-  <li>Lift state up, keep <code>Square</code> and <code>Board</code> dumb, and derive values (<code>xIsNext</code>, the current board) instead of storing them.</li>
-  <li>Model time travel with immutable updates: one new board per move, <code>currentMove</code> as an index, and a truncated future after a rewind.</li>
-  <li>Translate DOM elements and CSS into React Native primitives and flexbox.</li>
-  <li>Move pure logic out of a route file into <code>utils/game.ts</code> and cover it with Jest tests.</li>
-  <li>Add screen-reader labels, roles and states, and register a single-route project in the launcher.</li>
+  <li>Split a feature into pure rules, one store, a couple of hooks and dumb components, and say why each piece lives where it does.</li>
+  <li>Type a Zustand store by inference with <code>combine</code>, persist only its data with <code>persist</code> + <code>partialize</code>, change the stored shape safely with <code>version</code> + <code>migrate</code>, and know when it has hydrated.</li>
+  <li>Store the minimum (<code>history</code> and <code>currentMove</code>) and derive everything else during render.</li>
+  <li>Write a minimax search that is provably unbeatable, and an injectable source of randomness that makes it testable.</li>
+  <li>Drive SVG and view animations with Reanimated 4 shared values, animated props and layout animations, and switch all of it off for Reduce Motion.</li>
+  <li>Give a game board real accessibility: labels, roles, states and a live region.</li>
+  <li>Size a view from the space a flex layout leaves for it (<code>onLayout</code> plus an absolute overlay), and keep content clear of the home indicator with safe-area insets.</li>
 </ul>
-<p><strong>Prerequisites:</strong> basic React (components, props, <code>useState</code>) and TypeScript. The repo's <code>npm run typecheck</code>, <code>npm run lint</code> and <code>npx jest --no-watchman</code> commands are your checkpoints. Build in a scratch route first (<code>src/app/projects/tic-tac-toe/index.tsx</code> is the finished one), and compare against it at the end.</p>
-<div class="note">
-  <strong>How the build is staged</strong>
-  <p>Stages 1 to 7 follow the upstream tutorial in a single file (<code>App.tsx</code> in the snippets). Stage 8 (<a href="#extract-helpers">extract and test</a>) and stage 9 (<a href="#accessibility">accessibility</a>) are what turn that file into the version in this repo. Each stage ends with a <strong>Checkpoint</strong> telling you what you should see before moving on.</p>
-</div>
-<h3 id="what-are-you-building">What are you building?</h3>
-<p>In this tutorial, you'll build an interactive tic-tac-toe game with React Native, Zustand and TypeScript. You can see what it will look like when you're finished here:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
-import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
 
-type Player = 'X' | 'O'
-type SquareValue = Player | null
-type Squares = SquareValue[]
-type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
+<h2 id="layout">2 · How the slice is laid out</h2>
 
-const useGameStore = create(
-  combine(
-    {
-      history: [Array&lt;SquareValue&gt;(9).fill(null)],
-      currentMove: 0,
-    },
-    (set) =&gt; {
-      return {
-        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
-          set((state) =&gt; ({
-            history:
-              typeof nextHistory === 'function'
-                ? nextHistory(state.history)
-                : nextHistory,
-          }))
-        },
-        setCurrentMove: (nextCurrentMove: Updater&lt;number&gt;) =&gt; {
-          set((state) =&gt; ({
-            currentMove:
-              typeof nextCurrentMove === 'function'
-                ? nextCurrentMove(state.currentMove)
-                : nextCurrentMove,
-          }))
-        },
-      }
-    },
+<p>The project follows the repo's usual shape (see <a href="00-launcher.html">00 · Launcher &amp; structure</a>): routes under <code>src/app/</code>, everything else in a slice under <code>src/projects/tic-tac-toe/</code>, and no imports from any other project.</p>
+
+<h3>One route, registered as a single screen</h3>
+<p>Most projects own a whole stack with its own <code>_layout.tsx</code>. Tic-tac-toe is one screen, so its registry entry sets <code>singleScreen</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/shared/config/projects.ts</span><span class="lang">ts</span></div><pre><code>{
+  slug: "tic-tac-toe",
+  emoji: "🎮",
+  title: "Tic-Tac-Toe",
+  subtitle: "Zustand + Reanimated · Project 06",
+  route: "/projects/tic-tac-toe",
+  singleScreen: true,
+},</code></pre></div>
+<p>The root layout maps over the registry. A single-screen project gets a <code>Stack.Screen</code> for <code>projects/&lt;slug&gt;/index</code> with the registry title as its header; every other project gets one for its folder and hides the header, because its own layout draws one:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/_layout.tsx</span><span class="lang">tsx</span></div><pre><code>{PROJECTS.map(({ slug, title, singleScreen }) =&gt;
+  singleScreen ? (
+    &lt;Stack.Screen
+      key={slug}
+      name={`projects/${slug}/index`}
+      options={{ title }}
+    /&gt;
+  ) : (
+    &lt;Stack.Screen
+      key={slug}
+      name={`projects/${slug}`}
+      options={{ headerShown: false }}
+    /&gt;
   ),
-)
+)}</code></pre></div>
 
-type SquareProps = {
-  value: SquareValue
-  onSquareClick: () =&gt; void
-}
+<h3>The route stays thin</h3>
+<p>Anything under <code>src/app/</code> is a reachable route, so the route file holds the screen and nothing else. It subscribes to each piece of store state with its own selector, runs the two hooks, and derives the rest:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>export default function TicTacToeScreen() {
+  const history = useGameStore((state) =&gt; state.history);
+  const currentMove = useGameStore((state) =&gt; state.currentMove);
+  const mode = useGameStore((state) =&gt; state.mode);
+  const difficulty = useGameStore((state) =&gt; state.difficulty);
+  const scores = useGameStore((state) =&gt; state.scores);
+  const hapticsEnabled = useGameStore((state) =&gt; state.hapticsEnabled);
+  const play = useGameStore((state) =&gt; state.play);
+  const undo = useGameStore((state) =&gt; state.undo);
+  const jumpTo = useGameStore((state) =&gt; state.jumpTo);
+  const newRound = useGameStore((state) =&gt; state.newRound);
+  const setMode = useGameStore((state) =&gt; state.setMode);
+  const setDifficulty = useGameStore((state) =&gt; state.setDifficulty);
+  const setHapticsEnabled = useGameStore((state) =&gt; state.setHapticsEnabled);
+  const resetScores = useGameStore((state) =&gt; state.resetScores);
 
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
-      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
-    &lt;/Pressable&gt;
-  )
-}
+  const hydrated = useGameHydrated();
+  const view = deriveGame(history, currentMove);
+  const thinking = useCpuTurn(view, mode, difficulty, play);
+  // Muted until the saved game loads, so restoring it doesn't buzz.
+  useGameHaptics(hapticsEnabled &amp;&amp; hydrated, currentMove, view);
 
-type BoardProps = {
-  xIsNext: boolean
-  squares: Squares
-  onPlay: (nextSquares: Squares) =&gt; void
-}
+  const palette = useTicTacToePalette();
+  const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const columnWidth = Math.min(width - 32, 380);
+  // The board takes whatever height is left between the controls above and
+  // below it, so a whole round fits on one screen. Only when that is too small
+  // (a short phone, landscape) does it keep MIN_BOARD and let the page scroll.
+  const [boardArea, setBoardArea] = useState(0);
+  const boardSize = Math.max(MIN_BOARD, Math.min(columnWidth, boardArea));
 
-function Board({ xIsNext, squares, onPlay }: BoardProps) {
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
+  const cpuTurn = mode === "cpu" &amp;&amp; (thinking || view.next === CPU);
+  const boardDisabled = !hydrated || view.isOver || cpuTurn;
+  const bannerMark = view.win
+    ? view.win.winner
+    : view.isDraw
+      ? null
+      : view.next;</code></pre></div>
+<p>Notice what is <em>not</em> here: no game logic, no effect, and no game state in <code>useState</code>. The one <code>useState</code>, <code>boardArea</code>, holds a measured height, a layout fact rather than game data (see <a href="#board-size">Sizing the board</a> below). <code>view</code> is recomputed on every render from <code>history</code> and <code>currentMove</code>; that is cheap for nine squares and it means there is nothing to keep in sync. The board is disabled for three reasons, each derived: the saved game hasn't loaded, the round is over, or it is the computer's move.</p>
 
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    onPlay(nextSquares)
+<h3>Dumb components</h3>
+<p>Every file in <code>components/</code> takes plain data and callbacks. None of them imports the store or a hook from the slice. <code>Board</code> receives <code>squares</code>, <code>win</code>, <code>disabled</code> and <code>onPress</code>; it doesn't know whether it is a two-player game, or that a computer exists:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Board
+  squares={view.squares}
+  win={view.win}
+  disabled={boardDisabled}
+  onPress={play}
+  size={boardSize}
+  palette={palette}
+  reduceMotion={reduceMotion}
+/&gt;</code></pre></div>
+<p>Two props travel to almost every component: <code>palette</code> (the colours, see <a href="#theming">§7</a>) and <code>reduceMotion</code> (see <a href="#animation">§6</a>). The screen reads each once and passes it down, so a component is easy to render in isolation, in a test or in another project, with whatever theme and motion setting you like.</p>
+
+<h3 id="board-size">Sizing the board from the space that's left</h3>
+<p>The first version sized the board from the window width alone, <code>Math.min(width - 32, 380)</code>, so a 380-point board plus the controls was taller than many screens and a round didn't fit. The next attempt took the window height minus a fixed guess for the controls. That guess is wrong as soon as anything changes: the header, the insets, the phone and the orientation (and, at the time, whether the difficulty row was showing). When it was too small, the content ended up a little taller than the screen, and at rest the last row, the move timeline, sat under the home indicator. A bottom padding of <code>insets.bottom</code> didn't help, because padding on a scroll view's content is at the <em>end</em> of the scroll: you only see it once you have scrolled down, not at rest.</p>
+<p>So the screen measures it. The scroll content and the column grow to fill the screen (<code>flexGrow: 1</code>), and between the banner and the action bar sits a <code>boardArea</code> view that also grows. Its <code>onLayout</code> reports the height it ended up with:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>const insets = useSafeAreaInsets();
+const { width } = useWindowDimensions();
+const columnWidth = Math.min(width - 32, 380);
+// The board takes whatever height is left between the controls above and
+// below it, so a whole round fits on one screen. Only when that is too small
+// (a short phone, landscape) does it keep MIN_BOARD and let the page scroll.
+const [boardArea, setBoardArea] = useState(0);
+const boardSize = Math.max(MIN_BOARD, Math.min(columnWidth, boardArea));</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;View
+  style={styles.boardArea}
+  onLayout={(event) =&gt;
+    setBoardArea(Math.floor(event.nativeEvent.layout.height))
   }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={`square-${squareIndex}`}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
+&gt;
+  {/* Measured first, so the board never renders at a wrong size. It
+      sits in an overlay so it never props the area open: the area's
+      height comes from the free space alone and can shrink again. */}
+  {boardArea &gt; 0 &amp;&amp; (
+    &lt;View style={styles.boardOverlay}&gt;
+      &lt;Board
+        squares={view.squares}
+        win={view.win}
+        disabled={boardDisabled}
+        onPress={play}
+        size={boardSize}
+        palette={palette}
+        reduceMotion={reduceMotion}
+      /&gt;
     &lt;/View&gt;
-  )
-}
-
-export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const currentMove = useGameStore((state) =&gt; state.currentMove)
-  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
-  const xIsNext = currentMove % 2 === 0
-  const currentSquares = history[currentMove]
-
-  function handlePlay(nextSquares: Squares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares]
-    setHistory(nextHistory)
-    setCurrentMove(nextHistory.length - 1)
-  }
-
-  function jumpTo(nextMove: number) {
-    setCurrentMove(nextMove)
-  }
-
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;
-        {history.map((_, historyIndex) =&gt; {
-          const description =
-            historyIndex &gt; 0
-              ? `Go to move #${historyIndex}`
-              : 'Go to game start'
-
-          return (
-            &lt;Pressable
-              key={historyIndex}
-              style={styles.moveButton}
-              onPress={() =&gt; jumpTo(historyIndex)}
-            &gt;
-              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
-            &lt;/Pressable&gt;
-          )
-        })}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}
-
-function calculateWinner(squares: Squares): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ]
-
-  for (let i = 0; i &lt; lines.length; i++) {
-    const [a, b, c] = lines[i]
-    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
-      return squares[a]
-    }
-  }
-
-  return null
-}
-
-function countRemainingTurns(squares: Squares): number {
-  return squares.filter((square) =&gt; !square).length
-}
-
-function calculateStatus(
-  winner: SquareValue,
-  remainingTurns: number,
-  player: Player,
-): string {
-  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
-  if (winner) return `Winner ${winner}`
-  return `Next player: ${player}`
-}
-
-const SQUARE_SIZE = 40
-const MONO = Platform.select({ ios: 'Menlo', default: 'monospace' })
-
-const styles = StyleSheet.create({
-  game: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-    padding: 16,
+  )}
+&lt;/View&gt;</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>const styles = StyleSheet.create({
+  content: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingTop: 12,
+    paddingHorizontal: 16,
   },
-  status: {
-    marginBottom: 8,
-    fontFamily: MONO,
-  },
-  board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: SQUARE_SIZE * 3,
-  },
-  square: {
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#999',
-  },
-  squareText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: MONO,
-  },
-  moves: {
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
-  moveButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#999',
-    backgroundColor: '#fff',
+  fill: {
+    flexGrow: 1,
   },
-  moveText: {
-    fontFamily: MONO,
+  // Grows into the free height; the board inside is sized from it.
+  boardArea: {
+    flexGrow: 1,
+    minHeight: MIN_BOARD,
   },
-})</code></pre></div>
-<div class="note">
-  <strong>Single-file form vs. the repo</strong>
-  <p>The program above is the single-file form you reach at the end of <a href="#final-cleanup">Final cleanup</a>, with the pure helpers kept inline. In the repo the types and helpers are imported from <code>@/src/projects/tic-tac-toe/utils/game</code>, and <code>Square</code> also takes <code>label</code> and <code>disabled</code> props. Those two differences are built in <a href="#extract-helpers">stage 8</a> and <a href="#accessibility">stage 9</a>.</p>
-</div>
-<h3 id="setup-the-four-types">Setup: the four types</h3>
-<p>Everything in the port hangs off four declarations. Add them once at the top of the file and the rest of the tutorial needs almost no annotations — inference does the work.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">types.ts</span><span class="lang">ts</span></div><pre><code>type Player = 'X' | 'O'
-type SquareValue = Player | null
-type Squares = SquareValue[]
-type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)</code></pre></div>
+  boardOverlay: {
+    ...StyleSheet.absoluteFill,
+    pointerEvents: "box-none",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  column: {
+    gap: 12,
+  },
+});</code></pre></div>
 <ul>
-  <li><code>Player</code> is the turn owner: only ever <code>'X'</code> or <code>'O'</code>, never an arbitrary string.</li>
-  <li><code>SquareValue</code> adds the empty case. A square holds a player mark or nothing.</li>
-  <li><code>Squares</code> is one board — nine <code>SquareValue</code>s. The whole game history is then <code>Squares[]</code>.</li>
-  <li><code>Updater&lt;T&gt;</code> is the "value or updater function" shape that every Zustand setter in this tutorial accepts, mirroring React's <code>setState</code> API.</li>
+  <li><strong>The size is a clamp.</strong> <code>Math.min(columnWidth, boardArea)</code> is as big as both the width and the free height allow; <code>Math.max(MIN_BOARD, …)</code> keeps it playable. Only when even 240 points don't fit (a short phone, landscape) does the area keep its <code>minHeight</code> and the page scroll.</li>
+  <li><strong>Measured first.</strong> <code>boardArea</code> starts at 0 and the board renders only once it is positive, so it never flashes at a wrong size. Calling <code>setBoardArea</code> from <code>onLayout</code> is an event handler, not a <code>setState</code> in an effect body.</li>
+  <li><strong>The board is an overlay.</strong> <code>boardOverlay</code> is <code>StyleSheet.absoluteFill</code>, and an absolutely positioned child takes no part in its parent's flex sizing. If the board were a normal child, its own height would become the area's minimum: the next <code>onLayout</code> would report the board's size back, and the area could grow but never shrink again (after a rotation back to portrait, say). As an overlay, the area's height comes from the free space alone. <code>pointerEvents: "box-none"</code> lets touches through to the squares, and the card itself has <code>alignSelf: "center"</code>.</li>
+  <li><strong>The safe area.</strong> The scroll view draws edge to edge, so the content container adds <code>paddingBottom: insets.bottom + 16</code> from <a href="https://docs.expo.dev/develop/user-interface/safe-areas/">useSafeAreaInsets()</a>: the inset itself, plus breathing room above it. That padding now works at rest because the content is exactly as tall as the screen: the padding takes its share of the height first and the board area gets what is left, instead of the padding hanging below the fold.</li>
 </ul>
-<div class="tip">
-  <strong>Why Updater&lt;T&gt; narrows correctly</strong>
-  <p>Inside a setter, <code>typeof nextSquares === 'function'</code> narrows <code>Updater&lt;Squares&gt;</code> to the function branch, and the <code>else</code> branch to <code>Squares</code>. This works because the value branch (<code>Squares</code>, <code>number</code>, <code>boolean</code>) is never itself callable. If you ever store a function *as state*, this <code>typeof</code> trick collapses and you need a wrapper object or an explicit discriminator instead.</p>
-</div>
-<div class="note">
-  <strong>Do not use create&lt;T&gt;()(...) with combine</strong>
-  <p>The Zustand TypeScript guide recommends the curried <code>create&lt;T&gt;()(...)</code> form so <code>set</code> and <code>get</code> infer properly. That advice does <strong>not</strong> apply here: <code>combine</code> *creates* the state, so the type is already inferred from the initial object plus the returned actions. Annotating it manually would be redundant — and would fight the inference. Same rule for the <code>redux</code> middleware.</p>
-</div>
-<div class="warn">
-  <strong>Array(9).fill(null) infers any[]</strong>
-  <p>The JavaScript original writes <code>Array(9).fill(null)</code>. In TypeScript that infers <code>any[]</code>, which silently disables type checking for the entire board. Pass the element type explicitly: <code>Array&lt;SquareValue&gt;(9).fill(null)</code> infers <code>SquareValue[]</code>. That single change is what makes <code>history</code>, <code>squares</code>, <code>state.squares</code> and every selector below type-safe with no casts.</p>
-</div>
-<div class="note">
-  <strong>The store is platform-agnostic</strong>
-  <p>Nothing in these four types — or in the store, or in the three <code>calculate*</code> helpers — changes between web and React Native. That is worth noticing before you start: the React Native port touches only the components and the styles. State logic written with Zustand is portable by default, which is exactly why the same store drives both versions of this page.</p>
-</div>
-<h3 id="building-the-board">Building the board</h3>
-<p>Let's start by creating the <code>Square</code> component, which will be a building block for our <code>Board</code> component. This component will represent each square in our game.</p>
-<p>The <code>Square</code> component should take <code>value</code> and <code>onSquareClick</code> as props. It should return a <code>&lt;Pressable&gt;</code> — React Native's touch-handling primitive — styled to look like a square, with the <code>value</code> prop rendered inside a <code>&lt;Text&gt;</code>. When the square is pressed, it triggers the <code>onSquareClick</code> function passed in as a prop, allowing the game to respond to user input.</p>
-<p>Here's the code for the <code>Square</code> component:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">Square.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text } from 'react-native'
+<p>The column's gap is 12 points, and the column keeps its width at <code>columnWidth</code> so the controls line up with the widest the board can be.</p>
 
-type SquareProps = {
-  value: string
-  onSquareClick?: () =&gt; void
+<h3 id="header-buttons">Mode and difficulty as header icon buttons</h3>
+<p>The first layout had two segmented controls above the scoreboard, one for the mode and, against the computer, one for the difficulty. Together they took two full rows of height, every round, for settings you change once in a while; and the difficulty row appearing and disappearing changed the height left for the board. Now both settings are icons in the header's right corner, where the navigation bar already reserves the space, and the whole page below belongs to the scoreboard, the board and the controls you use every turn.</p>
+<p>The header belongs to the root Stack, so the screen adds the buttons the way it themes the header: through an inline <code>Stack.Screen</code> with a <code>headerRight</code> render function. It re-renders with the screen, so the icons always show the current <code>mode</code> and <code>difficulty</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Stack.Screen
+  options={{
+    headerStyle: { backgroundColor: palette.background },
+    headerShadowVisible: false,
+    headerTintColor: palette.text,
+    // Mode and difficulty live up here as one-tap cycling icons, which
+    // leaves the whole page below for the board.
+    headerRight: () =&gt; (
+      &lt;View style={styles.headerButtons}&gt;
+        {mode === "cpu" &amp;&amp; (
+          &lt;HeaderIconButton
+            onPress={() =&gt; setDifficulty(nextDifficulty(difficulty))}
+            popKey={difficulty}
+            accessibilityLabel={`Difficulty: ${DIFFICULTY_LABELS[difficulty]}`}
+            accessibilityHint="Changes the difficulty and starts a new round"
+            reduceMotion={reduceMotion}
+          &gt;
+            &lt;DifficultyBars
+              level={difficultyLevel(difficulty)}
+              color={palette.o}
+              emptyColor={palette.grid}
+            /&gt;
+          &lt;/HeaderIconButton&gt;
+        )}
+        &lt;HeaderIconButton
+          onPress={() =&gt; setMode(nextMode(mode))}
+          popKey={mode}
+          accessibilityLabel={`Mode: ${MODE_LABELS[mode]}`}
+          accessibilityHint="Switches between two players and the computer, and starts a new round"
+          reduceMotion={reduceMotion}
+        &gt;
+          &lt;IconSymbol
+            name={mode === "cpu" ? "desktopcomputer" : "person.2.fill"}
+            size={mode === "cpu" ? 22 : 28}
+            color={palette.text}
+          /&gt;
+        &lt;/HeaderIconButton&gt;
+      &lt;/View&gt;
+    ),
+  }}
+/&gt;</code></pre></div>
+<p>A tap moves to the <em>next</em> value instead of opening a picker. Which value is next is a rule, so it lives with the other rules, as pure functions over the same <code>Mode</code> and <code>Difficulty</code> types:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>const MODES: readonly Mode[] = ["pvp", "cpu"];
+const DIFFICULTIES: readonly Difficulty[] = ["easy", "medium", "hard"];
+
+/** The header's mode button toggles: two players ↔ vs computer. */
+export function nextMode(mode: Mode): Mode {
+  return MODES[(MODES.indexOf(mode) + 1) % MODES.length];
 }
 
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
-      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
-    &lt;/Pressable&gt;
-  )
+/** The header's difficulty button cycles easy → medium → hard → easy. */
+export function nextDifficulty(difficulty: Difficulty): Difficulty {
+  return DIFFICULTIES[
+    (DIFFICULTIES.indexOf(difficulty) + 1) % DIFFICULTIES.length
+  ];
 }
 
-const SQUARE_SIZE = 40
-
-const styles = StyleSheet.create({
-  square: {
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#999',
-  },
-  squareText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-})</code></pre></div>
-<div class="warn">
-  <strong>Text has to be inside &lt;Text&gt;</strong>
-  <p>On the web, <code>&lt;button&gt;{value}&lt;/button&gt;</code> is enough. React Native refuses to render a bare string as the child of a <code>View</code> or <code>Pressable</code> — you get <em>"Text strings must be rendered within a &lt;Text&gt; component"</em>. Every visible string in a React Native tree has a <code>&lt;Text&gt;</code> ancestor, no exceptions. That is also why styling splits in two: box styles (<code>width</code>, <code>borderWidth</code>, <code>justifyContent</code>) belong on the <code>Pressable</code>, text styles (<code>fontSize</code>, <code>fontWeight</code>) on the <code>Text</code>.</p>
-</div>
-<div class="note">
-  <strong>These prop types are temporary</strong>
-  <p>At this step the board is static: it passes <code>value="1"</code> and no press handler, so <code>value</code> is a <code>string</code> and <code>onSquareClick</code> is optional. Two sections from now, once the store owns the board, <code>SquareProps</code> tightens to its final shape — <code>value: SquareValue</code> and a required <code>onSquareClick: () =&gt; void</code>. Letting the props start loose and tighten is normal; what matters is that the final version leaves no <code>any</code> behind.</p>
-</div>
-<p>Let's move on to creating the <code>Board</code> component, which will consist of 9 squares arranged in a grid. This component will serve as the main playing area for our game.</p>
-<p>The <code>Board</code> component should return a <code>&lt;View&gt;</code> that lays its children out three-to-a-row. React Native's layout engine is flexbox only — there is no CSS Grid — so the 3×3 arrangement comes from <code>flexDirection: 'row'</code> plus <code>flexWrap: 'wrap'</code> on a container exactly three squares wide. Inside it, we place nine <code>Square</code> components, each with a <code>value</code> prop representing its position.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">Board.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
-  return (
-    &lt;View style={styles.board}&gt;
-      &lt;Square value="1" /&gt;
-      &lt;Square value="2" /&gt;
-      &lt;Square value="3" /&gt;
-      &lt;Square value="4" /&gt;
-      &lt;Square value="5" /&gt;
-      &lt;Square value="6" /&gt;
-      &lt;Square value="7" /&gt;
-      &lt;Square value="8" /&gt;
-      &lt;Square value="9" /&gt;
-    &lt;/View&gt;
-  )
-}
-
-const styles = StyleSheet.create({
-  board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: SQUARE_SIZE * 3,
-  },
-})</code></pre></div>
-<p>This <code>Board</code> component sets up the basic structure for our game board by arranging nine squares in a 3x3 grid. Note that nothing here needed annotating: a component that takes no props and returns JSX is fully inferred, and the object passed to <code>StyleSheet.create</code> is checked against React Native's <code>ViewStyle</code> / <code>TextStyle</code> for free — misspell <code>flexDirection</code>, or write <code>flexWrap: 'wrapped'</code>, and you get an error at the declaration, which the JavaScript version would never have told you about.</p>
-<div class="warn">
-  <strong>Do not put a border on the board container</strong>
-  <p>The web original draws a border around the grid as well as around each button. Try that here and the board collapses to two squares per row: React Native boxes are always <code>border-box</code>, so <code>width: 120</code> with <code>borderWidth: 1</code> leaves only 118px of content — one pixel short of three 40px squares, and <code>flexWrap</code> dutifully wraps. Keep the borders on the squares, keep the container's width an exact multiple of <code>SQUARE_SIZE</code>, and add padding or a border only on a wrapper <code>View</code> outside it.</p>
-</div>
-<div class="note">
-  <strong>Checkpoint 1: static board</strong>
-  <p>Nine squares in a 3 by 3 grid, each showing its number, and <code>npm run typecheck</code> clean. If you see two squares per row, re-read the border warning above.</p>
-</div>
-<h3 id="lifting-state-up">Lifting state up</h3>
-<p>Each <code>Square</code> component could maintain a part of the game's state. To check for a winner, the <code>Board</code> component would need to know the state of each of the 9 <code>Square</code> components. Although asking each child for its state is technically possible in React, we discourage it: the code becomes difficult to understand, susceptible to bugs, and hard to refactor. Instead, store the game's state in the parent, and let the parent tell each <code>Square</code> what to display by passing a prop.</p>
-<p>To collect data from multiple children, or to have two or more child components communicate with each other, declare the shared state in their parent component instead.</p>
-<p>Let's edit the <code>Board</code> component so that the state lives in a Zustand store holding an array of 9 nulls corresponding to the 9 squares:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { View } from 'react-native'
-import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
-
-type Player = 'X' | 'O'
-type SquareValue = Player | null
-type Squares = SquareValue[]
-type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
-
-const useGameStore = create(
-  combine({ squares: Array&lt;SquareValue&gt;(9).fill(null) }, (set) =&gt; {
-    return {
-      setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
-        set((state) =&gt; ({
-          squares:
-            typeof nextSquares === 'function'
-              ? nextSquares(state.squares)
-              : nextSquares,
-        }))
-      },
-    }
-  }),
-)
-
-export default function Board() {
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
-
-  return (
-    &lt;View style={styles.board}&gt;
-      {squares.map((square, squareIndex) =&gt; (
-        &lt;Square key={squareIndex} value={square} /&gt;
-      ))}
-    &lt;/View&gt;
-  )
+/** 1–3, for the difficulty bars. */
+export function difficultyLevel(difficulty: Difficulty): 1 | 2 | 3 {
+  return difficulty === "easy" ? 1 : difficulty === "medium" ? 2 : 3;
 }</code></pre></div>
-<p><code>Array&lt;SquareValue&gt;(9).fill(null)</code> creates an array with nine elements, sets each of them to <code>null</code>, and types the result as <code>SquareValue[]</code>. Each entry corresponds to the value of a square. When you fill the board in later, the squares array will look like this:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">squares.ts</span><span class="lang">ts</span></div><pre><code>const squares: Squares = ['O', null, 'X', 'X', 'X', 'O', 'O', null, null]</code></pre></div>
-<div class="tip">
-  <strong>The annotation is what catches typos</strong>
-  <p>Without <code>: Squares</code>, that literal infers <code>(string | null)[]</code> and a typo like <code>'0'</code> (zero) instead of <code>'O'</code> (letter) sails through. With it, TypeScript rejects anything that isn't <code>'X'</code>, <code>'O'</code>, or <code>null</code>. This is the whole payoff of declaring <code>Player</code> as a union of string literals rather than <code>string</code>.</p>
-</div>
-<p>Each <code>Square</code> will now receive a <code>value</code> prop that is <code>'X'</code>, <code>'O'</code>, or <code>null</code> for empty squares, so <code>SquareProps</code> tightens:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
-  value: SquareValue
-  onSquareClick?: () =&gt; void
-}</code></pre></div>
-<p>TypeScript will now flag the old static <code>&lt;Square value="1" /&gt;</code> usage as an error — that error is the type system telling you the refactor is complete. <code>onSquareClick</code> stays optional for one more step; it becomes required as soon as every square gets a handler.</p>
-<div class="tip">
-  <strong>value: SquareValue renders an empty square for free</strong>
-  <p><code>&lt;Text&gt;{value}&lt;/Text&gt;</code> keeps working once <code>value</code> can be <code>null</code>: React Native renders <code>null</code> children as nothing, so an empty square is genuinely empty rather than showing the string <code>"null"</code>. The square keeps its size because the size lives on the <code>Pressable</code>, not on the text.</p>
-</div>
-<p>Next, you need to change what happens when a <code>Square</code> component is pressed. Since state is private to the component that defines it, you cannot update the <code>Board</code>'s state directly from <code>Square</code>. Instead, you'll pass a function down from <code>Board</code> to <code>Square</code>, and have <code>Square</code> call it when pressed. You'll call that function <code>onSquareClick</code>, and connect it to a <code>handleClick</code> function in <code>Board</code> via an inline function:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Square key={squareIndex} value={square} onSquareClick={() =&gt; handleClick(squareIndex)} /&gt;</code></pre></div>
-<p>Lastly, define the <code>handleClick</code> function inside the <code>Board</code> component to update the squares array holding your board's state. It takes the index of the square to update, creates a copy of the <code>squares</code> array (<code>nextSquares</code>), and adds <code>X</code> at the specified index if it is not already filled.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
+<p>Wrapping with <code>% length</code> makes the last value go back to the first, and <code>game.test.ts</code> pins the whole cycle ("nextMode and nextDifficulty"). The labels the screen reader hears come from <code>MODE_LABELS</code> and <code>DIFFICULTY_LABELS</code>, typed as <code>Record&lt;Mode, string&gt;</code> and <code>Record&lt;Difficulty, string&gt;</code>, so adding a mode without a label fails to compile:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>const MODE_LABELS: Record&lt;Mode, string&gt; = {
+  pvp: "2 players",
+  cpu: "vs CPU",
+};
 
-  function handleClick(i: number) {
-    if (squares[i]) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = 'X'
-    setSquares(nextSquares)
-  }
+const DIFFICULTY_LABELS: Record&lt;Difficulty, string&gt; = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+};</code></pre></div>
+<p>The difficulty icon is a small dumb component: three bars of growing height, of which <code>level</code> are filled. It takes colours, not the palette, so it knows nothing about the game:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/DifficultyBars.tsx</span><span class="lang">tsx</span></div><pre><code>const HEIGHTS = [8, 14, 20];
 
+/** A signal-strength style difficulty icon. */
+export function DifficultyBars({ level, color, emptyColor }: Props) {
   return (
-    &lt;View style={styles.board}&gt;
-      {squares.map((square, squareIndex) =&gt; (
-        &lt;Square
-          key={squareIndex}
-          value={square}
-          onSquareClick={() =&gt; handleClick(squareIndex)}
+    &lt;View style={styles.row}&gt;
+      {HEIGHTS.map((height, i) =&gt; (
+        &lt;View
+          key={height}
+          style={[
+            styles.bar,
+            { height, backgroundColor: i &lt; level ? color : emptyColor },
+          ]}
         /&gt;
       ))}
     &lt;/View&gt;
-  )
+  );
 }</code></pre></div>
-<p>Note how in <code>handleClick</code>, you call <code>.slice()</code> to create a copy of the squares array instead of modifying the existing array. <code>handleClick(i: number)</code> is the only annotation needed here: parameters of a plain function declaration are never inferred, while <code>squares.slice()</code> already returns <code>SquareValue[]</code> and <code>nextSquares[i] = 'X'</code> is checked against it.</p>
-<div class="note">
-  <strong>Checkpoint 2: state in the store</strong>
-  <p>Pressing an empty square puts an <code>X</code> in it; pressing it again does nothing. Every press creates a new array (<code>slice()</code>), never a mutation.</p>
-</div>
-<h3 id="taking-turns">Taking turns</h3>
-<p>It's now time to fix a major defect in this tic-tac-toe game: the <code>'O'</code>s cannot be used on the board. You'll set the first move to be <code>'X'</code> by default, tracked by another piece of state in the <code>useGameStore</code> hook:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
-  combine(
-    { squares: Array&lt;SquareValue&gt;(9).fill(null), xIsNext: true },
-    (set) =&gt; {
-      return {
-        setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
-          set((state) =&gt; ({
-            squares:
-              typeof nextSquares === 'function'
-                ? nextSquares(state.squares)
-                : nextSquares,
-          }))
-        },
-        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
-          set((state) =&gt; ({
-            xIsNext:
-              typeof nextXIsNext === 'function'
-                ? nextXIsNext(state.xIsNext)
-                : nextXIsNext,
-          }))
-        },
-      }
-    },
-  ),
-)</code></pre></div>
-<div class="warn">
-  <strong>xIsNext: true infers boolean, not true</strong>
-  <p><code>combine</code> infers the state type from the initial object, and an object property initialised to <code>true</code> widens to <code>boolean</code> — which is what you want. But if you ever wrap the initial state in <code>as const</code>, or declare it with <code>satisfies</code> on a narrower type, <code>xIsNext</code> becomes the literal type <code>true</code> and <code>setXIsNext(false)</code> stops compiling. Let the widening happen.</p>
-</div>
-<p>Each time a player moves, <code>xIsNext</code> will be flipped to determine which player goes next. Update the Board's <code>handleClick</code> function to flip the value of <code>xIsNext</code>:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
-  const player = xIsNext ? 'X' : 'O'
+<p><code>HeaderIconButton</code> is just as dumb: an icon as <code>children</code>, an <code>onPress</code>, labels, and a <code>popKey</code>. It doesn't know what it cycles through; it only knows when the value changed, and acknowledges it with a quick pop (squash to 0.6, spring back):</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/HeaderIconButton.tsx</span><span class="lang">tsx</span></div><pre><code>const scale = useSharedValue(1);
+const press = useSharedValue(1);
+const previousKeyRef = useRef(popKey);
 
-  function handleClick(i: number) {
-    if (squares[i]) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    setSquares(nextSquares)
-    setXIsNext(!xIsNext)
-  }
+useEffect(() =&gt; {
+  if (previousKeyRef.current === popKey) return;
+  previousKeyRef.current = popKey;
+  if (reduceMotion) return;
+  scale.set(
+    withSequence(
+      withTiming(0.6, { duration: 90 }),
+      withSpring(1, { damping: 9, stiffness: 260 }),
+    ),
+  );
+}, [popKey, reduceMotion, scale]);
 
-  return (
-    &lt;View style={styles.board}&gt;
-      {squares.map((square, squareIndex) =&gt; (
-        &lt;Square
-          key={squareIndex}
-          value={square}
-          onSquareClick={() =&gt; handleClick(squareIndex)}
-        /&gt;
-      ))}
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<p><code>const player = xIsNext ? 'X' : 'O'</code> needs no annotation: a conditional over two string literals infers <code>'X' | 'O'</code>, which *is* <code>Player</code>. Resist the urge to annotate what inference already gets right — every unnecessary annotation is a place that can drift out of sync.</p>
-<div class="note">
-  <strong>Checkpoint 3: alternating marks</strong>
-  <p>Presses alternate <code>X</code>, <code>O</code>, <code>X</code>. Nothing yet stops play after three in a row.</p>
-</div>
-<h3 id="declaring-a-winner-or-draw">Declaring a winner or draw</h3>
-<p>Now that the players can take turns, you'll want to show when the game is won or drawn. Add three helper functions: <code>calculateWinner</code> takes an array of 9 squares and returns <code>'X'</code>, <code>'O'</code>, or <code>null</code>; <code>countRemainingTurns</code> returns the number of turns left, which is the count of empty squares; and <code>calculateStatus</code> builds the status string from the winner, the remaining turns, and the current player.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function calculateWinner(squares: Squares): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ]
-
-  for (let i = 0; i &lt; lines.length; i++) {
-    const [a, b, c] = lines[i]
-    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
-      return squares[a]
-    }
-  }
-
-  return null
-}
-
-function countRemainingTurns(squares: Squares): number {
-  return squares.filter((square) =&gt; !square).length
-}
-
-function calculateStatus(
-  winner: SquareValue,
-  remainingTurns: number,
-  player: Player,
-): string {
-  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
-  if (winner) return `Winner ${winner}`
-  return `Next player: ${player}`
-}</code></pre></div>
-<div class="note">
-  <strong>Why the return type is SquareValue and not Player | null</strong>
-  <p>They are the same type — <code>SquareValue</code> *is* <code>Player | null</code> — but naming it once means the "a square may be empty" idea has a single definition. It also keeps <code>calculateWinner</code>'s return assignable straight into <code>calculateStatus(winner, …)</code> without a cast, because TypeScript compares structure, not names. <code>lines</code> needs no annotation: it infers <code>number[][]</code>, and destructuring <code>const [a, b, c] = lines[i]</code> gives three <code>number</code>s.</p>
-</div>
-<div class="warn">
-  <strong>One flag changes this file: noUncheckedIndexedAccess</strong>
-  <p>With <code>noUncheckedIndexedAccess: true</code> in your <code>tsconfig.json</code>, <code>lines[i]</code> becomes <code>number[] | undefined</code> and <code>squares[a]</code> becomes <code>SquareValue | undefined</code>, so this function needs guards (or <code>as const</code> tuples for <code>lines</code>). The tutorial code assumes the flag is <strong>off</strong>, which is the default and what <code>expo</code>'s and <code>vite</code>'s TypeScript templates ship. If you turn it on, expect to add a <code>if (!line) continue</code> and to handle <code>history[currentMove]</code> possibly being <code>undefined</code> later.</p>
-</div>
-<p>You will use the result of <code>calculateWinner(squares)</code> in <code>handleClick</code> to check if a player has won, at the same time you check whether the square is already taken. Return early in both cases:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handleClick(i: number) {
-  if (squares[i] || winner) return
-  const nextSquares = squares.slice()
-  nextSquares[i] = player
-  setSquares(nextSquares)
-  setXIsNext(!xIsNext)
-}</code></pre></div>
-<p>To let the players know when the game is over, add a <code>status</code> section to the <code>Board</code> component:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
-
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    setSquares(nextSquares)
-    setXIsNext(!xIsNext)
-  }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={squareIndex}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<div class="tip">
-  <strong>&lt;View&gt; where the web version used a fragment</strong>
-  <p>The DOM version wraps the status and the grid in <code>&lt;&gt;…&lt;/&gt;</code>, because a browser will lay two block elements out one above the other regardless. A fragment would work here too, but a <code>&lt;View&gt;</code> is the better default in React Native: fragments cannot carry a <code>style</code>, and the parent's <code>flexDirection</code> then decides your layout for you. Wrapping in a <code>View</code> makes this subtree stack vertically (React Native's default is <code>column</code>) no matter where it is mounted.</p>
-</div>
-<p>Congratulations! You now have a working tic-tac-toe game — and you've just learned the basics of React, Zustand, typing a Zustand store, and laying out a screen with React Native primitives. Here is what the whole file should look like:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
-
-type Player = 'X' | 'O'
-type SquareValue = Player | null
-type Squares = SquareValue[]
-type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
-
-const useGameStore = create(
-  combine(
-    { squares: Array&lt;SquareValue&gt;(9).fill(null), xIsNext: true },
-    (set) =&gt; {
-      return {
-        setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt; {
-          set((state) =&gt; ({
-            squares:
-              typeof nextSquares === 'function'
-                ? nextSquares(state.squares)
-                : nextSquares,
-          }))
-        },
-        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
-          set((state) =&gt; ({
-            xIsNext:
-              typeof nextXIsNext === 'function'
-                ? nextXIsNext(state.xIsNext)
-                : nextXIsNext,
-          }))
-        },
-      }
-    },
-  ),
-)
-
-type SquareProps = {
-  value: SquareValue
-  onSquareClick: () =&gt; void
-}
-
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
-      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
-    &lt;/Pressable&gt;
-  )
-}
-
-export default function Board() {
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
-
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    setSquares(nextSquares)
-    setXIsNext(!xIsNext)
-  }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={squareIndex}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}
-
-function calculateWinner(squares: Squares): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ]
-
-  for (let i = 0; i &lt; lines.length; i++) {
-    const [a, b, c] = lines[i]
-    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
-      return squares[a]
-    }
-  }
-
-  return null
-}
-
-function countRemainingTurns(squares: Squares): number {
-  return squares.filter((square) =&gt; !square).length
-}
-
-function calculateStatus(
-  winner: SquareValue,
-  remainingTurns: number,
-  player: Player,
-): string {
-  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
-  if (winner) return `Winner ${winner}`
-  return `Next player: ${player}`
-}
-
-const SQUARE_SIZE = 40
-
-const styles = StyleSheet.create({
-  status: {
-    marginBottom: 8,
-  },
-  board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: SQUARE_SIZE * 3,
-  },
-  square: {
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#999',
-  },
-  squareText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-})</code></pre></div>
-<div class="note">
-  <strong>Checkpoint 4: a complete single-board game</strong>
-  <p>The status line reads <code>Next player: X</code>, then <code>Winner X</code> or <code>Draw</code>, and a finished board ignores presses. Try the board <code>X O X / X O O / O X X</code>: no winner, full board, so <code>Draw</code>.</p>
-</div>
-<h3 id="adding-time-travel">Adding time travel</h3>
-<p>As a final exercise, let's make it possible to "go back in time" and revisit previous moves.</p>
-<p>If you had directly modified the squares array, implementing time travel would be very difficult. However, since you used <code>slice()</code> to create a new copy after every move, treating it as immutable, you can store every past version of the squares array and navigate between them.</p>
-<p>You'll keep track of these past squares arrays in a new state variable called <code>history</code> of type <code>Squares[]</code> — an array of boards:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">history.ts</span><span class="lang">ts</span></div><pre><code>const history: Squares[] = [
-  // First move
-  [null, null, null, null, null, null, null, null, null],
-  // Second move
-  ['X', null, null, null, null, null, null, null, null],
-  // Third move
-  ['X', 'O', null, null, null, null, null, null, null],
-  // and so on...
-]</code></pre></div>
-<p>Reading the type out loud is the clearest description of the feature: the game state is a list of boards, and "time travel" is just picking an index into it.</p>
-<h3 id="lifting-state-up-again">Lifting state up, again</h3>
-<p>Next, you will create a new top-level component called <code>Game</code> to display a list of past moves. This is where the <code>history</code> state lives. By placing <code>history</code> in <code>Game</code>, you can remove the <code>squares</code> state from <code>Board</code> — lifting the state up one more level so <code>Game</code> has full control over the <code>Board</code>'s data and can instruct it to render previous turns.</p>
-<p>First, add a <code>Game</code> component with <code>export default</code> and remove the export from <code>Board</code>:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>function Board() {
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const squares = useGameStore((state) =&gt; state.squares)
-  const setSquares = useGameStore((state) =&gt; state.setSquares)
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
-
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    setSquares(nextSquares)
-    setXIsNext(!xIsNext)
-  }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={squareIndex}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}
-
-export default function Game() {
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board /&gt;
-      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<div class="tip">
-  <strong>The outer layout, in React Native terms</strong>
-  <p>The web version puts the board and the move list side by side with <code>display: 'flex'; flexDirection: 'row'</code> and separates them with <code>marginLeft: '1rem'</code>. In React Native <code>display: 'flex'</code> is unnecessary — every <code>View</code> is already a flex container — so only <code>flexDirection: 'row'</code> carries over, and the spacing is better expressed once as <code>gap: 16</code> on the parent. Add <code>alignItems: 'flex-start'</code> so the board keeps its natural height instead of stretching to match the move list.</p>
-</div>
-<p>Add some state to the <code>useGameStore</code> hook to track the history of moves:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
-  combine(
-    { history: [Array&lt;SquareValue&gt;(9).fill(null)], xIsNext: true },
-    (set) =&gt; {
-      return {
-        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
-          set((state) =&gt; ({
-            history:
-              typeof nextHistory === 'function'
-                ? nextHistory(state.history)
-                : nextHistory,
-          }))
-        },
-        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
-          set((state) =&gt; ({
-            xIsNext:
-              typeof nextXIsNext === 'function'
-                ? nextXIsNext(state.xIsNext)
-                : nextXIsNext,
-          }))
-        },
-      }
-    },
-  ),
-)</code></pre></div>
-<p>Notice how <code>[Array&lt;SquareValue&gt;(9).fill(null)]</code> creates an array with a single item, which is itself an array of 9 <code>null</code> values — so <code>history</code> infers as <code>SquareValue[][]</code>, structurally identical to <code>Squares[]</code>. The <code>Updater&lt;Squares[]&gt;</code> on <code>setHistory</code> is what keeps the two in agreement: pass a single board by mistake and it fails to compile.</p>
-<div class="warn">
-  <strong>The refactor does not compile in the middle</strong>
-  <p>The moment you replace <code>squares</code> with <code>history</code> in the store, <code>Board</code> stops compiling: it still calls <code>useGameStore((state) =&gt; state.squares)</code>, and that property no longer exists. In JavaScript this step silently produces <code>undefined</code> and blows up at render time with "cannot read properties of undefined"; in TypeScript it's a compile error that names the exact line. Both versions are broken here — only one of them tells you. Keep going: <code>Board</code> becomes prop-driven two snippets from now.</p>
-</div>
-<p>To render the squares for the current move, read the most recent squares array from <code>history</code>. You don't need extra state for this — you already have enough information to calculate it during rendering:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const currentSquares = history[history.length - 1]
-
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board /&gt;
-      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<div class="note">
-  <strong>Intermediate steps will trip your linter, not the compiler</strong>
-  <p><code>setHistory</code>, <code>setXIsNext</code> and <code>currentSquares</code> are unused for the next two steps, and the <code>handlePlay</code> stub below has an unused parameter. <code>tsc</code> is fine with unused *locals* unless you enable <code>noUnusedLocals</code>/<code>noUnusedParameters</code>, but ESLint's <code>no-unused-vars</code> will complain immediately. Push through the next two snippets rather than "fixing" it — the values all get used.</p>
-</div>
-<p>Next, create a <code>handlePlay</code> function inside <code>Game</code> that the <code>Board</code> component will call to update the game. Pass <code>xIsNext</code>, <code>currentSquares</code> and <code>handlePlay</code> as props to <code>Board</code>:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const currentSquares = history[history.length - 1]
-
-  function handlePlay(nextSquares: Squares) {
-    // TODO
-  }
-
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<p>Let's make the <code>Board</code> component fully controlled by the props it receives: <code>xIsNext</code>, <code>squares</code>, and a new <code>onPlay</code> callback that <code>Board</code> calls with the updated squares array when a player moves. This is where a props type earns its keep — <code>BoardProps</code> is the contract between <code>Game</code> and <code>Board</code>, and the compiler now checks both ends of it.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>type BoardProps = {
-  xIsNext: boolean
-  squares: Squares
-  onPlay: (nextSquares: Squares) =&gt; void
-}
-
-function Board({ xIsNext, squares, onPlay }: BoardProps) {
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
-
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    onPlay(nextSquares)
-  }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={squareIndex}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<div class="tip">
-  <strong>onPlay: (nextSquares: Squares) =&gt; void, not Function</strong>
-  <p>Typing a callback prop as <code>Function</code> (or leaving it implicitly <code>any</code>) throws away exactly the information you want: arity, argument type, and return type. Written out in full, <code>Game</code> cannot forget to accept the board, and <code>Board</code> cannot call <code>onPlay()</code> with nothing. The <code>void</code> return also lets <code>Game</code> pass a function that happens to return something without a complaint — a deliberate TypeScript rule that makes callbacks easy to compose.</p>
-</div>
-<div class="note">
-  <strong>This is also the repo's component rule</strong>
-  <p><code>Board</code> is now a dumb component: plain data in (<code>xIsNext</code>, <code>squares</code>), a callback out (<code>onPlay</code>), no store access of its own. That is the pattern this repo uses everywhere — screens own state, components receive props — and it is what makes <code>Board</code> reusable and trivially testable. Note that <code>Square</code> reached this shape two sections ago.</p>
-</div>
-<p>The <code>Board</code> component is now fully controlled by the props passed to it by <code>Game</code>. To get the game working again, implement <code>handlePlay</code> in <code>Game</code>: instead of calling <code>setSquares</code>, append the updated squares array as a new <code>history</code> entry, and toggle <code>xIsNext</code> as <code>Board</code> used to do.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handlePlay(nextSquares: Squares) {
-  setHistory(history.concat([nextSquares]))
-  setXIsNext(!xIsNext)
-}</code></pre></div>
-<p><code>history.concat([nextSquares])</code> returns <code>SquareValue[][]</code>, which is what <code>setHistory</code> wants. Note the inner array: <code>history.concat(nextSquares)</code> would spread the nine squares into the history as nine separate boards — and because <code>concat</code> accepts both elements and arrays of elements, TypeScript would <strong>not</strong> catch that mistake. It is one of the few places in this tutorial where types don't save you.</p>
-<p>Here is what the whole file should look like at this point:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
-
-type Player = 'X' | 'O'
-type SquareValue = Player | null
-type Squares = SquareValue[]
-type Updater&lt;T&gt; = T | ((prev: T) =&gt; T)
-
-const useGameStore = create(
-  combine(
-    { history: [Array&lt;SquareValue&gt;(9).fill(null)], xIsNext: true },
-    (set) =&gt; {
-      return {
-        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
-          set((state) =&gt; ({
-            history:
-              typeof nextHistory === 'function'
-                ? nextHistory(state.history)
-                : nextHistory,
-          }))
-        },
-        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
-          set((state) =&gt; ({
-            xIsNext:
-              typeof nextXIsNext === 'function'
-                ? nextXIsNext(state.xIsNext)
-                : nextXIsNext,
-          }))
-        },
-      }
-    },
-  ),
-)
-
-type SquareProps = {
-  value: SquareValue
-  onSquareClick: () =&gt; void
-}
-
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    &lt;Pressable style={styles.square} onPress={onSquareClick}&gt;
-      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
-    &lt;/Pressable&gt;
-  )
-}
-
-type BoardProps = {
-  xIsNext: boolean
-  squares: Squares
-  onPlay: (nextSquares: Squares) =&gt; void
-}
-
-function Board({ xIsNext, squares, onPlay }: BoardProps) {
-  const winner = calculateWinner(squares)
-  const remainingTurns = countRemainingTurns(squares)
-  const player = xIsNext ? 'X' : 'O'
-  const status = calculateStatus(winner, remainingTurns, player)
-
-  function handleClick(i: number) {
-    if (squares[i] || winner) return
-    const nextSquares = squares.slice()
-    nextSquares[i] = player
-    onPlay(nextSquares)
-  }
-
-  return (
-    &lt;View&gt;
-      &lt;Text style={styles.status}&gt;{status}&lt;/Text&gt;
-      &lt;View style={styles.board}&gt;
-        {squares.map((square, squareIndex) =&gt; (
-          &lt;Square
-            key={squareIndex}
-            value={square}
-            onSquareClick={() =&gt; handleClick(squareIndex)}
-          /&gt;
-        ))}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}
-
-export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const currentSquares = history[history.length - 1]
-
-  function handlePlay(nextSquares: Squares) {
-    setHistory(history.concat([nextSquares]))
-    setXIsNext(!xIsNext)
-  }
-
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;{/* TODO */}&lt;/View&gt;
-    &lt;/View&gt;
-  )
-}
-
-function calculateWinner(squares: Squares): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ]
-
-  for (let i = 0; i &lt; lines.length; i++) {
-    const [a, b, c] = lines[i]
-    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
-      return squares[a]
-    }
-  }
-
-  return null
-}
-
-function countRemainingTurns(squares: Squares): number {
-  return squares.filter((square) =&gt; !square).length
-}
-
-function calculateStatus(
-  winner: SquareValue,
-  remainingTurns: number,
-  player: Player,
-): string {
-  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
-  if (winner) return `Winner ${winner}`
-  return `Next player: ${player}`
-}
-
-const SQUARE_SIZE = 40
-
-const styles = StyleSheet.create({
-  game: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-    padding: 16,
-  },
-  status: {
-    marginBottom: 8,
-  },
-  board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: SQUARE_SIZE * 3,
-  },
-  square: {
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#999',
-  },
-  squareText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  moves: {
-    gap: 4,
-  },
-})</code></pre></div>
-<div class="note">
-  <strong>Checkpoint 5: history is recorded</strong>
-  <p>Game still plays exactly as before, now with the board coming from <code>history[history.length - 1]</code> and <code>Board</code> receiving everything as props. No behaviour change is the proof the refactor is right.</p>
-</div>
-<h3 id="showing-the-past-moves">Showing the past moves</h3>
-<p>Since you are recording the game's history, you can now display a list of past moves. You already have an array of <code>history</code> moves in the store, so you need to transform it into an array of React elements with <code>.map()</code>, and display a list of pressables to jump to past moves:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const currentSquares = history[history.length - 1]
-
-  function handlePlay(nextSquares: Squares) {
-    setHistory(history.concat([nextSquares]))
-    setXIsNext(!xIsNext)
-  }
-
-  function jumpTo(nextMove: number) {
-    // TODO
-  }
-
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;
-        {history.map((_, historyIndex) =&gt; {
-          const description =
-            historyIndex &gt; 0
-              ? `Go to move #${historyIndex}`
-              : 'Go to game start'
-
-          return (
-            &lt;Pressable
-              key={historyIndex}
-              style={styles.moveButton}
-              onPress={() =&gt; jumpTo(historyIndex)}
-            &gt;
-              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
-            &lt;/Pressable&gt;
-          )
-        })}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<p>The <code>.map()</code> callback needs no annotations — <code>history</code> is <code>SquareValue[][]</code>, so <code>_</code> is one board and <code>historyIndex</code> is a <code>number</code>, both inferred. Naming the unused first parameter <code>_</code> is the convention that keeps <code>noUnusedParameters</code> and ESLint quiet.</p>
-<div class="note">
-  <strong>There is no &lt;ol&gt;, and that is fine</strong>
-  <p>The web version wraps the moves in an <code>&lt;ol&gt;</code>/<code>&lt;li&gt;</code> and gets the numbering from the browser. React Native has no list semantics and no markers, so a <code>View</code> with <code>gap</code> plus one <code>Pressable</code> per move is the direct translation — the move number is already inside <code>description</code>. Mapping over an array is right at this size; reach for <code>FlatList</code> (or this repo's <code>FlashList</code>) only when the list is long enough to need virtualisation, which a tic-tac-toe history never is.</p>
-</div>
-<p>Before you can implement <code>jumpTo</code>, <code>Game</code> needs to track which step the user is currently viewing. Define a new state variable called <code>currentMove</code>, starting at <code>0</code>:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>const useGameStore = create(
-  combine(
-    {
-      history: [Array&lt;SquareValue&gt;(9).fill(null)],
-      currentMove: 0,
-      xIsNext: true,
-    },
-    (set) =&gt; {
-      return {
-        setHistory: (nextHistory: Updater&lt;Squares[]&gt;) =&gt; {
-          set((state) =&gt; ({
-            history:
-              typeof nextHistory === 'function'
-                ? nextHistory(state.history)
-                : nextHistory,
-          }))
-        },
-        setCurrentMove: (nextCurrentMove: Updater&lt;number&gt;) =&gt; {
-          set((state) =&gt; ({
-            currentMove:
-              typeof nextCurrentMove === 'function'
-                ? nextCurrentMove(state.currentMove)
-                : nextCurrentMove,
-          }))
-        },
-        setXIsNext: (nextXIsNext: Updater&lt;boolean&gt;) =&gt; {
-          set((state) =&gt; ({
-            xIsNext:
-              typeof nextXIsNext === 'function'
-                ? nextXIsNext(state.xIsNext)
-                : nextXIsNext,
-          }))
-        },
-      }
-    },
-  ),
-)</code></pre></div>
-<p>Next, update <code>jumpTo</code> to set <code>currentMove</code>. You'll also set <code>xIsNext</code> to <code>true</code> if the number you're changing <code>currentMove</code> to is even:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function jumpTo(nextMove: number) {
-  setCurrentMove(nextMove)
-  setXIsNext(currentMove % 2 === 0)
-}</code></pre></div>
-<p>Now make two changes to <code>handlePlay</code>:</p>
+const iconStyle = useAnimatedStyle(() =&gt; ({
+  transform: [{ scale: scale.get() * press.get() }],
+}));</code></pre></div>
 <ul>
-  <li>If you "go back in time" and then make a new move from that point, you only want to keep the history up to that point — so append after <code>history.slice(0, currentMove + 1)</code> instead of after everything.</li>
-  <li>Each time a move is made, update <code>currentMove</code> to point to the latest history entry.</li>
+  <li><strong>React to the value, not the tap.</strong> The pop runs when <code>popKey</code> changes, so it also plays when the value changes some other way, and the button never has to know whether its tap succeeded.</li>
+  <li><strong>A ref skips the mount.</strong> <code>previousKeyRef</code> starts at the first <code>popKey</code>, so the effect returns early on the first render and the icons don't pop every time you open the screen. It is updated before the <code>reduceMotion</code> check, so turning Reduce Motion off later doesn't replay a stale change. This is the same pattern as the score tiles' bump and the haptics hook.</li>
+  <li><strong>Two shared values, one transform.</strong> The pop (<code>scale</code>) and the press spring (<code>press</code>, 0.85 while held) are multiplied, like <code>Square</code>'s press and win pulse, so they never fight over one property.</li>
 </ul>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">ts</span></div><pre><code>function handlePlay(nextSquares: Squares) {
-  const nextHistory = history.slice(0, currentMove + 1).concat([nextSquares])
-  setHistory(nextHistory)
-  setCurrentMove(nextHistory.length - 1)
-  setXIsNext(!xIsNext)
-}</code></pre></div>
-<p>Finally, modify <code>Game</code> to render the currently selected move instead of always rendering the final move:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const currentMove = useGameStore((state) =&gt; state.currentMove)
-  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
-  const xIsNext = useGameStore((state) =&gt; state.xIsNext)
-  const setXIsNext = useGameStore((state) =&gt; state.setXIsNext)
-  const currentSquares = history[currentMove]
+<p>Changing either setting still goes through <code>setMode</code> / <code>setDifficulty</code>, which start a fresh round; the accessibility hint says so (see <a href="#a11y">§9</a>).</p>
 
-  function handlePlay(nextSquares: Squares) {
-    const nextHistory = history.slice(0, currentMove + 1).concat([nextSquares])
-    setHistory(nextHistory)
-    setCurrentMove(nextHistory.length - 1)
-    setXIsNext(!xIsNext)
-  }
+<h3>Why the rules live in the store</h3>
+<p>The store doesn't trust the UI. <code>play(index)</code> works out for itself whether the square is empty and the round is still running; <code>undo</code> and <code>jumpTo</code> refuse once there is a result. The screen does disable the board too, but only as a courtesy. The consequence is that a double tap, a stale timer, a test that calls <code>play</code> directly, or a future UI you haven't written yet can't put the game in an illegal state. The rule is enforced in one place, and that place is covered by <code>gameStore.test.ts</code>.</p>
 
-  function jumpTo(nextMove: number) {
-    setCurrentMove(nextMove)
-    setXIsNext(nextMove % 2 === 0)
-  }
+<h2 id="rules">3 · Pure game rules</h2>
 
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;
-        {history.map((_, historyIndex) =&gt; {
-          const description =
-            historyIndex &gt; 0
-              ? `Go to move #${historyIndex}`
-              : 'Go to game start'
+<p><code>utils/game.ts</code> imports nothing. It is plain TypeScript over a nine-element array, which makes it the easiest file in the slice to test and the one everything else builds on.</p>
 
-          return (
-            &lt;Pressable
-              key={historyIndex}
-              style={styles.moveButton}
-              onPress={() =&gt; jumpTo(historyIndex)}
-            &gt;
-              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
-            &lt;/Pressable&gt;
-          )
-        })}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<div class="note">
-  <strong>Checkpoint 6: time travel works</strong>
-  <p>Play three moves, press <code>Go to move #1</code>: the board shows one mark and the status says <code>Next player: O</code>. Press a square: the later moves disappear and the list ends at the new move.</p>
-</div>
-<div class="warn">
-  <strong>The jumpTo above has a stale-read bug on purpose</strong>
-  <p>The first <code>jumpTo</code> snippet calls <code>setXIsNext(currentMove % 2 === 0)</code>, which reads the <em>old</em> <code>currentMove</code>, because the store update has not been seen by this render yet. The corrected version in the full listing uses <code>nextMove % 2 === 0</code>. The cleanup below removes the whole problem by deriving <code>xIsNext</code>.</p>
-</div>
-<h3 id="final-cleanup">Final cleanup</h3>
-<p>If you look closely, <code>xIsNext</code> is <code>true</code> when <code>currentMove</code> is even and <code>false</code> when it's odd. If you know <code>currentMove</code>, you can always determine <code>xIsNext</code>. There's no need to store it separately — redundant state means more ways to introduce bugs. Calculate it instead:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">App.tsx</span><span class="lang">tsx</span></div><pre><code>export default function Game() {
-  const history = useGameStore((state) =&gt; state.history)
-  const setHistory = useGameStore((state) =&gt; state.setHistory)
-  const currentMove = useGameStore((state) =&gt; state.currentMove)
-  const setCurrentMove = useGameStore((state) =&gt; state.setCurrentMove)
-  const xIsNext = currentMove % 2 === 0
-  const currentSquares = history[currentMove]
+<h3>Types</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>export type Player = "X" | "O";
+export type SquareValue = Player | null;
+export type Squares = SquareValue[];
+export type Mode = "pvp" | "cpu";
+export type Difficulty = "easy" | "medium" | "hard";
+export type Line = readonly [number, number, number];
 
-  function handlePlay(nextSquares: Squares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares]
-    setHistory(nextHistory)
-    setCurrentMove(nextHistory.length - 1)
-  }
+export type WinningLine = { winner: Player; line: Line };
 
-  function jumpTo(nextMove: number) {
-    setCurrentMove(nextMove)
-  }
+/** Everything the screen needs about the board at `currentMove`. */
+export type GameView = {
+  squares: Squares;
+  /** Whose turn it is (meaningless once `isOver`). */
+  next: Player;
+  win: WinningLine | null;
+  isDraw: boolean;
+  isOver: boolean;
+};
 
-  return (
-    &lt;View style={styles.game}&gt;
-      &lt;Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} /&gt;
-      &lt;View style={styles.moves}&gt;
-        {history.map((_, historyIndex) =&gt; {
-          const description =
-            historyIndex &gt; 0
-              ? `Go to move #${historyIndex}`
-              : 'Go to game start'
+/** In vs-computer mode the human always plays X and moves first. */
+export const HUMAN: Player = "X";
+export const CPU: Player = "O";</code></pre></div>
+<p>The board is <code>SquareValue[]</code>, indexed 0 to 8 left to right, top to bottom. <code>Line</code> is a readonly tuple, so a winning line can't be mutated by accident and always has exactly three cells. <code>Mode</code> and <code>Difficulty</code> live here, not in the store, because <code>statusText</code> and <code>canJumpTo</code> need them and the rules must not import the store.</p>
 
-          return (
-            &lt;Pressable
-              key={historyIndex}
-              style={styles.moveButton}
-              onPress={() =&gt; jumpTo(historyIndex)}
-            &gt;
-              &lt;Text style={styles.moveText}&gt;{description}&lt;/Text&gt;
-            &lt;/Pressable&gt;
-          )
-        })}
-      &lt;/View&gt;
-    &lt;/View&gt;
-  )
-}</code></pre></div>
-<p>You no longer need the <code>xIsNext</code> state declaration or the calls to <code>setXIsNext</code> — delete <code>setXIsNext</code> from the store too, and the compiler will point you at every remaining call site. Now there's no chance for <code>xIsNext</code> to get out of sync with <code>currentMove</code>.</p>
-<div class="tip">
-  <strong>Two React Native finishing touches</strong>
-  <p>The game is complete, but a real screen needs two more things this tutorial leaves out. Wrap the root in a safe-area view (<code>useSafeAreaInsets</code> or <code>SafeAreaView</code>) so the board is not under the notch or the home indicator, and give the monospace look a real font: <code>fontFamily: 'monospace'</code> resolves on Android but not on iOS, so use <code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code> — which is what the <a href="#what-are-you-building">complete program</a> at the top of this page does.</p>
-</div>
-<div class="note">
-  <strong>Checkpoint 7: derived state</strong>
-  <p>Behaviour is identical to checkpoint 6, but <code>xIsNext</code> and <code>setXIsNext</code> are gone from the store. The store now holds exactly two fields, <code>history</code> and <code>currentMove</code>.</p>
-</div>
-
-<h3 id="extract-helpers">Extract the helpers and test them</h3>
-<p>Stage 8 is a pure restructuring: no behaviour changes. The three helpers have no React and no React Native in them, so they do not belong in a route file. Two reasons: anything under <code>src/app/</code> is a route (a test file there would become a screen), and a pure module is the cheapest thing in the app to test.</p>
-<p>Create <code>src/projects/tic-tac-toe/utils/game.ts</code>. It exports the types, the helpers, and one new helper for stage 9. <code>LINES</code> moves to module scope so it is built once.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>export type Player = 'X' | 'O'
-export type SquareValue = Player | null
-export type Squares = SquareValue[]
-
-const LINES = [
+<h3>Finding a winner</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>export const LINES: readonly Line[] = [
   [0, 1, 2],
   [3, 4, 5],
   [6, 7, 8],
@@ -1460,314 +500,902 @@ const LINES = [
   [2, 5, 8],
   [0, 4, 8],
   [2, 4, 6],
-]
+];
 
-export function calculateWinner(squares: Squares): SquareValue {
-  for (let i = 0; i &lt; LINES.length; i++) {
-    const [a, b, c] = LINES[i]
-    if (squares[a] &amp;&amp; squares[a] === squares[b] &amp;&amp; squares[a] === squares[c]) {
-      return squares[a]
+export function emptyBoard(): Squares {
+  return Array&lt;SquareValue&gt;(9).fill(null);
+}
+
+export function opponent(player: Player): Player {
+  return player === "X" ? "O" : "X";
+}</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>/** The first completed line, with who completed it, or null. */
+export function findWinningLine(squares: Squares): WinningLine | null {
+  for (const line of LINES) {
+    const [a, b, c] = line;
+    const mark = squares[a];
+    if (mark &amp;&amp; mark === squares[b] &amp;&amp; mark === squares[c]) {
+      return { winner: mark, line };
     }
   }
-
-  return null
+  return null;
 }
 
 /** Turns left to play, which is the number of empty squares. */
 export function countRemainingTurns(squares: Squares): number {
-  return squares.filter((square) =&gt; !square).length
+  return squares.filter((square) =&gt; !square).length;
+}</code></pre></div>
+<p><code>findWinningLine</code> returns the line as well as the winner. The UI needs both: the winner for the banner and the score, the line for the <code>WinLine</code> overlay and for highlighting three squares. <code>emptyBoard</code> spells out <code>Array&lt;SquareValue&gt;(9)</code>; a bare <code>Array(9).fill(null)</code> is typed <code>any[]</code> and would turn off checking for every board in the app.</p>
+
+<h3>Derived state: <code>GameView</code></h3>
+<p>The store keeps only <code>history</code> (one board per move, starting with the empty board) and <code>currentMove</code> (an index into it). Everything else is a function of those two:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>/** X plays the even moves (0, 2, 4…), O the odd ones. */
+export function nextPlayer(moveIndex: number): Player {
+  return moveIndex % 2 === 0 ? "X" : "O";
 }
 
-export function calculateStatus(
-  winner: SquareValue,
-  remainingTurns: number,
-  player: Player,
-): string {
-  if (!winner &amp;&amp; !remainingTurns) return 'Draw'
-  if (winner) return `Winner ${winner}`
-  return `Next player: ${player}`
+export function deriveGame(history: Squares[], currentMove: number): GameView {
+  const squares = history[currentMove] ?? emptyBoard();
+  const win = findWinningLine(squares);
+  const isDraw = !win &amp;&amp; countRemainingTurns(squares) === 0;
+  return {
+    squares,
+    next: nextPlayer(currentMove),
+    win,
+    isDraw,
+    isOver: win !== null || isDraw,
+  };
+}</code></pre></div>
+<p>Whose turn it is falls out of the move number: X plays moves 0, 2, 4…, O the odd ones. There is no <code>xIsNext</code> boolean to forget to flip. A win is checked before a draw, so filling the ninth square with a winning move is a win, not a draw; <code>game.test.ts</code> has a case for exactly that board.</p>
+
+<h3>Text, labels and time travel</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/game.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * Time travel may land on any move between two players. Against the computer
+ * only on the human's turns: landing on the CPU's turn would make it reply at
+ * once and throw the rest of the timeline away.
+ */
+export function canJumpTo(move: number, mode: Mode): boolean {
+  return mode === "pvp" || nextPlayer(move) === HUMAN;
 }
 
-/** Screen-reader label for square `index` (0-8), e.g. "Row 2, column 3, X". */
+/** Banner text. A win takes priority, even on the ninth square. */
+export function statusText(view: GameView, mode: Mode): string {
+  if (view.win) {
+    if (mode === "cpu")
+      return view.win.winner === HUMAN ? "You win!" : "Computer wins";
+    return `${view.win.winner} wins!`;
+  }
+  if (view.isDraw) return "It's a draw";
+  if (mode === "cpu")
+    return view.next === HUMAN ? "Your turn" : "Computer is thinking…";
+  return `${view.next} to play`;
+}
+
+/** Screen-reader label for square `index` (0–8), e.g. "Row 2, column 3, X". */
 export function squareLabel(index: number, value: SquareValue): string {
-  const row = Math.floor(index / 3) + 1
-  const column = (index % 3) + 1
-  return `Row ${row}, column ${column}, ${value ?? 'empty'}`
+  const row = Math.floor(index / 3) + 1;
+  const column = (index % 3) + 1;
+  return `Row ${row}, column ${column}, ${value ?? "empty"}`;
+}
+
+/** The square that move `moveIndex` (1-based, as in history) filled, or -1. */
+export function moveSquare(history: Squares[], moveIndex: number): number {
+  const before = history[moveIndex - 1];
+  const after = history[moveIndex];
+  if (!before || !after) return -1;
+  return after.findIndex((value, i) =&gt; value !== before[i]);
 }</code></pre></div>
-<p>In the route file, delete the local types (<code>Updater&lt;T&gt;</code> stays, it is store-only) and the three functions, then import them. The repo uses the <code>@/</code> alias:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>import {
-  calculateStatus,
-  calculateWinner,
-  countRemainingTurns,
-  squareLabel,
-  SquareValue,
-  Squares,
-} from '@/src/projects/tic-tac-toe/utils/game'</code></pre></div>
-<p>Now the tests. The file lives at <code>src/projects/tic-tac-toe/__tests__/game.test.ts</code>, never under <code>src/app/</code>. A tiny <code>board()</code> helper turns a string such as <code>"XXX......"</code> into a <code>Squares</code> so the cases stay readable:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/__tests__/game.test.ts</span><span class="lang">ts</span></div><pre><code>import {
-  calculateStatus,
-  calculateWinner,
-  countRemainingTurns,
-  squareLabel,
-  Squares,
-} from '../utils/game'
+<ul>
+  <li><code>canJumpTo</code> exists because of the computer. If you could jump to a position where it is O's turn, <code>useCpuTurn</code> would reply at once, and since playing after a jump truncates the history, your timeline would vanish under you. So in <code>cpu</code> mode only the human's turns (even moves) are selectable. The store enforces it and <code>MoveTimeline</code> uses it to grey out the other chips.</li>
+  <li><code>statusText</code> speaks to the human in <code>cpu</code> mode ("You win!", "Your turn") and uses marks in <code>pvp</code> mode.</li>
+  <li><code>squareLabel</code> is what a screen reader says for a square (see <a href="#a11y">§9</a>).</li>
+  <li><code>moveSquare</code> recovers which square a move filled by diffing two consecutive boards, so the history doesn't need a separate list of moves. The timeline uses it for its chip labels.</li>
+</ul>
 
-const board = (cells: string): Squares =&gt;
-  [...cells].map((c) =&gt; (c === 'X' || c === 'O' ? c : null))
+<div class="checkpoint"><b>Checkpoint</b> — <code>npx jest --no-watchman src/projects/tic-tac-toe/__tests__/game.test.ts</code> passes, and you can explain why <code>deriveGame</code> has no <code>isDraw</code> branch for a full board that also has a line.</div>
 
-describe('calculateWinner', () =&gt; {
-  it('finds rows, columns and diagonals', () =&gt; {
-    expect(calculateWinner(board('XXX......'))).toBe('X')
-    expect(calculateWinner(board('.O..O..O.'))).toBe('O')
-    expect(calculateWinner(board('..X.X.X..'))).toBe('X')
-  })
+<h2 id="store">4 · The store: <code>combine</code> + <code>persist</code></h2>
 
-  it('returns null with no line', () =&gt; {
-    expect(calculateWinner(board('.........'))).toBeNull()
-    expect(calculateWinner(board('XOXXOOOXX'))).toBeNull()
-  })
-})
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>export type Scores = { X: number; O: number; draw: number };
+/** Each mode keeps its own tally: a two-player win isn't a win against the CPU. */
+export type ScoresByMode = Record&lt;Mode, Scores&gt;;
 
-describe('calculateStatus', () =&gt; {
-  it('reports a draw only when the board is full with no winner', () =&gt; {
-    expect(calculateStatus(null, 0, 'X')).toBe('Draw')
-    expect(calculateStatus(null, 1, 'O')).toBe('Next player: O')
-  })
+const noScores = (): Scores =&gt; ({ X: 0, O: 0, draw: 0 });
 
-  it('prefers the winner, even on the last square', () =&gt; {
-    expect(calculateStatus('X', 0, 'O')).toBe('Winner X')
-  })
-})</code></pre></div>
-<p>The repo file also covers <code>countRemainingTurns</code> and <code>squareLabel</code>. Run it with <code>npx jest --no-watchman src/projects/tic-tac-toe</code> (plain <code>npm test</code> outside the sandbox).</p>
-<div class="tip">
-  <strong>Why these particular cases</strong>
-  <p>Each one pins a rule that is easy to break while refactoring. The "winner on the last square" case guards the order of the checks in <code>calculateStatus</code>: if the draw check ran without the <code>!winner</code> guard, a winning final move would read <code>Draw</code>. The full-board no-winner case guards the opposite. Both are the same edge seen from either side.</p>
+/** A fresh round: one empty board, at move 0. */
+const freshRound = () =&gt; ({ history: [emptyBoard()], currentMove: 0 });
+
+const initialState = {
+  ...freshRound(),
+  mode: "cpu" as Mode,
+  difficulty: "medium" as Difficulty,
+  scores: { pvp: noScores(), cpu: noScores() } as ScoresByMode,
+  hapticsEnabled: true,
+};
+
+/**
+ * The whole game. `combine` infers the state type from `initialState`, and
+ * `persist` saves it to AsyncStorage, so a round survives an app restart.
+ *
+ * The rules live here rather than in the UI: a screen can call `play` for any
+ * square and the store decides whether that is a legal move.
+ */
+export const useGameStore = create(
+  persist(
+    combine(initialState, (set, get) =&gt; ({</code></pre></div>
+
+<h3>Types by inference</h3>
+<p><code>combine(initialState, actions)</code> merges a state object with the object your creator returns, and infers the store type from both. You never write a <code>GameState</code> interface. The <code>as Mode</code> and <code>as Difficulty</code> casts are there to widen the literals: without them the inferred type of <code>mode</code> would be <code>string</code>, and <code>setMode</code> couldn't accept only <code>"pvp" | "cpu"</code>. <code>as ScoresByMode</code> names the shape of <code>scores</code>, one <code>Scores</code> tally per <code>Mode</code>; <code>noScores()</code> is a factory, so each tally is its own object. Action parameters are not inferred, so <code>play: (index: number)</code> is annotated by hand. Use the plain <code>create(…)</code> call here; the curried <code>create&lt;T&gt;()(…)</code> form is for when you write the type yourself.</p>
+
+<h3><code>play</code>: one move, one <code>set</code></h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>play: (index: number) =&gt; {
+  const { history, currentMove, mode, scores } = get();
+  const view = deriveGame(history, currentMove);
+  if (view.isOver || view.squares[index] !== null) return;
+
+  const nextSquares: Squares = view.squares.slice();
+  nextSquares[index] = view.next;
+  // Playing after a jump back throws the old future away.
+  const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+  const result = deriveGame(nextHistory, nextHistory.length - 1);
+
+  // Count the result in the same `set` as the winning move, exactly once:
+  // a finished round can't be played, undone or rewound.
+  const tally = scores[mode];
+  let nextTally = tally;
+  if (result.win) {
+    const { winner } = result.win;
+    nextTally = { ...tally, [winner]: tally[winner] + 1 };
+  } else if (result.isDraw) {
+    nextTally = { ...tally, draw: tally.draw + 1 };
+  }
+  const nextScores = { ...scores, [mode]: nextTally };
+
+  set({
+    history: nextHistory,
+    currentMove: nextHistory.length - 1,
+    scores: nextScores,
+  });
+},</code></pre></div>
+<p>Three things to read closely:</p>
+<ul>
+  <li><strong>The guard.</strong> A finished round or a filled square is a no-op. This is why the board's <code>disabled</code> prop is only a courtesy.</li>
+  <li><strong>Truncation.</strong> <code>history.slice(0, currentMove + 1)</code> keeps the past up to the current move and drops the rest. After a jump back, playing writes a new future.</li>
+  <li><strong>Scoring in the same <code>set</code>.</strong> The result is computed from the board the move produces, and the current mode's tally, <code>scores[mode]</code>, is updated in the same <code>set</code> as the move. Zustand's merge is shallow, so both levels are copied by hand: <code>{ ...tally, … }</code> keeps the other two counts and <code>{ ...scores, [mode]: nextTally }</code> keeps the other mode. There is no effect watching for "a win just happened", so there is no render in which the board shows a win and the score doesn't, and nothing that could count it twice. It can't be counted again later either: once <code>isOver</code> is true, <code>play</code>, <code>undo</code> and <code>jumpTo</code> all return early, so you can't step back into the round and win it again.</li>
+</ul>
+
+<h3><code>undo</code>, <code>jumpTo</code> and settings</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>undo: () =&gt; {
+  const { history, currentMove, mode } = get();
+  if (currentMove === 0 || deriveGame(history, currentMove).isOver)
+    return;
+  let target = currentMove - 1;
+  // Against the computer, step back past its reply to the human's turn.
+  if (mode === "cpu" &amp;&amp; nextPlayer(target) === CPU) target -= 1;
+  set({ currentMove: Math.max(0, target) });
+},
+
+jumpTo: (move: number) =&gt; {
+  const { history, currentMove, mode } = get();
+  if (move &lt; 0 || move &gt;= history.length) return;
+  if (!canJumpTo(move, mode)) return;
+  if (deriveGame(history, currentMove).isOver) return;
+  set({ currentMove: move });
+},
+
+newRound: () =&gt; set(freshRound()),
+
+setMode: (mode: Mode) =&gt; set({ mode, ...freshRound() }),
+
+setDifficulty: (difficulty: Difficulty) =&gt;
+  set({ difficulty, ...freshRound() }),
+
+setHapticsEnabled: (hapticsEnabled: boolean) =&gt; set({ hapticsEnabled }),
+
+/** Clears the current mode's tally only. */
+resetScores: () =&gt;
+  set((state) =&gt; ({
+    scores: { ...state.scores, [state.mode]: noScores() },
+  })),</code></pre></div>
+<p>Undo only moves <code>currentMove</code>; the boards stay in <code>history</code>, so a redo is just a tap on a later chip. Against the computer, one step back would land on the CPU's turn and it would immediately play again, so <code>undo</code> steps back past its reply to your turn. If the CPU hasn't replied yet (you played and undo while the dots are bouncing), the target is already your turn and only your move is removed. Changing the mode or the difficulty starts a fresh round, because a half-played game against Easy shouldn't continue against Hard, but the scores are kept. <code>resetScores</code> clears only the tally of the mode you are in, and uses the updater form of <code>set</code> because it needs the current <code>mode</code>.</p>
+
+<h3>Persisting the data, not the actions</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>    {
+      name: "tic-tac-toe/game",
+      version: 2,
+      storage: createJSONStorage(() =&gt; AsyncStorage),
+      migrate: migrateGame,
+      // Data only: actions are recreated by `combine` on every launch.
+      partialize: ({
+        history,
+        currentMove,
+        mode,
+        difficulty,
+        scores,
+        hapticsEnabled,
+      }) =&gt; ({
+        history,
+        currentMove,
+        mode,
+        difficulty,
+        scores,
+        hapticsEnabled,
+      }),
+    },
+  ),
+);</code></pre></div>
+<ul>
+  <li><code>createJSONStorage(() =&gt; AsyncStorage)</code> adapts the async key-value store to <code>persist</code>, which serialises the state as JSON under <code>name</code>.</li>
+  <li><code>partialize</code> picks the data fields. Functions don't survive JSON anyway, but listing the fields keeps the stored shape explicit, and anything added to the store later stays out of storage until you decide otherwise.</li>
+  <li><code>version: 2</code> is stamped on the stored value, and <code>migrate: migrateGame</code> upgrades anything older. The next section explains why it is 2.</li>
+  <li>The key is prefixed with the project's name, like the other persisted stores in the repo, so two projects can't collide in the shared AsyncStorage.</li>
+</ul>
+
+<h3>Scores per mode, and a versioned migration</h3>
+<p>The first version kept one shared tally. That mixed two different games: a two-player win by X showed up as "You" beating the CPU, and resetting one mode's score wiped the other's. So <code>scores</code> became <code>Record&lt;Mode, Scores&gt;</code>. That is a change to the <em>stored</em> shape, and every phone that already had a save would hydrate a flat <code>{ X, O, draw }</code> object into a store that now reads <code>scores[mode]</code>: <code>undefined</code>, and a crash as soon as <code>Scoreboard</code> reads <code>scores.X</code>.</p>
+<p><code>persist</code> handles this with two options. <code>version</code> is saved next to the state. On hydration, when the stored version differs from the current one, the saved state goes through <code>migrate(persistedState, storedVersion)</code> first, and what it returns is merged. (With a different version and no <code>migrate</code>, Zustand logs an error and ignores the save, so the player loses it.)</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * Upgrades a saved game to the current `version`. Version 1 kept one shared
+ * tally; it can't be split by mode, so it moves to the mode that was active.
+ */
+export function migrateGame(persisted: unknown, version: number) {
+  const state = (persisted ?? {}) as Record&lt;string, unknown&gt;;
+  if (version &lt; 2) {
+    const mode: Mode = state.mode === "pvp" ? "pvp" : "cpu";
+    const old = (state.scores as Scores | undefined) ?? noScores();
+    const scores: ScoresByMode = { pvp: noScores(), cpu: noScores() };
+    scores[mode] = old;
+    return { ...state, scores };
+  }
+  return state;
+}</code></pre></div>
+<ul>
+  <li><strong>Upgrade, don't guess.</strong> A shared tally can't be split after the fact, so it moves to the mode that was active when it was saved, and the other mode starts at zero.</li>
+  <li><strong>Steps by version.</strong> <code>if (version &lt; 2)</code> rather than <code>=== 1</code>: when a version 3 comes, it adds its own <code>if (version &lt; 3)</code> block below, and a version-1 save runs through both in order.</li>
+  <li><strong>Treat the input as unknown.</strong> A save is old data from disk, so <code>migrateGame</code> takes <code>unknown</code>, reads fields defensively and falls back to <code>noScores()</code>.</li>
+  <li><strong>Exported and pure.</strong> It needs no store and no storage, so the test calls it directly with a version-1 object (see <a href="#testing">§10</a>).</li>
+</ul>
+
+<h3>Waiting for hydration</h3>
+<p>AsyncStorage is asynchronous, so the first render runs with <code>initialState</code>, and the saved game arrives a moment later. A tap in that window would be played on the default empty board, then overwritten by the saved one. The store exposes whether hydration has finished:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/stores/gameStore.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * Whether the saved game has loaded. Until then the store holds the defaults,
+ * so the screen keeps the board disabled (a tap would be overwritten).
+ */
+export function useGameHydrated(): boolean {
+  return useSyncExternalStore(
+    useGameStore.persist.onFinishHydration,
+    useGameStore.persist.hasHydrated,
+  );
+}</code></pre></div>
+<p><code>persist</code> adds a <code>persist</code> API to the store: <code>hasHydrated()</code> reads the flag and <code>onFinishHydration(listener)</code> subscribes to it and returns an unsubscribe function. That is exactly the <code>(subscribe, getSnapshot)</code> pair <a href="https://react.dev/reference/react/useSyncExternalStore">useSyncExternalStore</a> wants, so the hook is two lines, with no state and no effect to copy the flag into. The screen keeps the board disabled until it is <code>true</code>, and passes <code>hapticsEnabled &amp;&amp; hydrated</code> to the haptics hook so that restoring a saved game doesn't buzz.</p>
+
+<div class="warn">
+  <strong>Common mistake</strong>
+  <p>Copying the hydration flag into <code>useState</code> from a <code>useEffect</code> (<code>useEffect(() =&gt; { setHydrated(true) }, [])</code>) is both wrong and rejected here: it reports <code>true</code> after the first mount whether or not storage has finished, and the React Compiler's lint flags a synchronous <code>setState</code> in an effect body. Subscribe to the source instead.</p>
 </div>
+
+<div class="checkpoint"><b>Checkpoint</b> — Play two moves, kill the app and reopen it. The board, the timeline and the scores are where you left them, and reopening doesn't fire a haptic. Win a two-player round, switch to <em>vs CPU</em>: its tally is untouched.</div>
+
+<h2 id="cpu">5 · The computer opponent</h2>
+
+<p><code>utils/ai.ts</code> is pure too. Its one public entry point takes the board, which mark the computer plays, the difficulty, and a random-number source:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/ai.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * The computer's move for `cpu`, or -1 when the board is full or already won.
+ *
+ * - easy: any empty square.
+ * - medium: win if it can, else block the opponent's win, else any square.
+ * - hard: minimax, unbeatable. Equally good moves are picked with `random`.
+ *
+ * `random` is injectable so tests can make the choice deterministic.
+ */
+export function pickMove(
+  squares: Squares,
+  cpu: Player,
+  difficulty: Difficulty,
+  random: () =&gt; number = Math.random,
+): number {
+  if (findWinningLine(squares)) return -1;
+  const empty = emptySquares(squares);
+  if (empty.length === 0) return -1;
+
+  if (difficulty === "easy") return pickRandom(empty, random);
+
+  if (difficulty === "medium") {
+    const win = findImmediateWin(squares, cpu);
+    if (win !== -1) return win;
+    const block = findImmediateWin(squares, opponent(cpu));
+    if (block !== -1) return block;
+    return pickRandom(empty, random);
+  }
+
+  return pickRandom(bestMoves(squares, cpu), random);
+}</code></pre></div>
+
+<div class="wu-scroll"><table>
+<thead><tr><th>Level</th><th>Strategy</th><th>How it plays</th></tr></thead>
+<tbody>
+<tr><td>Easy</td><td>Any empty square</td><td>Misses wins and never blocks. Beatable by anyone.</td></tr>
+<tr><td>Medium</td><td>Win, else block, else random</td><td>Looks one move ahead. A fork (two threats at once) beats it, because it can block only one.</td></tr>
+<tr><td>Hard</td><td>Minimax over the whole game tree</td><td>Never loses. The best you can do is draw.</td></tr>
+</tbody>
+</table></div>
+
+<h3>Medium: one move ahead</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/ai.ts</span><span class="lang">ts</span></div><pre><code>/** The square that completes a line for `player` right now, or -1. */
+export function findImmediateWin(squares: Squares, player: Player): number {
+  for (const line of LINES) {
+    const marks = line.map((i) =&gt; squares[i]);
+    const own = marks.filter((mark) =&gt; mark === player).length;
+    const gap = line.find((i) =&gt; !squares[i]);
+    if (own === 2 &amp;&amp; gap !== undefined) return gap;
+  }
+  return -1;
+}
+
+/** One item from `items`, picked with `random` (a number in [0, 1)). */
+function pickRandom(items: number[], random: () =&gt; number): number {
+  if (items.length === 0) return -1;
+  const index = Math.min(items.length - 1, Math.floor(random() * items.length));
+  return items[index];
+}</code></pre></div>
+<p><code>findImmediateWin</code> looks for a line with two of the player's marks and an empty third cell. Medium calls it for itself first (take the win) and then for the opponent (block). <code>pickRandom</code> clamps the index, so a <code>random</code> that returns something just under 1 still picks the last item.</p>
+
+<h3>Hard: minimax with depth</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/ai.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * Minimax score of `squares` from `cpu`'s point of view, with `turn` to move.
+ * A win scores 10 - depth and a loss depth - 10, so faster wins and slower
+ * losses rank higher. A draw scores 0.
+ */
+function score(
+  squares: Squares,
+  cpu: Player,
+  turn: Player,
+  depth: number,
+): number {
+  const win = findWinningLine(squares);
+  if (win) return win.winner === cpu ? 10 - depth : depth - 10;
+  if (countRemainingTurns(squares) === 0) return 0;
+
+  let best = turn === cpu ? -Infinity : Infinity;
+  for (const index of emptySquares(squares)) {
+    squares[index] = turn;
+    const value = score(squares, cpu, opponent(turn), depth + 1);
+    squares[index] = null;
+    best = turn === cpu ? Math.max(best, value) : Math.min(best, value);
+  }
+  return best;
+}
+
+/** Every move with the best minimax score for `cpu`. */
+function bestMoves(squares: Squares, cpu: Player): number[] {
+  const board = squares.slice();
+  let best = -Infinity;
+  let moves: number[] = [];
+  for (const index of emptySquares(board)) {
+    board[index] = cpu;
+    const value = score(board, cpu, opponent(cpu), 1);
+    board[index] = null;
+    if (value &gt; best) {
+      best = value;
+      moves = [index];
+    } else if (value === best) {
+      moves.push(index);
+    }
+  }
+  return moves;
+}</code></pre></div>
+<p>Minimax plays every remaining game out to the end. On the computer's turns it takes the move with the highest score, on the opponent's turns the lowest, on the assumption that the opponent plays perfectly. A finished game scores <code>10 - depth</code> for a computer win, <code>depth - 10</code> for a loss and 0 for a draw. The depth matters: without it, a win now and a win in three moves score the same, and the computer may dawdle past a winning move; with it, the faster win ranks higher, and when a loss can't be avoided it delays it as long as possible.</p>
+<p>Tic-tac-toe has only 255,168 possible games, so the search needs no pruning or caching: the computer's first reply, with eight squares left, is the slowest and still well inside the 450&nbsp;ms "thinking" delay. The search mutates one scratch board and undoes each move (<code>squares[index] = null</code>) instead of copying a board per node; <code>bestMoves</code> takes a copy first, so the caller's board is never touched.</p>
+
+<h3>Why it's unbeatable, and why it's still not boring</h3>
+<p>Perfect play from both sides in tic-tac-toe is a draw, and minimax <em>is</em> perfect play: it never picks a move that lets the opponent force a win, because that move would score below a drawing move. <code>bestMoves</code> keeps every move with the best score, not only the first, and <code>pickRandom</code> chooses between them. So Hard doesn't answer the same way every round; it picks among equally good moves at random. That randomness is injected (<code>random: () =&gt; number = Math.random</code>), which is how the tests replay the exact same choices.</p>
+
+<h3>Taking a turn: <code>useCpuTurn</code></h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/hooks/useCpuTurn.ts</span><span class="lang">ts</span></div><pre><code>/** How long the computer "thinks" before it plays, in milliseconds. */
+export const CPU_DELAY_MS = 450;
+
+/**
+ * Plays the computer's move after `CPU_DELAY_MS` whenever it is the CPU's turn.
+ * The timer is cleared when the board, mode or difficulty changes, or on
+ * unmount, so an undo or a new round never gets a stale move.
+ *
+ * Returns `thinking`, derived during render rather than kept in state.
+ */
+export function useCpuTurn(
+  view: GameView,
+  mode: Mode,
+  difficulty: Difficulty,
+  play: (index: number) =&gt; void,
+): boolean {
+  const { squares, next, isOver } = view;
+  const thinking = mode === "cpu" &amp;&amp; !isOver &amp;&amp; next === CPU;
+
+  useEffect(() =&gt; {
+    if (mode !== "cpu" || isOver || next !== CPU) return;
+    const timer = setTimeout(() =&gt; {
+      const index = pickMove(squares, CPU, difficulty);
+      if (index !== -1) play(index);
+    }, CPU_DELAY_MS);
+    return () =&gt; clearTimeout(timer);
+  }, [squares, next, isOver, mode, difficulty, play]);
+
+  return thinking;
+}</code></pre></div>
+<ul>
+  <li><strong>The delay is for people.</strong> An instant reply feels like the board glitched. 450&nbsp;ms is long enough to see your own mark land and the dots appear.</li>
+  <li><strong>Cleanup is the whole design.</strong> Every dependency change clears the pending timer. Undo during the delay changes <code>squares</code>; a new round or a mode or difficulty switch changes <code>squares</code>, <code>mode</code> or <code>difficulty</code>; leaving the screen unmounts it. In each case the stale move is cancelled instead of being played onto a board it wasn't chosen for.</li>
+  <li><strong>The move is chosen when the timer fires</strong>, from the <code>squares</code> the effect closed over, and handed to the store's <code>play</code>, which re-checks legality anyway.</li>
+  <li><strong><code>thinking</code> is derived, not stored.</strong> It is true exactly when the effect would schedule a move, so it is computed during render from the same three values. Keeping it in <code>useState</code> and setting it inside the effect would cost an extra render, could disagree with the board for a frame, and is the "<code>setState</code> in an effect body" pattern the React Compiler rules ask you to avoid.</li>
+</ul>
+
+<div class="checkpoint"><b>Checkpoint</b> — On Hard, try every opening you like for five rounds: you never win. On Medium, set up a fork (two open lines at once) and win: it can block only one.</div>
+
+<h2 id="animation">6 · Animating with Reanimated 4</h2>
+
+<p>Every animation in the slice follows the same recipe: a <a href="https://docs.swmansion.com/react-native-reanimated/docs/core/useSharedValue">shared value</a> holds a number, an effect or a press handler assigns it an animation (<code>withTiming</code>, <code>withSpring</code>, <code>withDelay</code>, <code>withSequence</code>, <code>withRepeat</code>), and a <code>useAnimatedStyle</code> or <code>useAnimatedProps</code> worklet maps the number onto a style or a prop. The animation runs on the UI thread; React renders only when props change, not on every frame.</p>
+
 <div class="note">
-  <strong>Checkpoint 8: extracted and tested</strong>
-  <p><code>npm run typecheck</code>, <code>npm run lint</code> and the Jest run are all green, the game plays exactly as before, and <code>index.tsx</code> no longer contains <code>calculateWinner</code>.</p>
+  <strong><code>.get()</code> and <code>.set()</code>, not <code>.value</code></strong>
+  <p>Reanimated 4 shared values also have <code>get()</code> and <code>set()</code> methods, and this repo uses them everywhere. Assigning to <code>.value</code> of an object a hook returned is the kind of mutation the React Compiler flags; a method call isn't.</p>
 </div>
 
-<h3 id="accessibility">Make it accessible</h3>
-<p>A <code>Pressable</code> containing only an <code>X</code>, an <code>O</code> or nothing gives a screen reader very little: an empty square is read as nothing at all, and it does not say which square it is. Stage 9 adds role, label and state to the squares and move buttons, plus a live region on the status line. <code>squareLabel</code> from stage 8 builds the label; <code>Board</code> passes it down so <code>Square</code> stays a dumb, reusable component.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">src/app/projects/tic-tac-toe/index.tsx</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
-  value: SquareValue
-  label: string
-  disabled: boolean
-  onSquareClick: () =&gt; void
-}
+<h3>Press scale on a square</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/Square.tsx</span><span class="lang">tsx</span></div><pre><code>const contentStyle = useAnimatedStyle(() =&gt; ({
+  opacity: fade.get(),
+  transform: [{ scale: press.get() * pulse.get() }],
+}));
+const highlightStyle = useAnimatedStyle(() =&gt; ({ opacity: highlight.get() }));
 
-function Square({ value, label, disabled, onSquareClick }: SquareProps) {
-  return (
-    &lt;Pressable
-      style={styles.square}
-      onPress={onSquareClick}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-    &gt;
-      &lt;Text style={styles.squareText}&gt;{value}&lt;/Text&gt;
-    &lt;/Pressable&gt;
-  )
-}
+const markSize = size * 0.6;
+const tint = value === "O" ? palette.oSoft : palette.xSoft;
 
-// In Board's return. ThemedText comes from
-// '@/src/shared/components/themed-text' and follows the colour scheme.
-&lt;ThemedText style={styles.status} accessibilityLiveRegion="polite"&gt;
-  {status}
-&lt;/ThemedText&gt;
-{squares.map((square, squareIndex) =&gt; (
-  &lt;Square
-    key={`square-${squareIndex}`}
-    value={square}
-    label={squareLabel(squareIndex, square)}
-    disabled={square !== null || winner !== null}
-    onSquareClick={() =&gt; handleClick(squareIndex)}
-  /&gt;
-))}
+return (
+  &lt;Pressable
+    onPress={onPress}
+    disabled={disabled}
+    onPressIn={() =&gt; {
+      if (!reduceMotion)
+        press.set(withSpring(0.9, { damping: 15, stiffness: 400 }));
+    }}
+    onPressOut={() =&gt; {
+      press.set(
+        reduceMotion ? 1 : withSpring(1, { damping: 12, stiffness: 300 }),
+      );
+    }}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    accessibilityState={{ disabled }}
+    style={{ width: size, height: size }}
+  &gt;</code></pre></div>
+<p><code>onPressIn</code> springs the cell down to 0.9 and <code>onPressOut</code> springs it back. The scale is the product of two shared values, the press and the win pulse, so the two animations never fight over one property. The press handlers run on the JS thread, but they only <em>start</em> an animation; the frames are computed on the UI thread.</p>
 
-// In Game's move list:
-&lt;Pressable
-  key={historyIndex}
-  style={styles.moveButton}
-  accessibilityRole="button"
-  accessibilityState={{ selected: historyIndex === currentMove }}
-  onPress={() =&gt; jumpTo(historyIndex)}
+<h3>Drawing a mark on: animated SVG props</h3>
+<p>The marks are <a href="https://github.com/software-mansion/react-native-svg">react-native-svg</a> shapes. A stroke can be "drawn" by giving it a dash as long as the whole stroke (<code>strokeDasharray={length}</code>) and then sliding that dash into view with <code>strokeDashoffset</code>, from <code>length</code> (nothing visible) to 0 (fully drawn). <code>strokeDashoffset</code> is a prop of the SVG element, not a style, so it is animated with <a href="https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedProps">useAnimatedProps</a> on a component wrapped once with <code>Animated.createAnimatedComponent</code>:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/OMark.tsx</span><span class="lang">tsx</span></div><pre><code>const AnimatedCircle = Animated.createAnimatedComponent(Circle);</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/OMark.tsx</span><span class="lang">tsx</span></div><pre><code>const progress = useSharedValue(reduceMotion ? 1 : 0);
+const scale = useSharedValue(reduceMotion ? 1 : 0.7);
+
+useEffect(() =&gt; {
+  if (reduceMotion) {
+    progress.set(1);
+    scale.set(1);
+    return;
+  }
+  progress.set(
+    withTiming(1, { duration: 340, easing: Easing.out(Easing.cubic) }),
+  );
+  scale.set(withSpring(1, { damping: 11, stiffness: 240 }));
+}, [progress, scale, reduceMotion]);
+
+const circleProps = useAnimatedProps(() =&gt; ({
+  strokeDashoffset: circumference * (1 - progress.get()),
+}));
+const popStyle = useAnimatedStyle(() =&gt; ({
+  transform: [{ scale: scale.get() }],
+}));
+
+return (
+  &lt;Animated.View
+    style={[{ width: size, height: size, pointerEvents: "none" }, popStyle]}
+  &gt;
+    &lt;Svg width={size} height={size}&gt;
+      &lt;AnimatedCircle
+        cx={center}
+        cy={center}
+        r={radius}
+        stroke={color}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        fill="none"
+        // Rotate so the stroke starts at the top instead of 3 o'clock.
+        rotation={-90}
+        origin={`${center}, ${center}`}
+        animatedProps={circleProps}
+      /&gt;</code></pre></div>
+<p>The circle starts at 3 o'clock in SVG, so it is rotated by -90° around its centre to start drawing from the top. The view around it pops in with a spring at the same time. The X does the same with two <code>Path</code>s, the second one delayed so the strokes draw one after the other:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/XMark.tsx</span><span class="lang">tsx</span></div><pre><code>useEffect(() =&gt; {
+  if (reduceMotion) {
+    first.set(1);
+    second.set(1);
+    scale.set(1);
+    return;
+  }
+  const easing = Easing.out(Easing.cubic);
+  first.set(withTiming(1, { duration: 180, easing }));
+  second.set(withDelay(140, withTiming(1, { duration: 180, easing })));
+  scale.set(withSpring(1, { damping: 11, stiffness: 240 }));
+}, [first, second, scale, reduceMotion]);
+
+const firstProps = useAnimatedProps(() =&gt; ({
+  strokeDashoffset: length * (1 - first.get()),
+}));</code></pre></div>
+<p>Each mark animates once, on mount, because a square renders its mark only once it has a value. Nothing has to reset an animation when the round restarts: the mark unmounts with the old board.</p>
+
+<h3>The winning line</h3>
+<p>The geometry is a pure, exported function: centres of the first and last cells, pushed outwards a little along the line so the stroke overshoots both ends:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/WinLine.tsx</span><span class="lang">tsx</span></div><pre><code>/** Pure geometry: the stroke from the first to the last cell, overshooting both a little. */
+export function winLineEndpoints(line: Line, size: number) {
+  const start = cellCenter(line[0], size);
+  const end = cellCenter(line[2], size);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const distance = Math.hypot(dx, dy);
+  const overshoot = size / 3 / 2.6;
+  const ux = dx / distance;
+  const uy = dy / distance;
+  return {
+    x1: start.x - ux * overshoot,
+    y1: start.y - uy * overshoot,
+    x2: end.x + ux * overshoot,
+    y2: end.y + uy * overshoot,
+    length: distance + overshoot * 2,
+  };
+}</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/WinLine.tsx</span><span class="lang">tsx</span></div><pre><code>const progress = useSharedValue(reduceMotion ? 1 : 0);
+
+useEffect(() =&gt; {
+  if (reduceMotion) {
+    progress.set(1);
+    return;
+  }
+  // Wait for the last mark to finish drawing.
+  progress.set(
+    withDelay(
+      220,
+      withTiming(1, { duration: 380, easing: Easing.out(Easing.cubic) }),
+    ),
+  );
+}, [progress, reduceMotion]);
+
+const lineProps = useAnimatedProps(() =&gt; ({
+  strokeDashoffset: length * (1 - progress.get()),
+}));</code></pre></div>
+<p><code>withDelay(220, …)</code> waits for the winning mark to finish drawing before the line starts. <code>Board</code> renders the overlay only when there is a win, keyed by the line, so a different winning line is a fresh component with a fresh animation. The line is drawn in the winner's colour, so it reads as part of its marks:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/Board.tsx</span><span class="lang">tsx</span></div><pre><code>{win &amp;&amp; (
+  &lt;WinLine
+    key={win.line.join("-")}
+    line={win.line}
+    size={grid}
+    // The winner's colour, so the line reads as part of its marks.
+    color={win.winner === "X" ? palette.x : palette.o}
+    reduceMotion={reduceMotion}
+  /&gt;</code></pre></div>
+
+<h3>Layout animations: entering, exiting and transitions</h3>
+<p><a href="https://docs.swmansion.com/react-native-reanimated/docs/layout-animations/entering-exiting-animations">Layout animations</a> animate a view as it mounts, unmounts or moves, with no shared values at all. The status banner uses the "key it to remount it" trick: the pill is keyed by its text, so each new message is a new view that fades in from below while the old one fades out upwards:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/StatusBanner.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Animated.View
+  key={text}
+  entering={reduceMotion ? undefined : FadeInDown.duration(240)}
+  exiting={reduceMotion ? undefined : FadeOutUp.duration(160)}
+  style={[
+    styles.pill,
+    { backgroundColor: tint, borderColor: palette.border },
+  ]}
+  accessibilityRole="text"
+  accessibilityLiveRegion="polite"
+  accessibilityLabel={text}
 &gt;</code></pre></div>
-<ul>
-  <li><code>accessibilityState={{ disabled }}</code> is announced as "dimmed" or "disabled"; it does not block presses, which is why <code>handleClick</code> still guards on <code>squares[i] || winner</code>.</li>
-  <li><code>accessibilityLiveRegion="polite"</code> announces status changes (<code>Next player: O</code>, <code>Winner X</code>) on Android. It is an Android prop; on iOS it has no effect.</li>
-  <li>The move buttons need no <code>accessibilityLabel</code>: their text child (<code>Go to move #2</code>) already reads well. <code>selected</code> tells the user which move is showing.</li>
-  <li>The status line is a <code>ThemedText</code>, not a plain <code>Text</code>. A plain <code>Text</code> defaults to black, so in dark mode it disappears against the dark screen background. <code>ThemedText</code> picks its colour from the scheme (and <code>styles.status</code> gains <code>fontSize: 14, lineHeight: 17</code>). The squares and move buttons keep plain <code>Text</code>, because they sit on a fixed <code>#fff</code> background where black always reads.</li>
-</ul>
-<div class="note">
-  <strong>Checkpoint 9: screen-reader pass</strong>
-  <p>Turn on VoiceOver (iOS) or TalkBack (Android). Swiping across the board reads <code>Row 1, column 1, empty</code>, then <code>Row 1, column 2, empty</code>, and so on, and a played square reads <code>Row 2, column 3, X</code>. After a winning move the squares are reported as disabled.</p>
+<p>The pill is absolutely positioned inside a fixed-height slot, so the outgoing and incoming pills overlap instead of stacking and pushing the board down. The timeline's chips get an <code>entering</code> animation too: the first chip fades in, the rest zoom in with a spring:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/MoveTimeline.tsx</span><span class="lang">tsx</span></div><pre><code>&lt;Animated.View
+  key={move}
+  entering={
+    reduceMotion
+      ? undefined
+      : move === 0
+        ? FadeIn
+        : ZoomIn.springify()
+  }
+&gt;</code></pre></div>
+<p>The screen itself has no layout animation any more: with mode and difficulty in the header, nothing above the board appears or disappears, so there is nothing to glide.</p>
+
+<h3>A pop when a value changes</h3>
+<p>The header buttons use a <code>withSequence</code> too: <code>withTiming(0.6)</code> then <code>withSpring(1)</code>, started from an effect keyed on <code>popKey</code>, with a ref that skips the first render (see <a href="#header-buttons">Header icon buttons</a>). The score tiles' bump, below, is the same shape.</p>
+
+<h3>Loops: the pulse and the dots</h3>
+<p>Looping animations need to be stopped. The <em>Play again</em> button pulses with <code>withRepeat(withSequence(…), -1)</code> while the round is over and cancels the loop when it isn't, or when the component unmounts:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/ActionBar.tsx</span><span class="lang">tsx</span></div><pre><code>const pulse = useSharedValue(1);
+
+useEffect(() =&gt; {
+  if (!roundOver || reduceMotion) {
+    cancelAnimation(pulse);
+    pulse.set(1);
+    return;
+  }
+  pulse.set(
+    withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 650 }),
+        withTiming(1, { duration: 650 }),
+      ),
+      -1,
+    ),
+  );
+  return () =&gt; cancelAnimation(pulse);
+}, [roundOver, reduceMotion, pulse]);
+
+const pulseStyle = useAnimatedStyle(() =&gt; ({
+  transform: [{ scale: pulse.get() }],
+}));</code></pre></div>
+<p>The three thinking dots in <code>StatusBanner</code> use the same loop, each started with <code>withDelay(i * 120, …)</code> so they bounce in a wave. Score tiles bump when their count changes (a quick <code>withTiming</code> up to 1.35, then <code>withSpring</code> back to 1, in a <code>withSequence</code>), and fade their border between the palette's border colour and the player's colour with <code>interpolateColor</code>.</p>
+
+<h3>Reduce Motion, threaded down as a prop</h3>
+<p>The screen calls <a href="https://docs.swmansion.com/react-native-reanimated/docs/device/useReducedMotion">useReducedMotion()</a> once and passes the boolean to every component. Each one then picks the end state instead of an animation: shared values start at their final value, effects <code>set</code> the target directly, and layout animations are <code>undefined</code>. Nothing is lost: the marks still appear, the winning line is still drawn and the banner still changes; they just don't move. Passing it as a prop, rather than calling the hook in every component, keeps the components dumb and lets a test render either variant.</p>
+
+<div class="checkpoint"><b>Checkpoint</b> — Turn on Reduce Motion (iOS: Settings → Accessibility → Motion; Android: Remove animations) and play a round. Everything appears in its final state, and nothing is missing.</div>
+
+<h2 id="theming">7 · Theming with a project palette</h2>
+<p>The launcher uses the app-wide theme. Tic-tac-toe has its own warm palette, a full set of colours for light and dark, chosen by a hook:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/palette.ts</span><span class="lang">ts</span></div><pre><code>import { useColorScheme } from "@/src/shared/hooks/use-color-scheme";
+
+/**
+ * Tic-tac-toe's own colours. The project themes itself from this palette and
+ * never touches `Appearance.setColorScheme`, which is process-wide.
+ */</code></pre></div>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/utils/palette.ts</span><span class="lang">ts</span></div><pre><code>export function useTicTacToePalette(): TicTacToePalette {
+  const colorScheme = useColorScheme();
+  return colorScheme === "dark" ? dark : light;
+}</code></pre></div>
+<p><code>useColorScheme</code> is the shared wrapper in <code>src/shared/hooks/</code>, which already narrows React Native's value (which can also be <code>"unspecified"</code>) to <code>"light" | "dark"</code>; the comparison <code>colorScheme === "dark" ? dark : light</code> keeps the palette lookup safe either way. The screen reads the palette once and passes it down, so every colour in every component comes from one object, and a component never decides its own colours. There is no separate win-line colour: <code>Board</code> passes <code>palette.x</code> or <code>palette.o</code>.</p>
+<p>The header is part of the screen too. A single-screen project doesn't own a layout, and Expo Router has no route-level <code>options</code> export, so the screen renders an inline <code>Stack.Screen</code> (listed in <a href="#header-buttons">§2</a>) that themes the header from the same palette (<code>headerStyle</code>, <code>headerTintColor</code>) and drops its bottom shadow (<code>headerShadowVisible: false</code>), so header and page read as one surface. The header icons take their colours from the palette too: <code>palette.text</code> for the mode icon, <code>palette.o</code> and <code>palette.grid</code> for the bars.</p>
+<div class="warn">
+  <strong>Never theme one project with <code>Appearance.setColorScheme</code></strong>
+  <p>It is process-wide: forcing a scheme for one project forces it for the launcher and every other project, and resetting it to <code>"unspecified"</code> leaves a stale scheme behind. A palette (or, for projects that use React Navigation's theme, their own <code>ThemeProvider</code>, like the journal's <code>useJournalScheme</code>) keeps the change local.</p>
 </div>
 
-<h3 id="in-the-launcher">How it sits in the launcher</h3>
-<p>This is the one single-route project. Its route file is <code>src/app/projects/tic-tac-toe/index.tsx</code>, and it has no <code>_layout.tsx</code>, no <code>stores/</code> folder and no providers. Three places know it exists:</p>
-<ul>
-  <li><strong>The registry</strong>, <code>src/shared/config/projects.ts</code>: <code>{ slug: 'tic-tac-toe', title: 'Tic-Tac-Toe', route: '/projects/tic-tac-toe', singleScreen: true }</code>. The launcher list is rendered from this array and has no hardcoded knowledge of the project.</li>
-  <li><strong>The root Stack</strong>, <code>src/app/_layout.tsx</code>: it generates one <code>Stack.Screen</code> per project. Because <code>singleScreen</code> is set, this one is declared as <code>projects/tic-tac-toe/index</code> with the registry <code>title</code> as its header, since there is no inner layout to supply a header.</li>
-  <li><strong>The slice</strong>, <code>src/projects/tic-tac-toe/</code>: only <code>utils/game.ts</code> and <code>__tests__/game.test.ts</code>. Isolation rules apply: nothing in it imports another project, and no other project imports it.</li>
-</ul>
-<p>One launcher-driven change to the tutorial code: the launcher supports dark mode, so the status line uses the shared <code>ThemedText</code> (see <a href="#accessibility">Stage 9</a>) instead of the plain <code>Text</code> shown in earlier stages.</p>
-<p>The store itself stays in the route file as a module-scope <code>useGameStore</code>, so it lives as long as the JS runtime does. Leaving the screen and coming back keeps the game; there is no persistence, so a cold launch starts fresh.</p>
-<div class="note">
-  <strong>Checkpoint 10: run it</strong>
-  <p><code>npm start</code>, open the launcher, tap the Tic-Tac-Toe row. Then run <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npx jest --no-watchman</code> and <code>npx expo export --platform ios --output-dir /tmp/out</code>. The export catches problems <code>tsc</code> cannot, such as a bad import in a route.</p>
-</div>
-
-<h3 id="failure-modes">Failure modes and common mistakes</h3>
-<div class="wu-scroll"><table>
-<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
-<tbody>
-<tr><td>Red screen: <code>View config getter callback for component "button"</code></td><td>Pasted DOM tags from the web tutorial</td><td>Use <code>Pressable</code>, <code>View</code>, <code>Text</code> (see the <a href="#appendix-web">appendix</a>)</td></tr>
-<tr><td><em>Text strings must be rendered within a &lt;Text&gt; component</em></td><td>A bare <code>{value}</code> inside a <code>View</code> or <code>Pressable</code></td><td>Wrap in <code>&lt;Text&gt;</code></td></tr>
-<tr><td>Board shows two squares per row</td><td>A border on the 120px container leaves 118px of content</td><td>Borders on squares only; width stays <code>SQUARE_SIZE * 3</code></td></tr>
-<tr><td>Nine boards appear in the move list</td><td><code>history.concat(nextSquares)</code> instead of <code>[nextSquares]</code></td><td>Wrap in an array, or spread: <code>[...history.slice(0, currentMove + 1), nextSquares]</code>. <code>tsc</code> will not catch it.</td></tr>
-<tr><td>Moves made after a rewind are mixed with the old future</td><td>Appending to the full <code>history</code> instead of <code>slice(0, currentMove + 1)</code></td><td>Truncate before appending, then set <code>currentMove</code> to the last index</td></tr>
-<tr><td>A winning move shows <code>Draw</code></td><td>Draw check without the <code>!winner</code> guard, or checks in the wrong order</td><td>Keep the order in <code>calculateStatus</code>; the unit test pins it</td></tr>
-<tr><td>Wrong player after jumping</td><td>Storing <code>xIsNext</code> separately and reading the stale <code>currentMove</code></td><td>Derive: <code>currentMove % 2 === 0</code></td></tr>
-<tr><td>Squares keep changing after mutation (no re-render, or a broken history)</td><td>Writing into <code>squares</code> directly rather than a <code>slice()</code> copy</td><td>Copy, edit the copy, pass it to <code>onPlay</code></td></tr>
-<tr><td>Component re-renders on every store change</td><td>Selecting the whole store: <code>useGameStore()</code></td><td>Select one field per hook, as <code>Game</code> does</td></tr>
-<tr><td><code>setXIsNext(false)</code> stops compiling after adding <code>as const</code></td><td>The literal type <code>true</code> instead of <code>boolean</code></td><td>Let <code>combine</code> infer the widened type</td></tr>
-<tr><td>A test file under <code>src/app/</code> shows up as a route</td><td>Every file in <code>src/app/</code> is a route</td><td>Keep tests in <code>src/projects/tic-tac-toe/__tests__/</code></td></tr>
-</tbody></table></div>
-
-<h3 id="stretch-goals">Stretch goals</h3>
-<ul>
-  <li><strong>Reset button.</strong> Add a <code>reset</code> action to the store that returns to the initial state. Decide whether it belongs in the store or whether <code>setHistory</code> and <code>setCurrentMove</code> are enough.</li>
-  <li><strong>Highlight the winning line.</strong> Change <code>calculateWinner</code> to return the line as well as the player, update its tests first, then pass a <code>highlighted</code> prop down to <code>Square</code>.</li>
-  <li><strong>Sort toggle for the move list.</strong> Keep the toggle in local <code>useState</code> in <code>Game</code>: it is view state, not game state.</li>
-  <li><strong>Persist the game.</strong> Wrap the store in the <code>persist</code> middleware with AsyncStorage, as the other projects' stores do. Think about which fields to include with <code>partialize</code>, and check how <code>combine</code> composes with <code>persist</code> in the Zustand docs.</li>
-  <li><strong>Selector hygiene.</strong> Replace the four selector hooks in <code>Game</code> with one selector that returns an object, using <code>useShallow</code> from <code>zustand/react/shallow</code>, and explain what goes wrong without it.</li>
-  <li><strong>Component tests.</strong> Add a render test with <code>@testing-library/react-native</code> that plays a winning game and asserts the status text.</li>
-</ul>
-<h3 id="wrapping-up">Wrapping up</h3>
-<p>Congratulations! You've created a fully typed tic-tac-toe game that:</p>
-<ul>
-  <li>Lets you play tic-tac-toe,</li>
-  <li>Indicates when a player has won the game or when it's drawn,</li>
-  <li>Stores a game's history as the game progresses,</li>
-  <li>Allows players to review the history and see previous versions of the board,</li>
-  <li>Runs on iOS and Android with no DOM anywhere in sight.</li>
-</ul>
-<h3 id="the-conversion-in-one-table">The conversion, in one table</h3>
-<p>First, the JavaScript → TypeScript half of the port:</p>
-<div class="wu-scroll"><table>
-<thead><tr><th>JavaScript</th><th>TypeScript</th><th>Why</th></tr></thead>
-<tbody>
-<tr><td><code>Array(9).fill(null)</code></td><td><code>Array&lt;SquareValue&gt;(9).fill(null)</code></td><td><code>any[]</code> vs. a checked board — the single most important change on this page</td></tr>
-<tr><td><code>'X'</code> / <code>'O'</code> as strings</td><td><code>type Player = 'X' | 'O'</code></td><td>Typos become compile errors</td></tr>
-<tr><td><code>function Square({ value, onSquareClick })</code></td><td><code>function Square({ … }: SquareProps)</code></td><td>Destructured props are never inferred</td></tr>
-<tr><td><code>function handleClick(i)</code></td><td><code>function handleClick(i: number)</code></td><td>Function-declaration parameters are never inferred</td></tr>
-<tr><td><code>setSquares: (nextSquares) =&gt;</code></td><td><code>setSquares: (nextSquares: Updater&lt;Squares&gt;) =&gt;</code></td><td><code>combine</code> infers state, not action parameters</td></tr>
-<tr><td><code>create(combine(…))</code></td><td><code>create(combine(…))</code> — unchanged</td><td>Don't use curried <code>create&lt;T&gt;()()</code> with <code>combine</code></td></tr>
-<tr><td><code>calculateWinner(squares)</code></td><td><code>calculateWinner(squares: Squares): SquareValue</code></td><td>Return type documents the "no winner yet" case</td></tr>
-<tr><td><code>App.js</code></td><td><code>App.tsx</code></td><td>JSX needs the <code>x</code></td></tr>
-</tbody></table></div>
-<p>And the DOM → React Native half:</p>
-<div class="wu-scroll"><table>
-<thead><tr><th>Web</th><th>React Native</th><th>Why</th></tr></thead>
-<tbody>
-<tr><td><code>&lt;button onClick&gt;</code></td><td><code>&lt;Pressable onPress&gt;</code> wrapping a <code>&lt;Text&gt;</code></td><td>No DOM: <code>button</code> is not a registered native component</td></tr>
-<tr><td><code>&lt;div&gt;</code></td><td><code>&lt;View&gt;</code></td><td>The generic box primitive</td></tr>
-<tr><td><code>{value}</code> as a direct child</td><td><code>&lt;Text&gt;{value}&lt;/Text&gt;</code></td><td>Strings must have a <code>Text</code> ancestor</td></tr>
-<tr><td><code>&lt;ol&gt;</code> / <code>&lt;li&gt;</code></td><td><code>&lt;View&gt;</code> + one <code>&lt;Pressable&gt;</code> per move</td><td>No list semantics or markers; the index is already in the label</td></tr>
-<tr><td>inline <code>style={{ … }}</code></td><td><code>StyleSheet.create</code> + <code>style={styles.x}</code></td><td>Stable references, and typed against <code>ViewStyle</code>/<code>TextStyle</code></td></tr>
-<tr><td><code>display: 'grid'</code>, <code>gridTemplateColumns</code></td><td><code>flexDirection: 'row'</code> + <code>flexWrap: 'wrap'</code> + fixed width</td><td>Layout is flexbox only — no CSS Grid</td></tr>
-<tr><td><code>border: '1px solid #999'</code></td><td><code>borderWidth: 1, borderColor: '#999'</code></td><td>No shorthand strings; numbers are density-independent pixels</td></tr>
-<tr><td><code>'1rem'</code>, <code>'0.5rem'</code>, <code>'calc(3 * 2.5rem)'</code></td><td><code>16</code>, <code>8</code>, <code>SQUARE_SIZE * 3</code></td><td>No CSS units and no <code>calc()</code> — do the arithmetic in JS</td></tr>
-<tr><td><code>outline: 0</code>, <code>borderRadius: 0</code></td><td>deleted</td><td>Neither has a React Native equivalent or a default worth resetting</td></tr>
-<tr><td><code>fontFamily: 'monospace'</code></td><td><code>Platform.select({ ios: 'Menlo', default: 'monospace' })</code></td><td>Generic font families don't resolve on iOS</td></tr>
-<tr><td>web fragment <code>&lt;&gt;…&lt;/&gt;</code></td><td><code>&lt;View&gt;</code></td><td>Fragments can't hold styles, and the parent's <code>flexDirection</code> would decide the layout</td></tr>
-</tbody></table></div>
-<p>Everything else — the store shape, the four types, the game logic — is byte-for-byte the original. That is the point: the store and the types are platform-agnostic, so a React Native port touches only the view layer.</p>
-
-<h2 class="appendix" id="appendix-web">Appendix: if you came from the web tutorial</h2>
-<p>The upstream Zustand tutorial targets the browser. If you paste its <code>Square</code> straight into an Expo app, the very first render throws:</p>
-<div class="codeblock"><div class="codehead"><span class="fname">Render Error</span><span class="lang">text</span></div><pre><code>View config getter callback for component `button` must be a function
-(received `undefined`). Make sure to start component names with a capital letter.
-
-  at invariant (node_modules/invariant/browser.js:38)
-  at get (react-native/Libraries/Renderer/shims/ReactNativeViewConfigRegistry.js:103)
-  at completeWork (react-native/Libraries/Renderer/implementations/ReactFabric-dev.js)</code></pre></div>
-<h3 id="appendix-why">Why it happens</h3>
-<p>In React, a lowercase JSX tag means "host component" — something the renderer provides rather than something you wrote. On the web that is a DOM element. Under React Native's Fabric renderer, the name is looked up in <code>ReactNativeViewConfigRegistry</code>, which only knows the components the native side registered: <code>RCTView</code>, <code>RCTText</code>, <code>RCTImage</code> and friends, exposed to you as <code>View</code>, <code>Text</code>, <code>Image</code>. Nothing registers a view config under the name <code>button</code>, so the getter returns <code>undefined</code> and the invariant fires while React is completing that fiber.</p>
-<p>Three consequences worth internalising:</p>
-<ul>
-  <li>The trailing advice about capital letters is React's generic guess. Renaming <code>&lt;button&gt;</code> to <code>&lt;Button&gt;</code> only changes the error — you need a real component, not a capital letter.</li>
-  <li><code>&lt;button&gt;</code> is just the first tag the renderer reaches. <code>&lt;div&gt;</code>, <code>&lt;ol&gt;</code> and <code>&lt;li&gt;</code> would each throw the same invariant in turn.</li>
-  <li>It is a runtime error, not a compile error: <code>@types/react</code> ships the JSX definitions for every DOM element, so <code>tsc</code> is perfectly happy with <code>&lt;button&gt;</code> in a React Native file. Nothing in the type system tells you the tag can't exist on device.</li>
-</ul>
-<h3 id="appendix-original">The original DOM snippets</h3>
-<p>For reference, here are the two components as the upstream tutorial writes them — still ported to TypeScript, but with the DOM elements and CSS intact. Compare them against the React Native versions in <a href="#building-the-board">Building the board</a>.</p>
-<div class="codeblock"><div class="codehead"><span class="fname">Square.tsx — web</span><span class="lang">tsx</span></div><pre><code>type SquareProps = {
-  value: string
-  onSquareClick?: () =&gt; void
+<h2 id="haptics">8 · Haptics</h2>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/hooks/useGameHaptics.ts</span><span class="lang">ts</span></div><pre><code>/** Haptics may be unavailable (simulator, low power): never let it throw. */
+function fire(promise: Promise&lt;void&gt;) {
+  promise.catch(() =&gt; {});
 }
 
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    &lt;button
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 0,
-        backgroundColor: '#fff',
-        border: '1px solid #999',
-        outline: 0,
-        borderRadius: 0,
-        fontSize: '1rem',
-        fontWeight: 'bold',
-      }}
-      onClick={onSquareClick}
-    &gt;
-      {value}
-    &lt;/button&gt;
-  )
+/**
+ * Buzzes when the move count changes. One step forward is a move (a light tap,
+ * success on a win, warning on a draw); anything else (undo, a timeline jump,
+ * a new round, rehydration) is a selection tick. The first render is skipped
+ * because the ref starts at the current count.
+ */
+export function useGameHaptics(
+  enabled: boolean,
+  moveCount: number,
+  view: GameView,
+): void {
+  const previousRef = useRef(moveCount);
+  const won = view.win !== null;
+  const { isDraw } = view;
+
+  useEffect(() =&gt; {
+    const previous = previousRef.current;
+    if (previous === moveCount) return;
+    previousRef.current = moveCount;
+    if (!enabled || Platform.OS === "web") return;
+
+    if (moveCount - previous !== 1) {
+      fire(Haptics.selectionAsync());
+    } else if (won) {
+      fire(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+    } else if (isDraw) {
+      fire(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
+    } else {
+      fire(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+    }
+  }, [enabled, moveCount, won, isDraw]);
 }</code></pre></div>
-<div class="codeblock"><div class="codehead"><span class="fname">Board.tsx — web</span><span class="lang">tsx</span></div><pre><code>export default function Board() {
+<ul>
+  <li><strong>One signal, the move count.</strong> A step of exactly +1 is a move, and the result of that move picks the feedback: <code>Success</code> on a win, <code>Warning</code> on a draw, a light impact otherwise. Any other change (undo, a timeline jump, a new round, a restore) gets a selection tick. The hook doesn't need to know which button was pressed.</li>
+  <li><strong>The ref starts at the current count</strong>, so the first render doesn't buzz. The ref is updated even while haptics are off, so turning them back on (or finishing hydration) doesn't replay a stale difference.</li>
+  <li><strong>Web is a no-op.</strong> <a href="https://docs.expo.dev/versions/latest/sdk/haptics/">expo-haptics</a> has nothing to drive in a browser, so the hook returns early, and the screen hides the toggle there (<code>onToggleHaptics</code> is <code>undefined</code> on web).</li>
+  <li><strong>Rejections are swallowed.</strong> The haptics calls return promises, and a device can refuse (a simulator, Low Power Mode on iOS). Feedback is decoration, so <code>fire</code> catches the rejection instead of surfacing an unhandled one.</li>
+</ul>
+<p>The setting itself is part of the persisted store (<code>hapticsEnabled</code>), toggled by the switch in <code>ActionBar</code>.</p>
+
+<h2 id="a11y">9 · Accessibility</h2>
+<p>A game board is a grid of identical buttons, which is exactly what a screen reader handles worst unless you label it. Every cell says where it is and what is in it:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/components/Board.tsx</span><span class="lang">tsx</span></div><pre><code>{squares.map((value, index) =&gt; {
+  const winning = win !== null &amp;&amp; win.line.includes(index);
   return (
-    &lt;div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gridTemplateRows: 'repeat(3, 1fr)',
-        width: 'calc(3 * 2.5rem)',
-        height: 'calc(3 * 2.5rem)',
-        border: '1px solid #999',
-      }}
-    &gt;
-      &lt;Square value="1" /&gt;
-      &lt;Square value="2" /&gt;
-      &lt;Square value="3" /&gt;
-      &lt;Square value="4" /&gt;
-      &lt;Square value="5" /&gt;
-      &lt;Square value="6" /&gt;
-      &lt;Square value="7" /&gt;
-      &lt;Square value="8" /&gt;
-      &lt;Square value="9" /&gt;
-    &lt;/div&gt;
-  )
-}</code></pre></div>
-<div class="note">
-  <strong>What about react-native-web?</strong>
-  <p>It solves the opposite problem — running React Native components in a browser — not DOM elements on a device. Expo's web target does render <code>&lt;div&gt;</code> and <code>&lt;button&gt;</code> because it is a real DOM there, which is exactly why <code>npm run web</code> can appear to work while iOS and Android crash on the same file. Write the React Native version and it runs on all three.</p>
+    &lt;Square
+      key={index}
+      value={value}
+      label={squareLabel(index, value)}
+      size={cell}
+      disabled={disabled || value !== null}
+      winning={winning}
+      dimmed={win !== null &amp;&amp; !winning &amp;&amp; value !== null}
+      onPress={() =&gt; onPress(index)}
+      palette={palette}
+      reduceMotion={reduceMotion}
+    /&gt;
+  );
+})}</code></pre></div>
+<p>With VoiceOver on, swiping across the board reads "Row 1, column 1, X, button", "Row 1, column 2, empty, button", and so on. Filled squares and the whole board on the computer's turn are reported as dimmed through <code>accessibilityState={{ disabled }}</code> on the <code>Square</code>'s <code>Pressable</code>. The win line overlay is hidden from accessibility (<code>accessibilityElementsHidden</code>, <code>importantForAccessibility="no-hide-descendants"</code>): the banner already says who won.</p>
+
+<div class="wu-scroll"><table>
+<thead><tr><th>Element</th><th>Role and state</th><th>What it announces</th></tr></thead>
+<tbody>
+<tr><td>Square</td><td><code>button</code>, <code>disabled</code></td><td><code>squareLabel</code>: "Row 2, column 3, O"</td></tr>
+<tr><td>Status banner</td><td><code>text</code>, <code>accessibilityLiveRegion="polite"</code></td><td>Each new status ("Computer wins") on Android as it appears; the label is the text itself</td></tr>
+<tr><td>Mode / difficulty buttons</td><td><code>button</code> with a label that names the current value, and a hint</td><td>"Mode: vs CPU, button. Switches between two players and the computer, and starts a new round"</td></tr>
+<tr><td>Score tile</td><td><code>accessible</code> group with one label</td><td>"You: 3" instead of two separate texts</td></tr>
+<tr><td>Haptics toggle</td><td><code>switch</code>, <code>checked</code></td><td>"Haptics, switch, on"</td></tr>
+<tr><td>Timeline chip</td><td><code>button</code>, <code>selected</code>, <code>disabled</code></td><td>"Go to move 3 · X B2"; the current move is selected, CPU-turn moves are disabled</td></tr>
+<tr><td>Undo, Reset scores</td><td><code>button</code>, <code>disabled</code></td><td>Disabled when there is nothing to undo or reset</td></tr>
+</tbody>
+</table></div>
+
+<p>An icon-only button has no visible text, so its label carries everything: <code>`Mode: ${MODE_LABELS[mode]}`</code> says what it is set to now, and the <code>accessibilityHint</code> says what a tap does, including that it starts a new round. The 36-point button gets <code>hitSlop={6}</code> so the touch target is 48 points, above the 44-point minimum Apple recommends.</p>
+
+<p>Two details are easy to miss. The banner has a fixed height, so a status change never moves the board under a finger that is about to tap. And <em>Reset scores</em> asks for confirmation with an <code>Alert</code> on native, because it is the one destructive action on the screen; the message names the tally it clears ("This clears the vs CPU wins and draws."), since the other mode's survives. Disabled controls (an empty scoreboard's reset, locked or future timeline chips) are dimmed to 0.6 and 0.65 opacity, faint enough to read as unavailable but still legible. See the <a href="https://reactnative.dev/docs/accessibility">React Native accessibility guide</a> for the full list of roles and states.</p>
+
+<div class="checkpoint"><b>Checkpoint</b> — Play a full round against the computer with VoiceOver or TalkBack and your eyes closed. You can find empty squares, hear the computer's turn end and hear who won.</div>
+
+<h2 id="testing">10 · Testing</h2>
+<p>Three test files, all plain Jest under <code>jest-expo</code>, with no component rendering. Because the rules and the opponent are pure and the store is a plain module, everything that decides the outcome of a game is tested without a device.</p>
+
+<div class="wu-scroll"><table>
+<thead><tr><th>File</th><th>What it proves</th></tr></thead>
+<tbody>
+<tr><td><code>game.test.ts</code></td><td>Every kind of line is found with its cells; a full board without a line is a draw and a full board with one is a win; <code>deriveGame</code> reads the board at <code>currentMove</code>, not the latest; banner text in both modes; square labels; <code>moveSquare</code>; <code>canJumpTo</code> allows only even moves against the computer; <code>nextMode</code> toggles, <code>nextDifficulty</code> cycles easy → medium → hard → easy, and <code>difficultyLevel</code> maps to 1–3 bars.</td></tr>
+<tr><td><code>ai.test.ts</code></td><td>Every level returns -1 on a finished board; Medium and Hard take an immediate win and block one; Easy only ever picks empty squares; and Hard never loses, exhaustively.</td></tr>
+<tr><td><code>gameStore.test.ts</code></td><td>Moves alternate and filled squares are ignored; playing after a jump truncates the future; a win or a draw is counted exactly once; the round locks after a result; undo in both modes; <code>jumpTo</code> bounds and its CPU rule; <code>setMode</code> and <code>setDifficulty</code> start a new round and keep the scores; results count into the active mode only and <code>resetScores</code> clears only that mode; <code>migrateGame</code> moves a version-1 tally to the mode that was active and leaves a current save alone.</td></tr>
+</tbody>
+</table></div>
+
+<h3>The exhaustive "never loses" test</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/__tests__/ai.test.ts</span><span class="lang">ts</span></div><pre><code>/**
+ * Plays every possible opponent line against hard and returns how many
+ * finished games the opponent won. `hard` uses the seeded tie-break.
+ */
+function opponentWins(
+  squares: Squares,
+  turn: Player,
+  cpu: Player,
+  random: () =&gt; number,
+): number {
+  const win = findWinningLine(squares);
+  if (win) return win.winner === cpu ? 0 : 1;
+  const empty = emptySquares(squares);
+  if (empty.length === 0) return 0;
+
+  if (turn === cpu) {
+    const move = pickMove(squares, cpu, "hard", random);
+    expect(squares[move]).toBeNull();
+    const nextSquares = squares.slice();
+    nextSquares[move] = cpu;
+    return opponentWins(nextSquares, opponent(turn), cpu, random);
+  }
+
+  let wins = 0;
+  for (const index of empty) {
+    const nextSquares = squares.slice();
+    nextSquares[index] = turn;
+    wins += opponentWins(nextSquares, opponent(turn), cpu, random);
+  }
+  return wins;
+}
+
+it.each([
+  ["as O, opponent first", "O" as Player],
+  ["as X, moving first", "X" as Player],
+])("hard never loses %s", (_label, cpu) =&gt; {
+  for (const random of [() =&gt; 0, () =&gt; 0.5, () =&gt; 0.99]) {
+    expect(opponentWins(emptyBoard(), "X", cpu, random)).toBe(0);
+  }
+});</code></pre></div>
+<p>When it is the opponent's turn the helper branches into <em>every</em> empty square; when it is the computer's turn it asks <code>pickMove</code> for its one move. So it plays every game a human could possibly play against Hard, as O (the human opens) and as X (the computer opens), and counts the ones the human won. The answer must be zero. It runs with three fixed random sources, so the tie-breaks take the first, middle and last of the equally good moves. That is a proof, not a sample: there is no line of play the test didn't try.</p>
+
+<h3>Testing the persisted store</h3>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/__tests__/gameStore.test.ts</span><span class="lang">ts</span></div><pre><code>jest.mock("@react-native-async-storage/async-storage", () =&gt;
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+
+const initialData = {
+  history: [emptyBoard()],
+  currentMove: 0,
+  mode: "pvp" as const,
+  difficulty: "medium" as const,
+  scores: { pvp: { X: 0, O: 0, draw: 0 }, cpu: { X: 0, O: 0, draw: 0 } },
+  hapticsEnabled: true,
+};
+
+const state = () =&gt; useGameStore.getState();
+const view = () =&gt; deriveGame(state().history, state().currentMove);
+const playAll = (...indexes: number[]) =&gt;
+  indexes.forEach((i) =&gt; state().play(i));
+
+beforeEach(() =&gt; {
+  useGameStore.setState(initialData);
+});</code></pre></div>
+<p>AsyncStorage is replaced with the mock the package ships, so <code>persist</code> has somewhere to write. Each test resets the data with <code>setState(initialData)</code>; the actions are untouched because <code>setState</code> merges. The tests then drive the real actions and read the result back through <code>deriveGame</code>, exactly as the screen does. The migration needs no storage at all, because it is a pure function:</p>
+<div class="codeblock"><div class="codehead"><span class="fname">src/projects/tic-tac-toe/__tests__/gameStore.test.ts</span><span class="lang">ts</span></div><pre><code>describe("migrateGame", () =&gt; {
+  it("moves a version 1 shared tally to the mode that was active", () =&gt; {
+    const v1 = { mode: "pvp", scores: { X: 3, O: 1, draw: 2 } };
+    expect(migrateGame(v1, 1)).toMatchObject({
+      scores: {
+        pvp: { X: 3, O: 1, draw: 2 },
+        cpu: { X: 0, O: 0, draw: 0 },
+      },
+    });
+  });
+
+  it("leaves a current save alone", () =&gt; {
+    const v2 = { scores: initialData.scores };
+    expect(migrateGame(v2, 2)).toBe(v2);
+  });
+});</code></pre></div>
+<p>A version-1 save is just an object with a flat <code>scores</code>; the second case checks that a current save comes back as the very same object (<code>toBe</code>), so a migration never rewrites data it doesn't need to.</p>
+
+<div class="checkpoint"><b>Checkpoint</b> — <code>npx jest --no-watchman src/projects/tic-tac-toe</code> passes. Break the depth term in <code>score</code> (return a flat 10 / -10) and re-run: the exhaustive test still passes, because the search is still optimal, but Hard may now take longer to finish a won game. Put it back.</div>
+
+<h2 id="pitfalls">11 · Pitfalls this slice avoids</h2>
+<div class="wu-scroll"><table>
+<thead><tr><th>Pitfall</th><th>What goes wrong</th><th>What this code does</th></tr></thead>
+<tbody>
+<tr><td>Mutating a hook's return value</td><td>The React Compiler flags <code>shared.value = x</code> on an object a hook returned.</td><td>Shared values are driven with <code>.set()</code> and read with <code>.get()</code>.</td></tr>
+<tr><td><code>setState</code> in an effect body</td><td>An extra render, a frame where state disagrees with props, and a compiler lint error.</td><td><code>thinking</code>, <code>view</code> and the board's <code>disabled</code> are derived during render; hydration comes from <code>useSyncExternalStore</code>.</td></tr>
+<tr><td>A timer that outlives its board</td><td>An undo or a new round during the delay, then the CPU plays a stale move.</td><td><code>useCpuTurn</code> clears the timeout on every dependency change and on unmount; <code>play</code> re-checks the move.</td></tr>
+<tr><td>Endless loops</td><td><code>withRepeat(…, -1)</code> keeps running after the reason for it is gone.</td><td><code>cancelAnimation</code> when the condition ends and in the effect cleanup.</td></tr>
+<tr><td>A horizontal <code>ScrollView</code> in a column</td><td>It grows to fill the column and pushes everything apart.</td><td>The timeline sets <code>flexGrow: 0</code> on its <code>style</code>.</td></tr>
+<tr><td>Module constants in a worklet's default parameter</td><td>The worklets plugin doesn't capture them; undefined on the UI runtime, and a Release build aborts.</td><td>No worklet here has a default parameter; values are computed in the component body and closed over.</td></tr>
+<tr><td><code>StyleSheet.absoluteFillObject</code></td><td>Gone in React Native 0.86.</td><td><code>StyleSheet.absoluteFill</code> for the square highlight and the win line.</td></tr>
+<tr><td><code>Appearance.setColorScheme</code></td><td>Process-wide, leaves a stale scheme behind.</td><td>A project palette (<a href="#theming">§7</a>).</td></tr>
+<tr><td>Acting before hydration</td><td>A tap on the default board is overwritten when the saved game loads; restoring buzzes.</td><td>Board disabled and haptics muted until <code>useGameHydrated()</code> is true.</td></tr>
+<tr><td>Changing a persisted shape in place</td><td>Old saves hydrate into the new code with the old shape; <code>scores[mode]</code> is <code>undefined</code>.</td><td><code>version: 2</code> plus a tested <code>migrateGame</code>.</td></tr>
+<tr><td>Sizing from a guess</td><td>A width-only size, or the window height minus a fixed guess, ignores what the header, insets and other rows really take; the content overflows and the timeline lands under the home indicator at rest.</td><td>The board area is measured with <code>onLayout</code>, the board is an absolute overlay, and the content adds <code>insets.bottom + 16</code>.</td></tr>
+<tr><td>Counting a win in an effect</td><td>Double counts, or a win replayed after an undo is counted again.</td><td>Scored in the same <code>set</code> as the winning move; finished rounds are locked.</td></tr>
+</tbody>
+</table></div>
+
+<h2 id="next">12 · Exercises and where to go next</h2>
+<ol>
+  <li><strong>Let the human play O.</strong> Add a "you play" setting so the computer can open. <code>HUMAN</code> and <code>CPU</code> are constants today; find every place that assumes X moves first (<code>canJumpTo</code>, <code>undo</code>, <code>statusText</code>, <code>useCpuTurn</code>), then add store tests for undo with the computer as X.</li>
+  <li><strong>Another migration.</strong> Add a <code>streak</code> to <code>Scores</code>, bump <code>version</code> to 3 and add an <code>if (version &lt; 3)</code> step to <code>migrateGame</code> that fills it in for both tallies. Test that a version-1 save runs through both steps, then seed the AsyncStorage mock with a version-2 value and check the hydrated store.</li>
+  <li><strong>Make Medium smarter, but not perfect.</strong> Teach it to take the centre and to spot forks, and check with a variant of the exhaustive test that Hard still beats it at least once.</li>
+  <li><strong>Memoise minimax.</strong> Cache <code>score</code> by board and turn. Measure the first move before and after with <code>performance.now()</code> in a test. Is it worth the code for a 3×3 board? What about 4×4?</li>
+  <li><strong>Render tests.</strong> Add <code>@testing-library/react-native</code> tests for <code>Board</code>: the labels, that pressing a square calls <code>onPress</code> with its index, and that a disabled board doesn't.</li>
+  <li><strong>A gesture.</strong> Swipe left on the board to undo, with <a href="https://docs.swmansion.com/react-native-gesture-handler/">Gesture Handler</a>, while keeping the Undo button for screen-reader users.</li>
+</ol>
+
+<div class="tip">
+  <strong>Where to go next</strong>
+  <p>If you started the path here, the same ideas scale up in the bigger projects: rules in pure modules with tests (the store's checkout machine in <a href="03-commerce-platform.html">Project 03</a>), persisted Zustand stores (the podcast queue in <a href="05-podcast-player.html">Project 05</a>), and Reanimated on the UI thread (the mini-player and the photo editor in <a href="02-camera-social.html">Project 02</a>). If you finished the path here, compare this slice with your first project and see how much of it you would now move out of the screens.</p>
 </div>
 
 <p class="source">
-Source: <a href="https://zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe">zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe</a> ·
-Typing guidance cross-checked against the Zustand <a href="https://zustand.docs.pmnd.rs/learn/guides/advanced-typescript">advanced TypeScript guide</a> ·
-Prose belongs to the Zustand authors (MIT); the TypeScript port, the React Native port and the notes were written for this repo.
+Further reading:
+<a href="https://zustand.docs.pmnd.rs/reference/middlewares/combine.html">Zustand combine</a> ·
+<a href="https://zustand.docs.pmnd.rs/reference/middlewares/persist.html">Zustand persist</a> ·
+<a href="https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data.html">Persisting store data</a> ·
+<a href="https://docs.swmansion.com/react-native-reanimated/">Reanimated</a> ·
+<a href="https://github.com/software-mansion/react-native-svg">react-native-svg</a> ·
+<a href="https://docs.expo.dev/versions/latest/sdk/haptics/">expo-haptics</a> ·
+<a href="https://reactnative.dev/docs/accessibility">React Native accessibility</a> ·
+<a href="https://react.dev/reference/react/useSyncExternalStore">useSyncExternalStore</a>.
 <br>
-Every snippet on this page was extracted and compiled with <code>tsc --strict</code> (TypeScript 6, Zustand 5,
-React Native, <code>@types/react</code> 19) — the three complete programs on their own, and each excerpt stitched
-into its stage context. Zero errors, zero <code>any</code>, no <code>@ts-ignore</code>. The only deliberate exceptions are the
-mid-refactor steps called out in the notes above.
+The original version of this project followed the Zustand <a href="https://zustand.docs.pmnd.rs/learn/guides/tutorial-tic-tac-toe">tic-tac-toe tutorial</a>; the history-and-<code>currentMove</code> model of time travel comes from there.
 </p>
 
 <div class="nav-links">
@@ -1780,7 +1408,7 @@ mid-refactor steps called out in the notes above.
 
 <footer class="lp-foot">
   <div class="lp-foot-in">
-    <span>Project 06 · a Zustand warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code> and <code>src/projects/tic-tac-toe/</code></span>
+    <span>Project 06 · a Zustand and Reanimated warm-up, independent of 01–05 · in the app at <code>src/app/projects/tic-tac-toe/</code> and <code>src/projects/tic-tac-toe/</code></span>
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </div>
 </footer>

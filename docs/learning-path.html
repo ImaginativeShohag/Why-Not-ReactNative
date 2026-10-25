@@ -38,7 +38,7 @@
           <a href="04-fitness-tracker.html"><span class="n">04</span>Background fitness<small>Location, native module</small></a>
           <a href="05-podcast-player.html"><span class="n">05</span>Podcast player<small>Audio, downloads, EAS</small></a>
           <a href="05-release.html"><span class="n">05</span>Release runbook<small>Build, update, roll back</small></a>
-          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + TypeScript</small></a>
+          <a href="06-tic-tac-toe.html"><span class="n">06</span>Tic-tac-toe<small>Zustand + Reanimated</small></a>
         </div>
       </details>
       <a href="training/index.html" title="Training quizzes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Training</span></a>
@@ -206,10 +206,10 @@
   <li class="lp-node side">
     <span class="lp-dot">06</span>
     <article class="lp-card">
-      <div class="lp-card-head"><h3><a href="06-tic-tac-toe.html">Tic-tac-toe with Zustand</a></h3><span class="lp-time">~half a day · any time</span></div>
-      <p>The official Zustand tutorial ported twice: every snippet typed, every DOM element replaced with a React Native primitive. Covers the <code>combine</code> middleware and derived versus stored state.</p>
-      <div class="meta-row"><span class="chip">Warm-up</span><span class="chip">Zustand + TypeScript</span></div>
-      <div class="lp-done"><b>Done when</b>you can rewind to any move and play on from there, and the game helpers pass their Jest tests.</div>
+      <div class="lp-card-head"><h3><a href="06-tic-tac-toe.html">Tic-tac-toe with Zustand &amp; Reanimated</a></h3><span class="lp-time">~half a day · any time</span></div>
+      <p>A small game built like a production app: pure rules, a persisted <code>combine</code> store that enforces them, an unbeatable minimax opponent, and dumb components animated with Reanimated 4 and SVG strokes, plus haptics and accessibility.</p>
+      <div class="meta-row"><span class="chip">Warm-up</span><span class="chip">Zustand + persist</span><span class="chip">Reanimated 4</span></div>
+      <div class="lp-done"><b>Done when</b>Hard mode never loses, a round survives an app restart, the marks and win line draw on (and stay still with Reduce Motion), and the game, AI and store tests pass.</div>
       <div class="lp-card-links">
         <a href="06-tic-tac-toe.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>Write-up</a>
         <a href="training/index.html#/quiz/tic-tac-toe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Quiz</a>
@@ -332,7 +332,7 @@ plugins/                    hand-written config plugins — Project 04
 <tr><td>Store (03)</td><td><code>src/app/projects/store/</code></td><td><code>src/projects/store/</code></td><td><a href="03-commerce-platform.html">03</a></td></tr>
 <tr><td>Fitness Tracker (04)</td><td><code>src/app/projects/fitness-tracker/</code></td><td><code>src/projects/fitness-tracker/</code> + <code>modules/</code>, <code>plugins/</code></td><td><a href="04-fitness-tracker.html">04</a></td></tr>
 <tr><td>Podcast Player (05)</td><td><code>src/app/projects/podcast-player/</code></td><td><code>src/projects/podcast-player/</code></td><td><a href="05-podcast-player.html">05</a> · <a href="05-release.html">runbook</a></td></tr>
-<tr><td>Tic-Tac-Toe (06)</td><td><code>src/app/projects/tic-tac-toe/</code></td><td>pure helpers in <code>utils/game.ts</code>; the rest is in the route file</td><td><a href="06-tic-tac-toe.html">06</a></td></tr>
+<tr><td>Tic-Tac-Toe (06)</td><td><code>src/app/projects/tic-tac-toe/</code></td><td><code>src/projects/tic-tac-toe/</code></td><td><a href="06-tic-tac-toe.html">06</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -374,7 +374,7 @@ plugins/                    hand-written config plugins — Project 04
 <tr><td>6–9</td><td><a href="03-commerce-platform.html">03 Commerce</a></td><td>A push notification opens the right order screen from a cold start, with a refreshed token.</td></tr>
 <tr><td>10–15</td><td><a href="04-fitness-tracker.html">04 Fitness</a></td><td>Phone in pocket, screen off, 30-minute walk: an accurate route and a Live Activity that ticked the whole way.</td></tr>
 <tr><td>16–19</td><td><a href="05-podcast-player.html">05 Podcast</a></td><td>A JS-only fix ships through EAS Update, rolls out to 10%, then rolls back.</td></tr>
-<tr><td>Any time</td><td><a href="06-tic-tac-toe.html">06 Tic-tac-toe</a></td><td>Time travel works and the game helpers pass their tests.</td></tr>
+<tr><td>Any time</td><td><a href="06-tic-tac-toe.html">06 Tic-tac-toe</a></td><td>Hard mode never loses, the saved round survives a restart, and the tests pass.</td></tr>
 </tbody>
 </table>
 </div>
