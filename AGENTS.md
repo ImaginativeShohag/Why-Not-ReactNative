@@ -154,6 +154,10 @@ A project layout only loads once the user opens that project. Anything that must
   parked while JS was dead, on launch and whenever the app becomes active. The replay only calls
   `pause/resume/stopWorkout`, so it's safe with no UI mounted.
 - `ShareIntentProvider` plus `useInboundShareRouting()` (camera-social inbound share).
+- `<StatusBar style="auto" />` and a base `<NavigationBar style="auto" />` (Android). The base
+  entry matters: when the last mounted `NavigationBar` unmounts, `expo-navigation-bar` falls back to
+  its own default (light buttons), so leaving camera or the podcast player would otherwise leave
+  white nav buttons on a light screen. Projects that set their own bar style stack on top of it.
 
 `expo-notifications` is process-global. Every push or local-notification payload carries a
 project discriminator (`project: "store"`, or `url` starting with `/projects/offline-journal/`),
@@ -206,6 +210,21 @@ and each router ignores payloads that aren't its own.
   (`icon-symbol` + `.ios`, and `content-unavailable-view`, which is theme-aware and takes
   optional `titleColor` / `descriptionColor` overrides and an `action` button).
 - Platform-specific files use `.ios.tsx` / `.android.tsx` / `.web.ts`.
+- **Theming is per project.** Store and podcast have light and dark palettes that follow the device
+  setting (`useStoreColors` / `usePodcastColors`, styles from a module-level `createStyles(c)`
+  factory through `useStoreStyles` / `usePodcastStyles`, default-colour `StoreText` / `PodcastText`).
+  The factories share one `StyleSheet` per palette through `useThemedStyles` in `src/shared/hooks`,
+  so list rows do not each allocate their own. The podcast full player and mini-player are always
+  dark: wrap such a subtree in `PodcastSchemeOverride value="dark"` so every themed component inside
+  it (chips, chapters, badges) reads the dark palette. Camera is dark-only, fitness and journal
+  have their own palettes.
+- `useWindowBackground(color)` (`src/shared/hooks`) paints the window behind edge-to-edge system
+  bars. It is a stack: a project layout and a screen inside it (the player) can both call it, and
+  closing the inner one hands the project's colour back.
+- A `presentation: "transparentModal"` screen needs `contentStyle: { backgroundColor: "transparent" }`,
+  or the Stack's `screenOptions.contentStyle` shows as an opaque fill behind a sheet being dragged.
+- Navigate after the state that unlocks a `Stack.Protected` route has committed (an effect on the
+  new status), not right after `await`ing the call that sets it.
 - `ColorSchemeName` includes `"unspecified"`, so narrow it before indexing:
   `colorScheme === "dark" ? "dark" : "light"`.
 
@@ -230,8 +249,8 @@ and each router ignores payloads that aren't its own.
 ## Expo Configuration (`app.config.ts`)
 
 - **Variants:** `APP_VARIANT` = `development` | `preview` | `production`, set per EAS profile.
-  These give the bundle ids `org.imaginativeworld.whynotreactnative.dev` / `.preview` / base,
-  installable side by side.
+  These give the bundle ids `org.imaginativeworld.whynotreactnative.dev` / `.preview` / base and
+  the names "Why Not ReactNative (Dev)" / "(Beta)" / "Why Not ReactNative", installable side by side.
 - **Runtime version:** `{ policy: "fingerprint" }`. EAS Updates use
   `https://u.expo.dev/<projectId>`. The channels are `development`, `preview` and
   `production` (see `eas.json`). `eas.json` `env` applies to **builds only**, and the bundle id
@@ -241,6 +260,12 @@ and each router ignores payloads that aren't its own.
 - **`extra`** is read through `src/shared/constants/env.ts`: `storeApiUrl`, `podcastIndexUrl`,
   `linkDomain`, `appGroup`, `stripePublishableKey`, `journalSyncUrl` (empty means the local dev
   server: `localhost` on iOS, `10.0.2.2` on the Android emulator).
+  `googleMapsConfigured` is `Boolean(GOOGLE_MAPS_API_KEY)` at config time; Android `RouteMap` shows
+  a fallback without it. It reflects the env of whoever evaluates the config, so run `eas update`
+  with the same env as the build.
+- **Android system bars:** the `expo-navigation-bar` plugin sets `enforceContrast: false` so a dark
+  project can ask for light nav buttons. App icon sources are `src/assets/images/icon.svg` and
+  `scripts/generate-app-icons.cjs`.
 - **Environment variables:** `APP_VARIANT`, `STORE_API_URL`, `LINK_DOMAIN`,
   `GOOGLE_MAPS_API_KEY`, `JOURNAL_SYNC_URL`, `EXPO_PUBLIC_STRIPE_KEY`,
   `EXPO_PUBLIC_STORE_BACKEND_URL`, `EXPO_PUBLIC_GOOGLE_{IOS,ANDROID,WEB}_CLIENT_ID`.
