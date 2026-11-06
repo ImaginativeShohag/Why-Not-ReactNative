@@ -7,8 +7,7 @@ app's dependencies stay untouched. The root `tsconfig.json` and `eslint.config.j
 ```bash
 cd promo
 npm install      # after a fresh clone, run voice and sfx too: public/ is not committed
-VOICE=com.apple.siri.natural.Aaron npm run voice   # narration → public/voice/*.wav + src/voice.json
-                 # (always pass VOICE, see "Narration"; a bare `npm run voice` may pick a female voice)
+npm run voice    # narration → public/voice/*.wav + src/voice.json (Siri Aaron, see "Narration")
 npm run sfx      # synthesised sound effects → public/sfx/*.wav
 npm run studio   # live preview with a scrubber
 npm run render   # → output/promo.mp4 (1920×1080, landscape only; portrait is a separate command)
@@ -25,23 +24,19 @@ local Chrome: `npm run render -- --browser-executable="/Applications/Google Chro
 
 `scripts/voice.mjs` speaks each line in `LINES` through `scripts/speak.swift` (AVSpeechSynthesizer,
 run with the `swift` interpreter, so it needs Xcode or the Command Line Tools). Unlike `say`, it
-can use the natural **Siri** voices. It picks the best installed English voice: Premium, then
-Enhanced (Siri voices report as Enhanced), then Samantha. The current render uses
-**Voice 1 (`com.apple.siri.natural.Aaron`)**.
+can use the natural **Siri** voices. It always uses **Voice 1 (`com.apple.siri.natural.Aaron`)**
+unless `VOICE` says otherwise, and stops with an error if that voice isn't installed, so a clean
+Mac can't silently end up with a different (for example female) voice. Download "Voice 1" first
+and confirm it shows in `npm run voice -- --list`.
 
 ```bash
 npm run voice -- --list                                   # installed English voices
-VOICE=com.apple.siri.natural.Aaron RATE=0.5 npm run voice # pick one; RATE is 0…1
+VOICE=<id or name> RATE=0.5 npm run voice                 # override the voice; RATE is 0…1
 ```
 
 More Siri voices: System Settings → Siri → Voice (each one you select is downloaded), or
 Accessibility → Spoken Content → System Voice → Manage Voices.
 
-**Use Aaron for the released promo.** Without `VOICE`, `npm run voice` takes the best voice installed
-on that Mac, so a clean machine (where Aaron isn't downloaded yet) silently ends up with a different
-one, often a female Siri voice or Samantha. Download "Voice 1" (Aaron) first, confirm it appears in
-`npm run voice -- --list` as `com.apple.siri.natural.Aaron`, then run the command above. Setting
-`VOICE` makes the script stop with an error if that voice isn't installed instead of falling back.
 Check the "voice" line in `src/voice.json` after generating. Changing the voice or `RATE` changes
 every clip length, so re-render both videos afterwards.
 

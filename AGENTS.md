@@ -77,8 +77,8 @@ promo/              Remotion promo video, its own npm package (root tsconfig and
                     ignore it): `Promo` 1920×1080 and `PromoPortrait` 1080×1920 share the
                     scenes, which switch layout with `useIsPortrait()`. public/ (narration
                     and SFX WAVs) is gitignored: on a fresh clone run
-                    `VOICE=com.apple.siri.natural.Aaron npm run voice` (macOS; without VOICE it
-                    falls back to whatever voice is installed) and `npm run sfx`; `npm run
+                    `npm run voice` (macOS; defaults to Siri "Aaron" and errors if it isn't
+                    installed; override with VOICE) and `npm run sfx`; `npm run
                     render` is landscape only, `render:portrait` is separate. Render with the sandbox off,
                     through `npm run`. Keep the quiz count in sync with docs/index.html
                     and docs/learning-path.html (currently "300+").

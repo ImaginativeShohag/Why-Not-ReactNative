@@ -57,20 +57,18 @@ if (process.argv.includes("--list")) {
   process.exit(0);
 }
 
+// The released promo is narrated by Siri "Voice 1". Override with VOICE=<id or name>.
+const DEFAULT_VOICE = "com.apple.siri.natural.Aaron";
+
 function pickVoice() {
-  if (process.env.VOICE) {
-    const wanted = process.env.VOICE;
-    const match = voices.find((v) => v.id === wanted || v.name === wanted);
-    if (!match) throw new Error(`Voice "${wanted}" isn't installed. Try: npm run voice -- --list`);
-    return match;
+  const wanted = process.env.VOICE ?? DEFAULT_VOICE;
+  const match = voices.find((v) => v.id === wanted || v.name === wanted);
+  if (!match) {
+    throw new Error(
+      `Voice "${wanted}" isn't installed. Download it (System Settings → Siri → Voice) or pick one: npm run voice -- --list`,
+    );
   }
-  // Premium, then Enhanced (Siri voices report as enhanced), then Samantha;
-  // US English first within a tier.
-  const order = { premium: 0, enhanced: 1, default: 2 };
-  const usFirst = (v) => (v.language === "en-US" ? 0 : 1);
-  return voices
-    .filter((v) => v.quality !== "default" || /Samantha/.test(v.name))
-    .sort((a, b) => order[a.quality] - order[b.quality] || usFirst(a) - usFirst(b))[0];
+  return match;
 }
 
 // Seconds of audio in a PCM WAV: the size of the `data` chunk over the byte rate.
