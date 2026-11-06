@@ -76,8 +76,10 @@ plugins/            hand-written config plugins (Project 04)
 promo/              Remotion promo video, its own npm package (root tsconfig and eslint
                     ignore it): `Promo` 1920×1080 and `PromoPortrait` 1080×1920 share the
                     scenes, which switch layout with `useIsPortrait()`. public/ (narration
-                    and SFX WAVs) is gitignored: on a fresh clone run `npm run voice`
-                    (macOS, Siri voice "Aaron") and `npm run sfx`. Render with the sandbox off,
+                    and SFX WAVs) is gitignored: on a fresh clone run
+                    `VOICE=com.apple.siri.natural.Aaron npm run voice` (macOS; without VOICE it
+                    falls back to whatever voice is installed) and `npm run sfx`; `npm run
+                    render` is landscape only, `render:portrait` is separate. Render with the sandbox off,
                     through `npm run`. Keep the quiz count in sync with docs/index.html
                     and docs/learning-path.html (currently "300+").
 docs/               GitHub Pages site (Settings → Pages → main, /docs; `.nojekyll`, so files are
