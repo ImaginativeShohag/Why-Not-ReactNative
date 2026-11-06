@@ -46,9 +46,9 @@
 .tn-brand:hover { color: var(--fg); }
 .tn-logo {
   width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-  background: linear-gradient(135deg, #6366f1, #22d3ee); box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+  background: #01011c; overflow: hidden; box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
 }
-.tn-logo svg { width: 15px; height: 15px; stroke: #fff; stroke-width: 3; }
+.tn-logo img { width: 100%; height: 100%; display: block; }
 
 .tn-links { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 .tn-links > a, .tn-menu > summary {

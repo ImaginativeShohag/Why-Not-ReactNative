@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <title>02 · Camera &amp; Social Capture — Expo Learning Path</title>
+<link rel="icon" type="image/svg+xml" href="assets/branding/why-not-atom.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/branding/favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/branding/apple-touch-icon.png">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="assets/nav.css">
 <script>
@@ -21,7 +24,7 @@
 <header class="topnav">
   <div class="topnav-in">
     <a class="tn-back" href="learning-path.html" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span class="lbl">Back</span></a>
-    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lbl">Why-Not-ReactNative</span></a>
+    <a class="tn-brand" href="index.html" title="Home"><span class="tn-logo"><img src="assets/branding/why-not-atom.svg" width="28" height="28" alt=""></span><span class="lbl">Why-Not-ReactNative</span></a>
     <nav class="tn-links" aria-label="Site">
       <a href="index.html" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></a>
       <a href="learning-path.html" title="Learning path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Learning path</span></a>
@@ -494,7 +497,7 @@ EXPORT    (utils/shareOut.ts)
     <li>Album picker sheet, multi-select with a selection bar, and <code>extraData</code> so recycled cells re-render on selection changes.</li>
     <li>iOS limited access: detect <code>permission.accessPrivileges === "limited"</code>, show the banner, call <code>MediaLibrary.presentPermissionsPicker()</code>, and refresh when the selection changes.</li>
     <li>Video assets show a duration badge. Because the cell is only an image, give it words for VoiceOver and TalkBack: <code>AssetCell</code> sets <code>accessibilityLabel</code> to "Photo" or "Video, 0:12", an <code>accessibilityHint</code> about long-pressing to select (dropped once selection mode is on), and <code>accessibilityState={{ selected }}</code>.</li>
-    <li>The Library tab draws its own header with a back chevron that calls <code>router.navigate("/")</code>, landing on the launcher just like the Feed tab's back button. <code>router.back()</code> from a tab that isn't the first one only switches back to the first tab instead of leaving the project.</li>
+    <li>The Library tab draws its own header with a back chevron that calls <code>router.dismissTo("/")</code>, landing on the launcher just like the Feed tab's back button. <code>router.back()</code> from a tab that isn't the first one only switches back to the first tab instead of leaving the project, and <code>router.navigate("/")</code> would push a second launcher over the still-mounted project, so unwind to the existing one instead.</li>
   </ul>
   <div class="checkpoint"><b>Checkpoint</b> — Test on a device with 5,000+ photos. Scrolling stays smooth and memory is flat. Switch albums while a page is loading: the late page never appears in the new album. On iOS choose "Select photos" and confirm the banner and picker work.</div>
 </div>
@@ -605,7 +608,7 @@ EXPORT    (utils/shareOut.ts)
   <li><strong>The wrong permission text.</strong> <em>Shows up as:</em> the camera prompt quotes another project's purpose ("…for your journal") or a stale sentence. <em>Final code:</em> iOS keeps one <code>NSCameraUsageDescription</code> / <code>NSPhotoLibraryUsageDescription</code> per app and the first plugin to set it wins, so <code>expo-camera</code>, <code>expo-image-picker</code> and <code>expo-media-library</code> all get the shared <code>CAMERA_PERMISSION</code> / <code>PHOTOS_PERMISSION</code> from <code>app.config.ts</code>.</li>
   <li><strong>A stop that doesn't stop.</strong> <em>Shows up as:</em> tap record then stop immediately, and the recording carries on. <em>Final code:</em> on iOS <code>stopRecording()</code> before the native recorder has started is a silent no-op, so <code>useCapture</code> retries it every 250 ms (at most 20 times) until <code>recordAsync</code> settles.</li>
   <li><strong>Filters that fail on HEIC.</strong> <em>Shows up as:</em> a filter-only edit of an iPhone HEIC photo fails with "Could not decode image", while a crop of the same photo works (the geometry pass already re-encoded it as JPEG). <em>Final code:</em> <code>decodeForSkia</code> in <code>editor/nativeDeps.ts</code> transcodes to JPEG with <code>expo-image-manipulator</code> when Skia returns null, then decodes again.</li>
-  <li><strong>Navigation leaks.</strong> <em>Shows up as:</em> a pushed screen's back menu reads "(tab)", and the Library tab's back button just switches to the Feed tab. <em>Final code:</em> the <code>(tab)</code> <code>Stack.Screen</code> has <code>title: "Feed"</code>, and the Library header calls <code>router.navigate("/")</code>, because <code>router.back()</code> from a non-first tab only switches tabs.</li>
+  <li><strong>Navigation leaks.</strong> <em>Shows up as:</em> a pushed screen's back menu reads "(tab)", and the Library tab's back button just switches to the Feed tab. <em>Final code:</em> the <code>(tab)</code> <code>Stack.Screen</code> has <code>title: "Feed"</code>, and the Library header calls <code>router.dismissTo("/")</code>, because <code>router.back()</code> from a non-first tab only switches tabs and <code>navigate("/")</code> would stack a second launcher.</li>
 </ol>
 
 <h2 id="stretch">Stretch goals</h2>
