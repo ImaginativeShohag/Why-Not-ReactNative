@@ -1,0 +1,32 @@
+{
+  "voice": "Voice 1 (com.apple.siri.natural.Aaron)",
+  "rate": 0.5,
+  "lines": {
+    "intro": "Why Not React Native. Expo and React Native, built for production.",
+    "stack": "One modern stack, end to end.",
+    "projects": "Six real projects, in one app.",
+    "p1": "An offline journal.",
+    "p2": "A camera editor.",
+    "p3": "A commerce app.",
+    "p4": "A fitness tracker.",
+    "p5": "A podcast player.",
+    "p6": "And a tic-tac-toe game you can't beat.",
+    "path": "A step-by-step path, seven write-ups, and hundreds of quiz questions.",
+    "quiz": "Every quiz sends you into the real code.",
+    "cta": "Start the learning path today. Free, and open source."
+  },
+  "clips": {
+    "intro": 4.8,
+    "stack": 2.187,
+    "projects": 2.016,
+    "p1": 1.013,
+    "p2": 0.928,
+    "p3": 0.832,
+    "p4": 0.992,
+    "p5": 1.12,
+    "p6": 2.037,
+    "path": 3.947,
+    "quiz": 2.261,
+    "cta": 3.499
+  }
+}
