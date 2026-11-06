@@ -73,6 +73,13 @@ modules/live-activity/  local Expo Module, Swift + Kotlin (Project 04)
 plugins/            hand-written config plugins (Project 04)
 .github/workflows/  ci.yml, release.yml, fingerprint.yml (Project 05)
 .maestro/           e2e flows: store-checkout.yaml, podcast-smoke.yaml
+promo/              Remotion promo video, its own npm package (root tsconfig and eslint
+                    ignore it): `Promo` 1920×1080 and `PromoPortrait` 1080×1920 share the
+                    scenes, which switch layout with `useIsPortrait()`. public/ (narration
+                    and SFX WAVs) is gitignored: on a fresh clone run `npm run voice`
+                    (macOS, Siri voice "Aaron") and `npm run sfx`. Render with the sandbox off,
+                    through `npm run`. Keep the quiz count in sync with docs/index.html
+                    and docs/learning-path.html (currently "300+").
 docs/               GitHub Pages site (Settings → Pages → main, /docs; `.nojekyll`, so files are
                     served as-is): index.html front page, learning-path.html curriculum,
                     write-ups 00–06, 05-release.html, well-known templates.
