@@ -1,6 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import PrimaryButton from "./PrimaryButton";
+import Text from "./StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type CartFooterProps = {
   /** Pre-formatted subtotal. */
@@ -14,6 +16,7 @@ export default function CartFooter({
   ctaLabel,
   onCheckout,
 }: CartFooterProps) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View style={styles.container}>
       <View style={styles.divider} />
@@ -36,15 +39,16 @@ export default function CartFooter({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { paddingBottom: 16 },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#ccc",
-    marginBottom: 8,
-  },
-  content: { paddingHorizontal: 16, gap: 12 },
-  row: { flexDirection: "row", justifyContent: "space-between" },
-  label: { fontSize: 18, fontWeight: "600" },
-  total: { fontSize: 18, fontWeight: "bold" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: { paddingBottom: 16 },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: c.separator,
+      marginBottom: 8,
+    },
+    content: { paddingHorizontal: 16, gap: 12 },
+    row: { flexDirection: "row", justifyContent: "space-between" },
+    label: { fontSize: 18, fontWeight: "600" },
+    total: { fontSize: 18, fontWeight: "bold" },
+  });

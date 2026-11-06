@@ -1,7 +1,8 @@
 import { Fragment } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "../ui/StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type OrderStatusTimelineProps = {
   labels: string[];
@@ -14,6 +15,7 @@ export default function OrderStatusTimeline({
   labels,
   currentIndex,
 }: OrderStatusTimelineProps) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View
       accessible
@@ -57,24 +59,25 @@ export default function OrderStatusTimeline({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { gap: 8 },
-  row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: storeColors.separator,
-  },
-  dotDone: { backgroundColor: storeColors.success },
-  bar: { flex: 1, height: 3, backgroundColor: storeColors.separator },
-  barDone: { backgroundColor: storeColors.success },
-  labels: { flexDirection: "row", justifyContent: "space-between" },
-  label: {
-    fontSize: 12,
-    color: storeColors.muted,
-    flex: 1,
-    textAlign: "center",
-  },
-  labelCurrent: { color: "#000", fontWeight: "600" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: { gap: 8 },
+    row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
+    dot: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: c.separator,
+    },
+    dotDone: { backgroundColor: c.success },
+    bar: { flex: 1, height: 3, backgroundColor: c.separator },
+    barDone: { backgroundColor: c.success },
+    labels: { flexDirection: "row", justifyContent: "space-between" },
+    label: {
+      fontSize: 12,
+      color: c.muted,
+      flex: 1,
+      textAlign: "center",
+    },
+    labelCurrent: { color: c.label, fontWeight: "600" },
+  });

@@ -138,8 +138,9 @@ export default function LibraryScreen() {
           <IconButton
             icon="chevron-back"
             // Same exit as the Feed tab's header. `back()` from a non-first
-            // tab would only switch to Feed, so pop the root stack instead.
-            onPress={() => router.navigate("/")}
+            // tab would only switch to Feed, and `navigate("/")` would push a
+            // second launcher over the mounted project, so unwind to the first.
+            onPress={() => router.dismissTo("/")}
             accessibilityLabel="Back to projects"
           />
           <Text style={styles.title}>Library</Text>
@@ -260,7 +261,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingLeft: 4,
+    // IconButton adds 6 of its own: 10 + 6 matches the 16 inset of the Feed header.
+    paddingLeft: 10,
     paddingRight: 16,
     paddingVertical: 10,
   },

@@ -5,14 +5,19 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   View,
 } from "react-native";
 
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { OptionChips } from "@/src/projects/podcast-player/components/common/OptionChips";
 import { SectionHeader } from "@/src/projects/podcast-player/components/common/SectionHeader";
-import { MINI_PLAYER_CONTENT_INSET } from "@/src/projects/podcast-player/constants/layout";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import { useMiniPlayerInset } from "@/src/projects/podcast-player/hooks/useMiniPlayerInset";
 import { downloadManager } from "@/src/projects/podcast-player/downloads/manager";
 import {
   getUpdatesInfo,
@@ -27,7 +32,6 @@ import {
   STORAGE_CAP_OPTIONS_GB,
   useSettingsStore,
 } from "@/src/projects/podcast-player/stores/settingsStore";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
 import { env } from "@/src/shared/constants/env";
 
 const GB = 1024 ** 3;
@@ -36,6 +40,9 @@ const GB = 1024 ** 3;
 const CHANNELS: readonly string[] = ["development", "preview", "production"];
 
 export default function PodcastSettingsScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const miniInset = useMiniPlayerInset();
   const s = useSettingsStore();
   const info = getUpdatesInfo();
   // Channel surfing is a tester tool: never shown in production store builds.
@@ -57,7 +64,7 @@ export default function PodcastSettingsScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ paddingBottom: MINI_PLAYER_CONTENT_INSET + 24 }}
+      contentContainerStyle={{ paddingBottom: miniInset + 24 }}
     >
       <SectionHeader title="Playback" />
       <Label text="Skip back" />
@@ -162,7 +169,7 @@ export default function PodcastSettingsScreen() {
             value={channel}
             onChangeText={setChannel}
             placeholder="channel name"
-            placeholderTextColor={PodcastTheme.textMuted}
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
@@ -191,6 +198,7 @@ export default function PodcastSettingsScreen() {
 }
 
 function Label({ text }: { text: string }) {
+  const styles = usePodcastStyles(createStyles);
   return <Text style={styles.label}>{text}</Text>;
 }
 
@@ -203,6 +211,10 @@ function ToggleRow({
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  // The off track needs to stay visibly grey against a white screen.
+  const offTrack = colors.trackOff;
   return (
     <View style={styles.toggle}>
       <Text style={styles.toggleLabel}>{label}</Text>
@@ -210,17 +222,19 @@ function ToggleRow({
         value={value}
         onValueChange={onChange}
         accessibilityLabel={label}
-        trackColor={{ true: PodcastTheme.accent }}
+        trackColor={{ true: colors.accent, false: offTrack }}
+        thumbColor="#FFFFFF"
       />
     </View>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const styles = usePodcastStyles(createStyles);
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue} numberOfLines={1} selectable>
+      <Text style={styles.infoValue} selectable>
         {value}
       </Text>
     </View>
@@ -236,6 +250,7 @@ function Button({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const styles = usePodcastStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -248,49 +263,52 @@ function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  label: {
-    color: PodcastTheme.text,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
-  toggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  toggleLabel: { color: PodcastTheme.text, flex: 1 },
-  info: { paddingHorizontal: 16, gap: 6 },
-  infoRow: { flexDirection: "row", justifyContent: "space-between", gap: 16 },
-  infoLabel: { color: PodcastTheme.textMuted },
-  infoValue: { color: PodcastTheme.text, flexShrink: 1 },
-  help: {
-    color: PodcastTheme.textMuted,
-    fontSize: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    lineHeight: 17,
-  },
-  input: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: PodcastTheme.surface,
-    color: PodcastTheme.text,
-  },
-  buttons: { flexDirection: "row", gap: 12, padding: 16 },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: PodcastTheme.surfaceRaised,
-    alignItems: "center",
-  },
-  buttonText: { color: PodcastTheme.text, fontWeight: "600" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    label: {
+      color: c.text,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 6,
+    },
+    toggle: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      gap: 12,
+    },
+    toggleLabel: { color: c.text, flex: 1 },
+    info: { paddingHorizontal: 16, gap: 6 },
+    infoRow: { flexDirection: "row", justifyContent: "space-between", gap: 16 },
+    infoLabel: { color: c.textMuted },
+    // No numberOfLines: Android ignores it on selectable text and clips the overflow
+    // line. Runtime versions and update ids wrap, which keeps them fully readable.
+    infoValue: { color: c.text, flexShrink: 1, textAlign: "right" },
+    help: {
+      color: c.textMuted,
+      fontSize: 12,
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      lineHeight: 17,
+    },
+    input: {
+      marginHorizontal: 16,
+      marginTop: 8,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surface,
+      color: c.text,
+    },
+    buttons: { flexDirection: "row", gap: 12, padding: 16 },
+    button: {
+      flex: 1,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.surfaceRaised,
+      alignItems: "center",
+    },
+    buttonText: { color: c.text, fontWeight: "600" },
+  });

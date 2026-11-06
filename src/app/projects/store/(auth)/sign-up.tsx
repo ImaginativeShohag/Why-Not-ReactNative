@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, type TextInput } from "react-native";
+import { ScrollView, StyleSheet, type TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
@@ -8,12 +8,14 @@ import FormField from "@/src/projects/store/components/ui/FormField";
 import PrimaryButton from "@/src/projects/store/components/ui/PrimaryButton";
 import { hasBackend } from "@/src/projects/store/constants/config";
 import { useSignUp } from "@/src/projects/store/hooks/useAuth";
-import { useThemeColor } from "@/src/shared/hooks/use-theme-color";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 export default function SignUpScreen() {
-  const textColor = useThemeColor({}, "text");
-  const backgroundColor = useThemeColor({}, "background");
+  const styles = useStoreStyles(createStyles);
   const signUp = useSignUp();
   const usernameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -34,16 +36,13 @@ export default function SignUpScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor }]} edges={["bottom"]}>
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <Text
-          style={[styles.title, { color: textColor }]}
-          accessibilityRole="header"
-        >
+        <Text style={styles.title} accessibilityRole="header">
           Create your account
         </Text>
         {!hasBackend() ? (
@@ -63,7 +62,6 @@ export default function SignUpScreen() {
           value={email}
           onChangeText={setEmail}
           error={errors.email}
-          textColor={textColor}
           textContentType="emailAddress"
           autoComplete="email"
           keyboardType="email-address"
@@ -78,7 +76,6 @@ export default function SignUpScreen() {
           value={username}
           onChangeText={setUsername}
           error={errors.username}
-          textColor={textColor}
           textContentType="username"
           autoComplete="username-new"
           autoCapitalize="none"
@@ -92,7 +89,6 @@ export default function SignUpScreen() {
           value={password}
           onChangeText={setPassword}
           error={errors.password}
-          textColor={textColor}
           secureTextEntry
           // newPassword lets iOS offer a strong generated password.
           textContentType="newPassword"
@@ -114,10 +110,11 @@ export default function SignUpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { padding: 16, gap: 14 },
-  title: { fontSize: 24, fontWeight: "700" },
-  note: { fontSize: 13, color: storeColors.muted },
-  error: { color: storeColors.danger, fontSize: 15 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.card },
+    content: { padding: 16, gap: 14 },
+    title: { fontSize: 24, fontWeight: "700", color: c.label },
+    note: { fontSize: 13, color: c.muted },
+    error: { color: c.danger, fontSize: 15 },
+  });

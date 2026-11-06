@@ -1,5 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
+
+import Text from "./StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "../../constants/theme";
 
 type SocialButtonProps = {
   provider: "apple" | "google";
@@ -20,7 +27,12 @@ export default function SocialButton({
   disabled,
   loading,
 }: SocialButtonProps) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const dark = provider === "apple";
+  // Apple inverts with the scheme (black in light, white in dark); Google sits
+  // on the card surface.
+  const ink = dark ? colors.card : colors.label;
   return (
     <Pressable
       onPress={onPress}
@@ -39,35 +51,34 @@ export default function SocialButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={dark ? "#fff" : "#000"} />
+        <ActivityIndicator color={ink} />
       ) : (
         <>
-          <Ionicons
-            name={ICON[provider]}
-            size={20}
-            color={dark ? "#fff" : "#000"}
-          />
-          <Text style={[styles.text, { color: dark ? "#fff" : "#000" }]}>
-            {LABEL[provider]}
-          </Text>
+          <Ionicons name={ICON[provider]} size={20} color={ink} />
+          <Text style={[styles.text, { color: ink }]}>{LABEL[provider]}</Text>
         </>
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    minHeight: 50,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  dark: { backgroundColor: "#000" },
-  light: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#D1D1D6" },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.75 },
-  text: { fontSize: 17, fontWeight: "600" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    button: {
+      minHeight: 50,
+      borderRadius: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    dark: { backgroundColor: c.label },
+    light: {
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    disabled: { opacity: 0.45 },
+    pressed: { opacity: 0.75 },
+    text: { fontSize: 17, fontWeight: "600" },
+  });

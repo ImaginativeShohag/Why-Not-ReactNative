@@ -34,16 +34,3 @@ export function shade(hex: string, amount: number): string {
   const b = Math.round((n & 0xff) * f);
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
-
-/** Design tokens for the dark, artwork-driven look. */
-export const PodcastTheme = {
-  background: "#0B0B0F",
-  surface: "#16161D",
-  surfaceRaised: "#1F1F28",
-  border: "#2A2A35",
-  text: "#F5F5F7",
-  textMuted: "#9A9AA8",
-  accent: "#8B5CF6",
-  danger: "#F43F5E",
-  success: "#22C55E",
-} as const;

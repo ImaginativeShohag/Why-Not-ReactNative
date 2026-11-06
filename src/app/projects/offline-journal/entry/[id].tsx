@@ -135,7 +135,9 @@ export default function EntryDetailScreen() {
           {entry.title || "Untitled"}
         </ThemedText>
 
-        {entry.tags.length > 0 ? <TagChipRow tags={entry.tags} /> : null}
+        {entry.tags.length > 0 ? (
+          <TagChipRow tags={entry.tags} bleed={CONTENT_PADDING} />
+        ) : null}
 
         <ThemedText
           selectable
@@ -148,7 +150,12 @@ export default function EntryDetailScreen() {
           {entry.body}
         </ThemedText>
 
-        <AttachmentStrip items={attachments} size={120} onPress={setViewing} />
+        <AttachmentStrip
+          items={attachments}
+          size={120}
+          onPress={setViewing}
+          bleed={CONTENT_PADDING}
+        />
 
         {entry.updatedAt.getTime() - entry.createdAt.getTime() > 60_000 ? (
           <ThemedText style={[styles.edited, { color: palette.muted }]}>
@@ -180,10 +187,12 @@ export default function EntryDetailScreen() {
   );
 }
 
+const CONTENT_PADDING = 20;
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: 20, gap: 14, paddingBottom: 48 },
+  content: { padding: CONTENT_PADDING, gap: 14, paddingBottom: 48 },
   actions: { flexDirection: "row", gap: 20 },
   date: { fontSize: 13 },
   title: { fontSize: 28, lineHeight: 34 },

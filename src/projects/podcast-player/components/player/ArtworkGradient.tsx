@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { PodcastTheme, shade } from "@/src/projects/podcast-player/utils/color";
+import { podcastPalettes } from "@/src/projects/podcast-player/constants/theme";
+import { shade } from "@/src/projects/podcast-player/utils/color";
 
 type Props = { accent: string };
 
@@ -43,7 +44,11 @@ export function ArtworkGradient({ accent }: Props) {
 function Gradient({ color }: { color: string }) {
   return (
     <LinearGradient
-      colors={[shade(color, 0.15), shade(color, 0.6), PodcastTheme.background]}
+      colors={[
+        shade(color, 0.15),
+        shade(color, 0.6),
+        podcastPalettes.dark.background,
+      ]}
       locations={[0, 0.45, 1]}
       style={StyleSheet.absoluteFill}
     />

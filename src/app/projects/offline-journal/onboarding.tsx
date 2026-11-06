@@ -74,7 +74,7 @@ export default function OnboardingScreen() {
           width={width}
           icon="lock-closed-outline"
           title="Private by default"
-          body="Every entry lives on this device and works with the network off. Sync is optional, and you can add a Face ID lock in Settings."
+          body="Every entry lives on this device and works with the network off. Sync is optional, and you can add a biometric lock in Settings."
         >
           <PrimaryButton label="Next" onPress={() => goTo(1)} />
         </Slide>

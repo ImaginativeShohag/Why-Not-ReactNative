@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
@@ -33,7 +32,11 @@ import {
 import { useCartStore } from "@/src/projects/store/stores/cartStore";
 import { formatMoney } from "@/src/projects/store/utils/money";
 import { queryKeys } from "@/src/projects/store/utils/queryKeys";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 const HEADLINE: Record<Order["status"], string> = {
   pending_payment: "Waiting for payment",
@@ -62,6 +65,7 @@ export default function OrderDetailScreen() {
   const addToCart = useCartStore((s) => s.addToCart);
   const [reordering, setReordering] = useState(false);
   const autoReorderDone = useRef(false);
+  const styles = useStoreStyles(createStyles);
 
   const reorderItems = async (target: Order) => {
     setReordering(true);
@@ -107,7 +111,10 @@ export default function OrderDetailScreen() {
   const number = order.id.replace("legacy-", "");
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: `Order #${number}` }} />
 
       <View style={styles.card}>
@@ -182,6 +189,7 @@ export default function OrderDetailScreen() {
 }
 
 function Action({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useStoreStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -193,18 +201,19 @@ function Action({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  content: { padding: 16, gap: 12 },
-  card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 8 },
-  headline: { fontSize: 20, fontWeight: "700", marginTop: 8 },
-  meta: { fontSize: 13, color: storeColors.muted },
-  section: { marginTop: 0, marginBottom: 0 },
-  body: { fontSize: 15 },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 8,
-  },
-  action: { paddingHorizontal: 16, paddingVertical: 10 },
-  actionText: { color: storeColors.accent, fontSize: 16, fontWeight: "600" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    content: { padding: 16, gap: 12 },
+    card: { backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 8 },
+    headline: { fontSize: 20, fontWeight: "700", marginTop: 8 },
+    meta: { fontSize: 13, color: c.muted },
+    section: { marginTop: 0, marginBottom: 0 },
+    body: { fontSize: 15 },
+    actions: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      paddingVertical: 8,
+    },
+    action: { paddingHorizontal: 16, paddingVertical: 10 },
+    actionText: { color: c.accent, fontSize: 16, fontWeight: "600" },
+  });

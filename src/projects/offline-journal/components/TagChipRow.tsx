@@ -12,6 +12,12 @@ export type TagChipRowProps = {
   onAdd?: (tag: string) => void;
   /** Tapping a suggestion adds it. Already-applied tags are filtered out. */
   suggestions?: string[];
+  /**
+   * Padding of the parent to run under. The strip stretches over it and puts
+   * it back inside the scroll content, so items scroll to the screen edge
+   * instead of being cut off at the parent's padding.
+   */
+  bleed?: number;
 };
 
 export function TagChipRow({
@@ -19,6 +25,7 @@ export function TagChipRow({
   onRemove,
   onAdd,
   suggestions = [],
+  bleed = 0,
 }: TagChipRowProps) {
   const palette = usePalette();
   const [draft, setDraft] = useState("");
@@ -37,7 +44,8 @@ export function TagChipRow({
       horizontal
       showsHorizontalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.row}
+      style={{ marginHorizontal: -bleed }}
+      contentContainerStyle={[styles.row, { paddingHorizontal: bleed }]}
     >
       {tags.map((tag) => (
         <Pressable

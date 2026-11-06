@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
+import { useStoreColors } from "../../constants/theme";
 import type { Product } from "../../models/Product";
 import { formatPrice } from "../../utils/money";
 import ProductView from "./product-item";
@@ -44,6 +45,7 @@ export default function ProductGrid({
   contentContainerStyle,
 }: ProductGridProps) {
   const router = useRouter();
+  const colors = useStoreColors();
   return (
     <FlashList
       data={products}
@@ -55,7 +57,9 @@ export default function ProductGrid({
       onEndReachedThreshold={0.5}
       onEndReached={onEndReached}
       ListFooterComponent={
-        isFetchingNextPage ? <ActivityIndicator style={{ margin: 16 }} /> : null
+        isFetchingNextPage ? (
+          <ActivityIndicator style={{ margin: 16 }} color={colors.muted} />
+        ) : null
       }
       refreshControl={refreshControl}
       renderItem={({ item: product }) => (

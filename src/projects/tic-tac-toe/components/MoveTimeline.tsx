@@ -17,6 +17,12 @@ type Props = {
   isSelectable?: (move: number) => boolean;
   palette: TicTacToePalette;
   reduceMotion: boolean;
+  /**
+   * Padding of the parent to run under. The strip stretches over it and puts
+   * it back inside the scroll content, so chips scroll to the screen edge
+   * instead of being cut off at the parent's padding.
+   */
+  bleed?: number;
 };
 
 /** "Start", or "3 · X B2" (move number, mark, column letter + row number). */
@@ -38,6 +44,7 @@ export function MoveTimeline({
   isSelectable,
   palette,
   reduceMotion,
+  bleed = 0,
 }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const count = history.length;
@@ -51,8 +58,8 @@ export function MoveTimeline({
       ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
+      style={[styles.scroll, { marginHorizontal: -bleed }]}
+      contentContainerStyle={[styles.content, { paddingHorizontal: bleed }]}
     >
       {history.map((_, move) => {
         const selected = move === currentMove;

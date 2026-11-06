@@ -8,13 +8,18 @@ import {
   RefreshControl,
   StyleSheet,
   Switch,
-  Text,
   View,
 } from "react-native";
 
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { LiveEpisodeRow } from "@/src/projects/podcast-player/containers/LiveEpisodeRow";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
-import { MINI_PLAYER_CONTENT_INSET } from "@/src/projects/podcast-player/constants/layout";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import { useMiniPlayerInset } from "@/src/projects/podcast-player/hooks/useMiniPlayerInset";
 import {
   getAutoDownload,
   setAutoDownload,
@@ -26,10 +31,7 @@ import {
   usePodcastEpisodes,
   useSubscribe,
 } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
-import {
-  accentFromSeed,
-  PodcastTheme,
-} from "@/src/projects/podcast-player/utils/color";
+import { accentFromSeed } from "@/src/projects/podcast-player/utils/color";
 import {
   formatDurationShort,
   formatRelativeDate,
@@ -37,6 +39,9 @@ import {
 import { podcastKeys } from "@/src/projects/podcast-player/utils/queryKeys";
 
 export default function PodcastDetailScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const miniInset = useMiniPlayerInset();
   const params = useLocalSearchParams<{
     id: string;
     feedUrl?: string;
@@ -76,9 +81,7 @@ export default function PodcastDetailScreen() {
   });
 
   if (podcast.isLoading) {
-    return (
-      <ActivityIndicator style={styles.center} color={PodcastTheme.textMuted} />
-    );
+    return <ActivityIndicator style={styles.center} color={colors.textMuted} />;
   }
   if (!podcast.data) {
     return (
@@ -92,6 +95,9 @@ export default function PodcastDetailScreen() {
   }
   const p = podcast.data;
   const accent = accentFromSeed(p.artworkUrl ?? p.id);
+
+  // The off track needs to stay visibly grey against a white screen.
+  const offTrack = colors.trackOff;
 
   const header = (
     <View style={styles.header}>
@@ -115,15 +121,19 @@ export default function PodcastDetailScreen() {
             style={[
               styles.subscribe,
               {
-                backgroundColor: p.subscribed
-                  ? PodcastTheme.surfaceRaised
-                  : accent,
+                backgroundColor: p.subscribed ? colors.surfaceRaised : accent,
               },
             ]}
             accessibilityRole="button"
             testID="podcast-subscribe"
           >
-            <Text style={styles.subscribeText}>
+            <Text
+              style={[
+                styles.subscribeText,
+                // White on the artwork-derived accent; themed text on the grey fill.
+                { color: p.subscribed ? colors.text : colors.onAccent },
+              ]}
+            >
               {p.subscribed ? "Subscribed ✓" : "Subscribe"}
             </Text>
           </Pressable>
@@ -149,7 +159,8 @@ export default function PodcastDetailScreen() {
             value={autoDl.data ?? false}
             onValueChange={(v) => toggleAuto.mutate(v)}
             accessibilityLabel="Auto-download new episodes"
-            trackColor={{ true: accent }}
+            trackColor={{ true: accent, false: offTrack }}
+            thumbColor="#FFFFFF"
           />
         </View>
       ) : null}
@@ -169,13 +180,13 @@ export default function PodcastDetailScreen() {
         keyExtractor={(e) => e.id}
         ListHeaderComponent={header}
         contentContainerStyle={{
-          paddingBottom: MINI_PLAYER_CONTENT_INSET + 16,
+          paddingBottom: miniInset + 16,
         }}
         refreshControl={
           <RefreshControl
             refreshing={refresh.isPending}
             onRefresh={() => refresh.mutate()}
-            tintColor={PodcastTheme.textMuted}
+            tintColor={colors.textMuted}
           />
         }
         renderItem={({ item: e }) => {
@@ -212,49 +223,50 @@ export default function PodcastDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: PodcastTheme.background,
-    gap: 12,
-  },
-  error: { color: PodcastTheme.textMuted },
-  retry: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: PodcastTheme.surfaceRaised,
-  },
-  retryText: { color: PodcastTheme.text },
-  header: { padding: 16, gap: 12 },
-  hero: { flexDirection: "row", gap: 16 },
-  heroText: { flex: 1, gap: 6, justifyContent: "center" },
-  title: { color: PodcastTheme.text, fontSize: 20, fontWeight: "700" },
-  author: { color: PodcastTheme.textMuted },
-  subscribe: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginTop: 4,
-  },
-  subscribeText: { color: "#fff", fontWeight: "700" },
-  description: { color: PodcastTheme.textMuted, lineHeight: 20 },
-  categories: { color: PodcastTheme.textMuted, fontSize: 12 },
-  settingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  settingLabel: { color: PodcastTheme.text },
-  count: {
-    color: PodcastTheme.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginTop: 8,
-  },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.background,
+      gap: 12,
+    },
+    error: { color: c.textMuted },
+    retry: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: c.surfaceRaised,
+    },
+    retryText: { color: c.text },
+    header: { padding: 16, gap: 12 },
+    hero: { flexDirection: "row", gap: 16 },
+    heroText: { flex: 1, gap: 6, justifyContent: "center" },
+    title: { color: c.text, fontSize: 20, fontWeight: "700" },
+    author: { color: c.textMuted },
+    subscribe: {
+      alignSelf: "flex-start",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 16,
+      marginTop: 4,
+    },
+    subscribeText: { color: c.onAccent, fontWeight: "700" },
+    description: { color: c.textMuted, lineHeight: 20 },
+    categories: { color: c.textMuted, fontSize: 12 },
+    settingRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    settingLabel: { color: c.text },
+    count: {
+      color: c.textMuted,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      marginTop: 8,
+    },
+  });

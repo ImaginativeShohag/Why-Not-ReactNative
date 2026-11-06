@@ -1,14 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, View } from "react-native";
 
+import Text from "@/src/projects/store/components/ui/StoreText";
 import ProductImage from "@/src/projects/store/components/ui/product-image";
 import { ListSkeleton } from "@/src/projects/store/components/ui/Skeleton";
 import WishlistButton from "@/src/projects/store/components/ui/WishlistButton";
@@ -17,11 +11,16 @@ import {
   useWishlist,
   useWishlistIds,
 } from "@/src/projects/store/hooks/useWishlist";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 import { formatPrice } from "@/src/projects/store/utils/money";
 import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
 
 export default function WishlistScreen() {
   const { isPending } = useWishlistIds();
+  const styles = useStoreStyles(createStyles);
   const { data: products = [], isPending: productsPending } = useProducts();
   const wishlist = useWishlist((message) => Alert.alert("Wishlist", message));
 
@@ -44,6 +43,7 @@ export default function WishlistScreen() {
     <FlatList
       data={items}
       keyExtractor={(item) => String(item.id)}
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
         <View style={styles.row}>
@@ -76,19 +76,20 @@ export default function WishlistScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  list: { padding: 16, gap: 12 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 10,
-    gap: 8,
-  },
-  main: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  image: { width: 64, height: 64, borderRadius: 10 },
-  text: { flex: 1, gap: 4 },
-  title: { fontSize: 15 },
-  price: { fontSize: 15, fontWeight: "700" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    list: { padding: 16, gap: 12 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.card,
+      borderRadius: 14,
+      padding: 10,
+      gap: 8,
+    },
+    main: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+    image: { width: 64, height: 64, borderRadius: 10 },
+    text: { flex: 1, gap: 4 },
+    title: { fontSize: 15 },
+    price: { fontSize: 15, fontWeight: "700" },
+  });

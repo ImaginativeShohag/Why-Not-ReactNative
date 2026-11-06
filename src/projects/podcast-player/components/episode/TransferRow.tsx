@@ -1,9 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { DownloadBadge } from "@/src/projects/podcast-player/components/episode/DownloadBadge";
 import { ProgressBar } from "@/src/projects/podcast-player/components/episode/ProgressBar";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import type { DownloadView } from "@/src/projects/podcast-player/utils/downloadView";
 import { formatBytes } from "@/src/projects/podcast-player/utils/format";
 
@@ -25,6 +30,8 @@ export function TransferRow({
   onCancel,
   onBadgePress,
 }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   return (
     <View style={styles.transfer}>
       <View style={styles.row}>
@@ -37,7 +44,7 @@ export function TransferRow({
           accessibilityRole="button"
           accessibilityLabel="Cancel download"
         >
-          <Ionicons name="close" size={20} color={PodcastTheme.textMuted} />
+          <Ionicons name="close" size={20} color={colors.textMuted} />
         </Pressable>
       </View>
       <ProgressBar progress={view.progress} height={4} />
@@ -64,14 +71,15 @@ export function TransferRow({
   );
 }
 
-const styles = StyleSheet.create({
-  transfer: { paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  title: { color: PodcastTheme.text, fontWeight: "600", flexShrink: 1 },
-  meta: { color: PodcastTheme.textMuted, fontSize: 12, flexShrink: 1 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    transfer: { paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+    },
+    title: { color: c.text, fontWeight: "600", flexShrink: 1 },
+    meta: { color: c.textMuted, fontSize: 12, flexShrink: 1 },
+  });

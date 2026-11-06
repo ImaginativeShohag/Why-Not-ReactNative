@@ -16,6 +16,12 @@ export type AttachmentStripProps = {
   onPress?: (id: string) => void;
   /** Long-press action, e.g. remove. */
   onLongPress?: (id: string) => void;
+  /**
+   * Padding of the parent to run under. The strip stretches over it and puts
+   * it back inside the scroll content, so items scroll to the screen edge
+   * instead of being cut off at the parent's padding.
+   */
+  bleed?: number;
 };
 
 export function AttachmentStrip({
@@ -23,6 +29,7 @@ export function AttachmentStrip({
   size = 88,
   onPress,
   onLongPress,
+  bleed = 0,
 }: AttachmentStripProps) {
   const palette = usePalette();
   if (items.length === 0) return null;
@@ -31,7 +38,8 @@ export function AttachmentStrip({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
+      style={{ marginHorizontal: -bleed }}
+      contentContainerStyle={[styles.row, { paddingHorizontal: bleed }]}
     >
       {items.map((item) => (
         <Pressable

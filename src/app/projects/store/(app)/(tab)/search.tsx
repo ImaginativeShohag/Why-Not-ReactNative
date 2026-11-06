@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -20,9 +19,16 @@ import { useSearch } from "@/src/projects/store/hooks/useSearch";
 import { useSearchStore } from "@/src/projects/store/stores/searchStore";
 import { track } from "@/src/projects/store/utils/analytics";
 import { formatPrice } from "@/src/projects/store/utils/money";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
 
 export default function SearchScreen() {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const router = useRouter();
   const [term, setTerm] = useState("");
   const search = useSearch(term);
@@ -46,12 +52,12 @@ export default function SearchScreen() {
   return (
     <View style={styles.flex}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={storeColors.muted} />
+        <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput
           value={term}
           onChangeText={setTerm}
           placeholder="Search products"
-          placeholderTextColor={storeColors.muted}
+          placeholderTextColor={colors.muted}
           style={styles.input}
           returnKeyType="search"
           autoCorrect={false}
@@ -61,7 +67,7 @@ export default function SearchScreen() {
           testID="search-input"
         />
         {search.isFetching || search.isTyping ? (
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="small" color={colors.muted} />
         ) : null}
       </View>
 
@@ -89,7 +95,7 @@ export default function SearchScreen() {
                     <Ionicons
                       name="time-outline"
                       size={18}
-                      color={storeColors.muted}
+                      color={colors.muted}
                     />
                     <Text style={styles.recentText}>{recent}</Text>
                   </Pressable>
@@ -99,11 +105,7 @@ export default function SearchScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Remove ${recent} from recent searches`}
                   >
-                    <Ionicons
-                      name="close"
-                      size={18}
-                      color={storeColors.muted}
-                    />
+                    <Ionicons name="close" size={18} color={colors.muted} />
                   </Pressable>
                 </View>
               ))}
@@ -164,21 +166,23 @@ export default function SearchScreen() {
               <Pressable
                 onPressIn={() => prefetch(item)}
                 onPress={() => addRecent(term)}
-                style={({ pressed }) => [
-                  styles.result,
-                  pressed && styles.dimmed,
-                ]}
+                style={({ pressed }) => pressed && styles.dimmed}
                 accessibilityRole="link"
                 accessibilityLabel={`${item.title}, ${formatPrice(item.price)}`}
               >
-                <ProductImage image={item.image} style={styles.thumb} />
-                <View style={styles.flex}>
-                  <Text style={styles.resultTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.resultPrice}>
-                    {formatPrice(item.price)}
-                  </Text>
+                {/* The row layout lives on an inner View: Link's asChild slot
+                    merges the Pressable's style, and a function style loses
+                    the row direction on Android. */}
+                <View style={styles.result}>
+                  <ProductImage image={item.image} style={styles.thumb} />
+                  <View style={styles.flex}>
+                    <Text style={styles.resultTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.resultPrice}>
+                      {formatPrice(item.price)}
+                    </Text>
+                  </View>
                 </View>
               </Pressable>
             </Link>
@@ -189,55 +193,62 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    margin: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(120,120,128,0.12)",
-  },
-  input: { flex: 1, fontSize: 17, paddingVertical: 10 },
-  content: { paddingHorizontal: 16, paddingBottom: 24 },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  link: { color: storeColors.accent, fontSize: 15, marginBottom: 6 },
-  recentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 8,
-  },
-  recentMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  recentText: { fontSize: 16 },
-  hint: {
-    color: storeColors.muted,
-    fontSize: 15,
-    textAlign: "center",
-    marginTop: 32,
-  },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,122,255,0.12)",
-  },
-  chipText: { color: storeColors.accent, fontWeight: "600" },
-  result: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  thumb: { width: 56, height: 56, borderRadius: 8 },
-  resultTitle: { fontSize: 15, fontWeight: "500" },
-  resultPrice: { fontSize: 15, fontWeight: "700", marginTop: 2 },
-  dimmed: { opacity: 0.6 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      backgroundColor: c.fill,
+    },
+    input: { flex: 1, fontSize: 17, paddingVertical: 10, color: c.label },
+    content: { paddingHorizontal: 16, paddingBottom: 24 },
+    rowBetween: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+    },
+    link: { color: c.accent, fontSize: 15, marginBottom: 6 },
+    recentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 10,
+      gap: 8,
+    },
+    recentMain: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    recentText: { fontSize: 16 },
+    hint: {
+      color: c.muted,
+      fontSize: 15,
+      textAlign: "center",
+      marginTop: 32,
+    },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.accentSoft,
+    },
+    chipText: { color: c.accent, fontWeight: "600" },
+    result: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 8,
+    },
+    thumb: { width: 56, height: 56, borderRadius: 8 },
+    resultTitle: { fontSize: 15, fontWeight: "500" },
+    resultPrice: { fontSize: 15, fontWeight: "700", marginTop: 2 },
+    dimmed: { opacity: 0.6 },
+  });

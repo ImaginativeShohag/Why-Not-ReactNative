@@ -1,7 +1,7 @@
 import { Redirect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { isStripeConfigured } from "@/src/projects/store/api/payment.api";
 import CheckoutScaffold from "@/src/projects/store/components/checkout/CheckoutScaffold";
@@ -16,13 +16,18 @@ import {
 import type { PaymentMethodKind } from "@/src/projects/store/models/Payment";
 import { useDevFlags } from "@/src/projects/store/utils/devFlags";
 import { env } from "@/src/shared/constants/env";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 export default function CheckoutPaymentScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const redirect = useCheckoutGuard("payment");
   const { checkout, send } = useCheckout();
+  const styles = useStoreStyles(createStyles);
   const outcome = useDevFlags((s) => s.simulatedPaymentOutcome);
   const stripeReady = isStripeConfigured();
   // The simulated processor exists so the flow is exercisable without keys;
@@ -85,6 +90,7 @@ export default function CheckoutPaymentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  note: { fontSize: 13, color: storeColors.muted, marginTop: 8 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    note: { fontSize: 13, color: c.muted, marginTop: 8 },
+  });

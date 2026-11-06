@@ -14,7 +14,7 @@ export default function FitnessTabLayout() {
         // there is no way back to the launcher from inside the tabs.
         headerLeft: () => (
           <Pressable
-            onPress={() => router.navigate("/")}
+            onPress={() => router.dismissTo("/")}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Back to projects"

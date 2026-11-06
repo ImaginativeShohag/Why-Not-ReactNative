@@ -2,12 +2,12 @@ import {
   Pressable,
   type StyleProp,
   StyleSheet,
-  Text,
   View,
   type ViewStyle,
 } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type QuantityStepperProps = {
   quantity: number;
@@ -31,6 +31,7 @@ export default function QuantityStepper({
   size = "regular",
   style,
 }: QuantityStepperProps) {
+  const styles = useStoreStyles(createStyles);
   const large = size === "large";
   const buttonStyle = [styles.button, large && styles.buttonLarge];
   const textStyle = [styles.buttonText, large && styles.buttonTextLarge];
@@ -67,30 +68,31 @@ export default function QuantityStepper({
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center" },
-  button: {
-    padding: 6,
-    backgroundColor: storeColors.accent,
-    borderRadius: 6,
-    minWidth: 32,
-    alignItems: "center",
-  },
-  buttonLarge: {
-    padding: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-  },
-  buttonDisabled: { opacity: 0.4 },
-  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 18 },
-  buttonTextLarge: { fontSize: 20, fontWeight: "700" },
-  value: { fontSize: 16, fontWeight: "600", marginHorizontal: 8 },
-  valueLarge: {
-    fontSize: 18,
-    marginHorizontal: 0,
-    minWidth: 24,
-    textAlign: "center",
-  },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    row: { flexDirection: "row", alignItems: "center" },
+    button: {
+      padding: 6,
+      backgroundColor: c.accent,
+      borderRadius: 6,
+      minWidth: 32,
+      alignItems: "center",
+    },
+    buttonLarge: {
+      padding: 0,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      justifyContent: "center",
+    },
+    buttonDisabled: { opacity: 0.4 },
+    buttonText: { color: c.onAccent, fontWeight: "bold", fontSize: 18 },
+    buttonTextLarge: { fontSize: 20, fontWeight: "700" },
+    value: { fontSize: 16, fontWeight: "600", marginHorizontal: 8 },
+    valueLarge: {
+      fontSize: 18,
+      marginHorizontal: 0,
+      minWidth: 24,
+      textAlign: "center",
+    },
+  });

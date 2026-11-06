@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   View,
 } from "react-native";
 
@@ -25,9 +24,16 @@ import {
 } from "@/src/projects/store/notifications/registerForPush";
 import { useDevFlags } from "@/src/projects/store/utils/devFlags";
 import { env } from "@/src/shared/constants/env";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
 
 export default function AccountScreen() {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const router = useRouter();
   const session = useSession();
   const [push, setPush] = useState<PushPermission>("undetermined");
@@ -65,7 +71,7 @@ export default function AccountScreen() {
         <Ionicons
           name="person-circle-outline"
           size={72}
-          color={storeColors.tertiary}
+          color={colors.tertiary}
           style={styles.center}
         />
         <Text style={styles.title} accessibilityRole="header">
@@ -101,7 +107,7 @@ export default function AccountScreen() {
         accessible
         accessibilityLabel={`Signed in as ${user?.username}`}
       >
-        <Ionicons name="person-circle" size={64} color={storeColors.accent} />
+        <Ionicons name="person-circle" size={64} color={colors.accent} />
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{user?.displayName ?? user?.username}</Text>
           <Text style={styles.subtitle}>
@@ -128,7 +134,7 @@ export default function AccountScreen() {
         <Ionicons
           name="notifications-outline"
           size={22}
-          color={storeColors.accent}
+          color={colors.accent}
         />
         <Text style={styles.rowLabel}>Order updates</Text>
         {push === "granted" ? (
@@ -146,13 +152,11 @@ export default function AccountScreen() {
         )}
       </View>
       <View style={styles.row}>
-        <Ionicons
-          name="finger-print-outline"
-          size={22}
-          color={storeColors.accent}
-        />
+        <Ionicons name="finger-print-outline" size={22} color={colors.accent} />
         <Text style={styles.rowLabel}>Unlock with Face ID / fingerprint</Text>
         <Switch
+          trackColor={{ true: colors.accent }}
+          thumbColor={colors.onAccent}
           value={session.biometricEnabled}
           onValueChange={toggleBiometric}
           accessibilityLabel="Unlock with biometrics"
@@ -190,15 +194,17 @@ function Row({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
     >
-      <Ionicons name={icon} size={22} color={storeColors.accent} />
+      <Ionicons name={icon} size={22} color={colors.accent} />
       <Text style={styles.rowLabel}>{label}</Text>
-      <Ionicons name="chevron-forward" size={18} color={storeColors.tertiary} />
+      <Ionicons name="chevron-forward" size={18} color={colors.tertiary} />
     </Pressable>
   );
 }
@@ -215,6 +221,7 @@ const OUTCOMES: { value: SimulatedOutcome; label: string }[] = [
  * produce exactly one refresh and zero logouts.
  */
 function DevMenu() {
+  const styles = useStoreStyles(createStyles);
   const flags = useDevFlags();
   const [lastRun, setLastRun] = useState<string | null>(null);
 
@@ -274,10 +281,14 @@ function DevSwitch({
   value: boolean;
   onChange: (value: boolean) => void;
 }) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
       <Switch
+        trackColor={{ true: colors.accent }}
+        thumbColor={colors.onAccent}
         value={value}
         onValueChange={onChange}
         accessibilityLabel={label}
@@ -286,30 +297,31 @@ function DevSwitch({
   );
 }
 
-const styles = StyleSheet.create({
-  content: { padding: 16, gap: 10, paddingBottom: 48 },
-  center: { alignSelf: "center" },
-  title: { fontSize: 20, fontWeight: "700", textAlign: "center" },
-  subtitle: { fontSize: 14, color: storeColors.muted },
-  profile: { flexDirection: "row", alignItems: "center", gap: 12 },
-  name: { fontSize: 20, fontWeight: "700" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 48,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-  },
-  rowLabel: { flex: 1, fontSize: 16 },
-  rowValue: { fontSize: 15, color: storeColors.muted },
-  link: { color: storeColors.accent, fontWeight: "600", fontSize: 15 },
-  dev: { marginTop: 24, gap: 8 },
-  devLabel: { fontSize: 13, color: storeColors.muted },
-  devResult: {
-    fontSize: 13,
-    color: storeColors.secondaryText,
-    fontVariant: ["tabular-nums"],
-  },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    content: { padding: 16, gap: 10, paddingBottom: 48 },
+    center: { alignSelf: "center" },
+    title: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+    subtitle: { fontSize: 14, color: c.muted },
+    profile: { flexDirection: "row", alignItems: "center", gap: 12 },
+    name: { fontSize: 20, fontWeight: "700" },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      minHeight: 48,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      backgroundColor: c.card,
+    },
+    rowLabel: { flex: 1, fontSize: 16, color: c.label },
+    rowValue: { fontSize: 15, color: c.muted },
+    link: { color: c.accent, fontWeight: "600", fontSize: 15 },
+    dev: { marginTop: 24, gap: 8 },
+    devLabel: { fontSize: 13, color: c.muted },
+    devResult: {
+      fontSize: 13,
+      color: c.secondaryText,
+      fontVariant: ["tabular-nums"],
+    },
+  });

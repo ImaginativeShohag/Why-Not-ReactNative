@@ -9,7 +9,6 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -36,11 +35,18 @@ import { useIsOnline } from "@/src/projects/store/query/storeQuery";
 import { formatPrice } from "@/src/projects/store/utils/money";
 import { capitalize } from "@/src/projects/store/utils/text";
 import { ThemedText } from "@/src/shared/components/themed-text";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
 
 const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const router = useRouter();
   const session = useSession();
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -80,7 +86,11 @@ export default function HomeScreen() {
           }
           style={({ pressed }) => [pressed && styles.buttonPressed]}
         >
-          <Ionicons name="person-circle-outline" size={32} />
+          <Ionicons
+            name="person-circle-outline"
+            size={32}
+            color={colors.label}
+          />
         </Pressable>
       </View>
 
@@ -149,7 +159,7 @@ export default function HomeScreen() {
               style={({ pressed }) => [{ opacity: pressed ? 0.2 : 1.0 }]}
             >
               <View style={styles.categoryItemContainer}>
-                <Ionicons name="cube-outline" size={16} color="black" />
+                <Ionicons name="cube-outline" size={16} color={colors.label} />
                 <Text style={styles.categoryItemText}>
                   {capitalize(category)}
                 </Text>
@@ -201,6 +211,7 @@ export default function HomeScreen() {
         }}
         refreshControl={
           <RefreshControl
+            tintColor={colors.muted}
             refreshing={catalogue.isRefetching && !catalogue.isFetchingNextPage}
             onRefresh={() => catalogue.refetch()}
           />
@@ -219,6 +230,7 @@ export default function HomeScreen() {
         index={0}
         snapPoints={["90%"]}
         enableDynamicSizing={false}
+        backgroundStyle={{ backgroundColor: colors.card }}
         handleComponent={() => (
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle} accessibilityRole="header">
@@ -240,38 +252,39 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    gap: 16,
-  },
-  sectionTitle: { fontSize: 20, fontWeight: "700", paddingHorizontal: 16 },
-  categoryItemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(128,128,128,0.25)",
-  },
-  categoryItemText: { fontSize: 14, fontWeight: "600" },
-  sheetHeader: {
-    height: 50,
-    backgroundColor: "#fff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: "#ccc",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    borderTopStartRadius: 16,
-    borderTopEndRadius: 16,
-  },
-  sheetTitle: { fontSize: 16, fontWeight: "600" },
-  sheetDoneButton: { fontSize: 16, color: storeColors.accent },
-  buttonPressed: { opacity: 0.5 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: { flex: 1 },
+    headerContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingTop: 16,
+      paddingHorizontal: 16,
+      gap: 16,
+    },
+    sectionTitle: { fontSize: 20, fontWeight: "700", paddingHorizontal: 16 },
+    categoryItemContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      padding: 8,
+      borderRadius: 8,
+      backgroundColor: c.fill,
+    },
+    categoryItemText: { fontSize: 14, fontWeight: "600" },
+    sheetHeader: {
+      height: 50,
+      backgroundColor: c.card,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: c.separator,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      borderTopStartRadius: 16,
+      borderTopEndRadius: 16,
+    },
+    sheetTitle: { fontSize: 16, fontWeight: "600" },
+    sheetDoneButton: { fontSize: 16, color: c.accent },
+    buttonPressed: { opacity: 0.5 },
+  });

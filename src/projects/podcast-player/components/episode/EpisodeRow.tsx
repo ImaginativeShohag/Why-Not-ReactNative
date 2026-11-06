@@ -1,11 +1,16 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { DownloadBadge } from "@/src/projects/podcast-player/components/episode/DownloadBadge";
 import { ProgressBar } from "@/src/projects/podcast-player/components/episode/ProgressBar";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
 import type { DownloadState } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = {
   title: string;
@@ -42,6 +47,8 @@ export function EpisodeRow({
   onDownload,
   onLongPress,
 }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -85,7 +92,7 @@ export function EpisodeRow({
           <Ionicons
             name={isCurrent && isPlaying ? "pause-circle" : "play-circle"}
             size={34}
-            color={isCurrent ? PodcastTheme.accent : PodcastTheme.text}
+            color={isCurrent ? colors.accent : colors.text}
           />
         </Pressable>
       </View>
@@ -93,26 +100,27 @@ export function EpisodeRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-  },
-  pressed: { backgroundColor: PodcastTheme.surface },
-  body: { flex: 1, gap: 2 },
-  show: { color: PodcastTheme.textMuted, fontSize: 12 },
-  title: { color: PodcastTheme.text, fontSize: 15, fontWeight: "600" },
-  played: { color: PodcastTheme.textMuted },
-  meta: { color: PodcastTheme.textMuted, fontSize: 12 },
-  progress: { marginTop: 4, width: "70%" },
-  actions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  play: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 12,
+    },
+    pressed: { backgroundColor: c.surface },
+    body: { flex: 1, gap: 2 },
+    show: { color: c.textMuted, fontSize: 12 },
+    title: { color: c.text, fontSize: 15, fontWeight: "600" },
+    played: { color: c.textMuted },
+    meta: { color: c.textMuted, fontSize: 12 },
+    progress: { marginTop: 4, width: "70%" },
+    actions: { flexDirection: "row", alignItems: "center", gap: 12 },
+    play: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });

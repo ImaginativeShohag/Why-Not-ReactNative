@@ -9,7 +9,6 @@ import {
   Image,
   RefreshControl,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -17,10 +16,17 @@ import {
 import { getErrorMessage } from "@/src/projects/store/api/errors";
 import { useSession } from "@/src/projects/store/auth/useSession";
 import ErrorStateView from "@/src/projects/store/components/ui/ErrorStateView";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 import { useUserProfile } from "@/src/projects/store/hooks/useUser";
 
 export default function ProfileSheet() {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const router = useRouter();
   const { dismiss } = useBottomSheetModal();
   const session = useSession();
@@ -54,7 +60,7 @@ export default function ProfileSheet() {
   if (isPending && session.user) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.muted} />
       </View>
     );
   }
@@ -73,7 +79,11 @@ export default function ProfileSheet() {
     <BottomSheetScrollView
       contentContainerStyle={styles.container}
       refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={() => refetch()}
+          tintColor={colors.muted}
+        />
       }
     >
       <View style={styles.imageContainer}>
@@ -144,53 +154,54 @@ export default function ProfileSheet() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-  section: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 16,
-  },
-  label: {
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  button: {
-    padding: 12,
-    backgroundColor: storeColors.accent,
-    borderRadius: 6,
-    marginVertical: 8,
-    alignItems: "center",
-  },
-  signOut: {
-    backgroundColor: "red",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: {
+      padding: 20,
+    },
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    imageContainer: {
+      alignItems: "center",
+      marginBottom: 20,
+      padding: 16,
+      backgroundColor: c.cardAlt,
+      borderRadius: 16,
+    },
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+    },
+    sectionTitle: {
+      marginBottom: 8,
+      textTransform: "uppercase",
+    },
+    section: {
+      marginBottom: 20,
+      padding: 16,
+      backgroundColor: c.cardAlt,
+      borderRadius: 16,
+    },
+    label: {
+      fontWeight: "bold",
+      marginTop: 10,
+    },
+    button: {
+      padding: 12,
+      backgroundColor: c.accent,
+      borderRadius: 6,
+      marginVertical: 8,
+      alignItems: "center",
+    },
+    signOut: {
+      backgroundColor: c.danger,
+    },
+    buttonText: {
+      color: c.onAccent,
+      fontWeight: "bold",
+    },
+  });

@@ -75,7 +75,7 @@ export default function TicTacToeScreen() {
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const columnWidth = Math.min(width - 32, 380);
+  const columnWidth = Math.min(width - SCREEN_PADDING * 2, 380);
   // The board takes whatever height is left between the controls above and
   // below it, so a whole round fits on one screen. Only when that is too small
   // (a short phone, landscape) does it keep MIN_BOARD and let the page scroll.
@@ -204,6 +204,7 @@ export default function TicTacToeScreen() {
             isSelectable={(move) => canJumpTo(move, mode)}
             palette={palette}
             reduceMotion={reduceMotion}
+            bleed={SCREEN_PADDING}
           />
         </View>
       </View>
@@ -211,12 +212,14 @@ export default function TicTacToeScreen() {
   );
 }
 
+const SCREEN_PADDING = 16;
+
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     alignItems: "center",
     paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_PADDING,
   },
   headerButtons: {
     flexDirection: "row",

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
+import { podcastPalettes } from "@/src/projects/podcast-player/constants/theme";
 import type { Chapter } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
 import {
   formatDuration,
   formatRemaining,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   time: {
-    color: PodcastTheme.textMuted,
+    color: podcastPalettes.dark.textMuted,
     fontSize: 12,
     fontVariant: ["tabular-nums"],
   },

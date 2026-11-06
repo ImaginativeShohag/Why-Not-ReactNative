@@ -5,6 +5,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "expo-router/react-navigation";
+import { NavigationBar } from "expo-navigation-bar";
 import { ShareIntentProvider } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -84,6 +85,9 @@ export default function RootLayout() {
                 )}
               </Stack>
               <StatusBar style="auto" />
+              {/* Base entry: without it, leaving a project that sets its own
+                  NavigationBar falls back to the library default ("light"). */}
+              <NavigationBar style="auto" />
               <ShareIntentRouting />
             </ThemeProvider>
           </GestureHandlerRootView>

@@ -74,6 +74,7 @@ export default function OrdersScreen() {
       <FlatList
         data={orders.slice(0, visible)}
         keyExtractor={(item) => item.id}
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl

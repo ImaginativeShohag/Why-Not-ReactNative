@@ -1,6 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet } from "react-native";
 
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props<T> = {
   options: readonly T[];
@@ -16,8 +21,11 @@ export function OptionChips<T>({
   value,
   format,
   onChange,
-  accent = PodcastTheme.accent,
+  accent,
 }: Props<T>) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const chipAccent = accent ?? colors.accent;
   return (
     <ScrollView
       horizontal
@@ -35,7 +43,10 @@ export function OptionChips<T>({
             onPress={() => onChange(o)}
             style={[
               styles.chip,
-              selected && { backgroundColor: accent, borderColor: accent },
+              selected && {
+                backgroundColor: chipAccent,
+                borderColor: chipAccent,
+              },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected }}
@@ -50,16 +61,17 @@ export function OptionChips<T>({
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flexGrow: 0 },
-  row: { gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: PodcastTheme.border,
-  },
-  text: { color: PodcastTheme.text, fontSize: 13 },
-  selectedText: { color: "#fff", fontWeight: "700" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    scroll: { flexGrow: 0 },
+    row: { gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    text: { color: c.text, fontSize: 13 },
+    selectedText: { color: c.onAccent, fontWeight: "700" },
+  });

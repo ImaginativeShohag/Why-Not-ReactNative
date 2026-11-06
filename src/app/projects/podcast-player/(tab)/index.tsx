@@ -5,7 +5,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -26,7 +25,12 @@ import {
 } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
 import { useUpdateBanner } from "@/src/projects/podcast-player/lib/updates";
 import type { EpisodeListItem } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import {
   formatDurationShort,
   formatRelativeDate,
@@ -34,6 +38,8 @@ import {
 import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
 
 export default function PodcastHomeScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const subs = useSubscriptions();
@@ -87,7 +93,7 @@ export default function PodcastHomeScreen() {
         <RefreshControl
           refreshing={refresh.isPending}
           onRefresh={() => refresh.mutate()}
-          tintColor={PodcastTheme.textMuted}
+          tintColor={colors.textMuted}
         />
       }
     >
@@ -101,15 +107,15 @@ export default function PodcastHomeScreen() {
         <ContentUnavailableView
           iconComponent={Ionicons}
           iconName="radio-outline"
-          iconColor={PodcastTheme.textMuted}
+          iconColor={colors.textMuted}
           title="No subscriptions yet"
           description="Find a show you like and subscribe to see new episodes here."
-          titleColor={PodcastTheme.text}
-          descriptionColor={PodcastTheme.textMuted}
+          titleColor={colors.text}
+          descriptionColor={colors.textMuted}
           action={{
             label: "Discover podcasts",
             onPress: () => router.push("/projects/podcast-player/discover"),
-            color: PodcastTheme.accent,
+            color: colors.accent,
           }}
         />
       ) : null}
@@ -188,25 +194,26 @@ export default function PodcastHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  cards: { paddingHorizontal: 16, gap: 12 },
-  card: {
-    width: 280,
-    flexDirection: "row",
-    gap: 12,
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: PodcastTheme.surface,
-    alignItems: "center",
-  },
-  cardBody: { flex: 1, gap: 6 },
-  cardTitle: { color: PodcastTheme.text, fontWeight: "600" },
-  cardMeta: { color: PodcastTheme.textMuted, fontSize: 12 },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 16,
-  },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    cards: { paddingHorizontal: 16, gap: 12 },
+    card: {
+      width: 280,
+      flexDirection: "row",
+      gap: 12,
+      padding: 12,
+      borderRadius: 14,
+      backgroundColor: c.surface,
+      alignItems: "center",
+    },
+    cardBody: { flex: 1, gap: 6 },
+    cardTitle: { color: c.text, fontWeight: "600" },
+    cardMeta: { color: c.textMuted, fontSize: 12 },
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
+      paddingHorizontal: 16,
+    },
+  });

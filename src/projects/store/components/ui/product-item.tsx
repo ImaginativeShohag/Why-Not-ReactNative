@@ -1,11 +1,16 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import ProductImage from "@/src/projects/store/components/ui/product-image";
 
 import WishlistButton from "./WishlistButton";
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "../../constants/theme";
 
 type ProductViewProps = {
   title: string;
@@ -40,6 +45,8 @@ export default function ProductView({
   onPressIn,
   testID,
 }: ProductViewProps) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const qty = quantity ?? 0;
   const ratingLabel = `Rated ${rating.toFixed(1)} out of 5 from ${ratingCount} reviews`;
   return (
@@ -101,7 +108,7 @@ export default function ProductView({
           accessibilityRole="button"
           accessibilityLabel={`Add one ${title} to bag`}
         >
-          <Ionicons name="add-circle" size={24} color="black" />
+          <Ionicons name="add-circle" size={24} color={colors.label} />
         </Pressable>
 
         <Text style={styles.quantity} accessibilityLabel={`${qty} in bag`}>
@@ -120,7 +127,7 @@ export default function ProductView({
           <Ionicons
             name="remove-circle"
             size={24}
-            color={qty === 0 ? storeColors.tertiary : "black"}
+            color={qty === 0 ? colors.tertiary : colors.label}
           />
         </Pressable>
       </View>
@@ -128,43 +135,52 @@ export default function ProductView({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    overflow: "hidden",
-    margin: 8,
-  },
-  imageWrapper: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  gradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: 32 },
-  wishlist: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 16,
-  },
-  info: { padding: 8 },
-  title: { fontSize: 14, fontWeight: "600" },
-  price: { fontSize: 16, fontWeight: "bold", color: storeColors.label },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  ratingText: { fontSize: 12, color: "gray", marginLeft: 4 },
-  ratingCount: { fontSize: 12, color: "gray", marginLeft: 2 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: "#C6C6C8" },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    justifyContent: "space-between",
-  },
-  quantity: { flex: 1, textAlign: "center", fontSize: 14, fontWeight: "500" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: c.card,
+      borderRadius: 16,
+      overflow: "hidden",
+      margin: 8,
+    },
+    imageWrapper: {
+      width: "100%",
+      aspectRatio: 1,
+      // Product photos come on white, so the well stays white in both modes.
+      backgroundColor: "#fff",
+      justifyContent: "center",
+      alignItems: "center",
+      position: "relative",
+      borderRadius: 16,
+      overflow: "hidden",
+    },
+    gradient: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 32,
+    },
+    wishlist: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      // Sits on the white product photo, so it stays white in both modes.
+      backgroundColor: "rgba(255,255,255,0.9)",
+      borderRadius: 16,
+    },
+    info: { padding: 8 },
+    title: { fontSize: 14, fontWeight: "600" },
+    price: { fontSize: 16, fontWeight: "bold", color: c.label },
+    ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+    ratingText: { fontSize: 12, color: c.muted, marginLeft: 4 },
+    ratingCount: { fontSize: 12, color: c.muted, marginLeft: 2 },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: c.separator },
+    actions: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 8,
+      justifyContent: "space-between",
+    },
+    quantity: { flex: 1, textAlign: "center", fontSize: 14, fontWeight: "500" },
+  });

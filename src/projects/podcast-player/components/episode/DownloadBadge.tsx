@@ -1,8 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import type { DownloadState } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = {
   state: DownloadState;
@@ -23,12 +28,14 @@ const LABELS: Record<DownloadState, string> = {
 
 /** Download state, visible wherever an episode appears. */
 export function DownloadBadge({ state, progress, onPress, size = 22 }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const color =
     state === "done"
-      ? PodcastTheme.success
+      ? colors.success
       : state === "failed"
-        ? PodcastTheme.danger
-        : PodcastTheme.textMuted;
+        ? colors.danger
+        : colors.textMuted;
   let content;
   if (state === "downloading") {
     content = (
@@ -71,12 +78,13 @@ export function DownloadBadge({ state, progress, onPress, size = 22 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  ring: {
-    borderWidth: 2,
-    borderColor: PodcastTheme.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pct: { color: PodcastTheme.text, fontSize: 9, fontWeight: "700" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    ring: {
+      borderWidth: 2,
+      borderColor: c.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pct: { color: c.text, fontSize: 9, fontWeight: "700" },
+  });

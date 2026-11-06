@@ -7,6 +7,10 @@ import {
   type ViewStyle,
 } from "react-native";
 
+import {
+  type PodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
 import { accentFromSeed } from "@/src/projects/podcast-player/utils/color";
 
 type Props = {
@@ -19,6 +23,7 @@ type Props = {
 };
 
 export function Artwork({ uri, size, title, radius = 8, style }: Props) {
+  const styles = usePodcastStyles(createStyles);
   const box = { width: size, height: size, borderRadius: radius };
   if (!uri) {
     return (
@@ -49,8 +54,10 @@ export function Artwork({ uri, size, title, radius = 8, style }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  placeholder: { alignItems: "center", justifyContent: "center" },
-  initial: { color: "#fff", fontWeight: "700" },
-  image: { backgroundColor: "#222" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    placeholder: { alignItems: "center", justifyContent: "center" },
+    // White initial sits on the seed-derived accent fill, in both schemes.
+    initial: { color: "#fff", fontWeight: "700" },
+    image: { backgroundColor: c.surfaceRaised },
+  });

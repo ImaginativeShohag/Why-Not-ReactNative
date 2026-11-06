@@ -33,6 +33,7 @@ export function ToggleRow({
         value={value}
         onValueChange={onChange}
         trackColor={{ true: accent }}
+        thumbColor="#FFFFFF"
         accessibilityLabel={label}
       />
     </View>

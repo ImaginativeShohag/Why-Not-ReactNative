@@ -10,14 +10,8 @@ export type Project = {
   singleScreen?: boolean;
 };
 
+// Keep in project-number order: the launcher renders this array as-is.
 export const PROJECTS: Project[] = [
-  {
-    slug: "store",
-    emoji: "🛍",
-    title: "Store",
-    subtitle: "Commerce app · Project 03",
-    route: "/projects/store",
-  },
   {
     slug: "offline-journal",
     emoji: "📓",
@@ -31,6 +25,13 @@ export const PROJECTS: Project[] = [
     title: "Camera & Social",
     subtitle: "Media pipeline · Project 02",
     route: "/projects/camera-social",
+  },
+  {
+    slug: "store",
+    emoji: "🛍",
+    title: "Store",
+    subtitle: "Commerce app · Project 03",
+    route: "/projects/store",
   },
   {
     slug: "fitness-tracker",

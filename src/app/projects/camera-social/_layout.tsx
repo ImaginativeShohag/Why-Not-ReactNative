@@ -1,3 +1,4 @@
+import { NavigationBar } from "expo-navigation-bar";
 import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
@@ -6,6 +7,7 @@ import { ActivityIndicator, View } from "react-native";
 
 import { Palette } from "@/src/projects/camera-social/constants/theme";
 import { DATABASE_NAME, migrate } from "@/src/projects/camera-social/db/schema";
+import { useWindowBackground } from "@/src/shared/hooks/use-window-background";
 import { supportsZoomTransition } from "@/src/projects/camera-social/utils/platform";
 
 export default function CameraSocialLayout() {
@@ -25,9 +27,11 @@ export default function CameraSocialLayout() {
 }
 
 function CameraSocialStack() {
+  useWindowBackground(Palette.background);
   return (
     <>
       <StatusBar style="light" />
+      <NavigationBar style="light" />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: Palette.background },

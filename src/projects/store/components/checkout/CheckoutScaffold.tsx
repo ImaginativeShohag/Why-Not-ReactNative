@@ -4,10 +4,11 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
+import Text from "../ui/StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 import StepIndicator from "./StepIndicator";
 import StickyFooter from "./StickyFooter";
 
@@ -34,6 +35,7 @@ export default function CheckoutScaffold({
   children,
   footer,
 }: CheckoutScaffoldProps) {
+  const styles = useStoreStyles(createStyles);
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -65,15 +67,16 @@ export default function CheckoutScaffold({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 24 },
-  error: {
-    marginHorizontal: 16,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,59,48,0.1)",
-    color: "#C4271C",
-    fontSize: 14,
-  },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    content: { padding: 16, gap: 12, paddingBottom: 24 },
+    error: {
+      marginHorizontal: 16,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: c.dangerSoft,
+      color: c.dangerText,
+      fontSize: 14,
+    },
+  });

@@ -1,4 +1,6 @@
+import { NavigationBar } from "expo-navigation-bar";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   Share,
@@ -9,6 +11,7 @@ import {
 } from "react-native";
 import { Gesture } from "react-native-gesture-handler";
 import Animated, {
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -16,6 +19,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import {
+  PodcastSchemeOverride,
+  podcastPalettes,
+} from "@/src/projects/podcast-player/constants/theme";
 import { OptionChips } from "@/src/projects/podcast-player/components/common/OptionChips";
 import { FullPlayerView } from "@/src/projects/podcast-player/components/player/FullPlayerView";
 import { useEpisodeActions } from "@/src/projects/podcast-player/hooks/useEpisodeActions";
@@ -28,12 +35,10 @@ import {
   RATE_OPTIONS,
   useSettingsStore,
 } from "@/src/projects/podcast-player/stores/settingsStore";
-import {
-  accentFromSeed,
-  PodcastTheme,
-} from "@/src/projects/podcast-player/utils/color";
+import { accentFromSeed } from "@/src/projects/podcast-player/utils/color";
 import { mergeDownload } from "@/src/projects/podcast-player/utils/downloadView";
 import { formatDuration } from "@/src/projects/podcast-player/utils/format";
+import { useWindowBackground } from "@/src/shared/hooks/use-window-background";
 
 const SLEEP_OPTIONS: SleepTimerOption[] = [
   { kind: "off" },
@@ -70,7 +75,17 @@ export default function NowPlayingScreen() {
   );
   const [panel, setPanel] = useState<"speed" | "sleep" | null>(null);
 
+  useWindowBackground(podcastPalettes.dark.background);
   const translateY = useSharedValue(0);
+  // Dragging the sheet down uncovers the screen below (light in light mode), so
+  // the status bar follows the app theme once the sheet is pulled away.
+  const [sheetPulled, setSheetPulled] = useState(false);
+  useAnimatedReaction(
+    () => translateY.value > 24,
+    (pulled, previous) => {
+      if (pulled !== previous) scheduleOnRN(setSheetPulled, pulled);
+    },
+  );
 
   useEffect(() => {
     // Player stopped while the modal is open (or deep-linked with nothing loaded).
@@ -140,65 +155,69 @@ export default function NowPlayingScreen() {
 
   return (
     <Animated.View style={[styles.root, sheetStyle]}>
-      <FullPlayerView
-        title={nowPlaying.title}
-        podcastTitle={nowPlaying.podcastTitle}
-        artworkUrl={nowPlaying.artworkUrl}
-        accent={accentFromSeed(nowPlaying.artworkUrl ?? nowPlaying.podcastId)}
-        position={status.position}
-        duration={status.duration}
-        playing={status.playing}
-        buffering={status.buffering}
-        rate={status.rate}
-        skipBackSec={skipBackSec}
-        skipForwardSec={skipForwardSec}
-        chapters={nowPlaying.chapters}
-        hasNext={hasNext}
-        sleepLabel={sleepLabel}
-        statusNote={
-          status.error
-            ? `Playback error: ${status.error}`
-            : pausedExternally
-              ? "Paused by the system (call, headphones or lock screen)"
-              : nowPlaying.isLocal
-                ? "Playing from download"
-                : null
-        }
-        downloadState={dl.state}
-        downloadProgress={dl.progress}
-        panel={panelNode}
-        dismissGesture={dismiss}
-        onClose={close}
-        onMore={() =>
-          actions.more(nowPlaying.episodeId, episode.data?.played ?? false)
-        }
-        onTogglePlay={() => playbackService.toggle()}
-        onSkipBack={() => playbackService.skipBack()}
-        onSkipForward={() => playbackService.skipForward()}
-        onNext={() => void playbackService.next()}
-        onSeek={(s) => void playbackService.seekTo(s)}
-        onSpeedPress={() => setPanel((p) => (p === "speed" ? null : "speed"))}
-        onSleepPress={() => setPanel((p) => (p === "sleep" ? null : "sleep"))}
-        onDownload={() => actions.download(nowPlaying.episodeId, dl.state)}
-        onShare={() =>
-          void Share.share({
-            message: `${nowPlaying.title} — ${nowPlaying.podcastTitle}${episode.data ? `\n${episode.data.audioUrl}` : ""}`,
-          })
-        }
-        onQueue={() => {
-          router.back();
-          router.navigate("/projects/podcast-player/queue");
-        }}
-      />
+      <StatusBar style={sheetPulled ? "auto" : "light"} />
+      <NavigationBar style="light" />
+      <PodcastSchemeOverride value="dark">
+        <FullPlayerView
+          title={nowPlaying.title}
+          podcastTitle={nowPlaying.podcastTitle}
+          artworkUrl={nowPlaying.artworkUrl}
+          accent={accentFromSeed(nowPlaying.artworkUrl ?? nowPlaying.podcastId)}
+          position={status.position}
+          duration={status.duration}
+          playing={status.playing}
+          buffering={status.buffering}
+          rate={status.rate}
+          skipBackSec={skipBackSec}
+          skipForwardSec={skipForwardSec}
+          chapters={nowPlaying.chapters}
+          hasNext={hasNext}
+          sleepLabel={sleepLabel}
+          statusNote={
+            status.error
+              ? `Playback error: ${status.error}`
+              : pausedExternally
+                ? "Paused by the system (call, headphones or lock screen)"
+                : nowPlaying.isLocal
+                  ? "Playing from download"
+                  : null
+          }
+          downloadState={dl.state}
+          downloadProgress={dl.progress}
+          panel={panelNode}
+          dismissGesture={dismiss}
+          onClose={close}
+          onMore={() =>
+            actions.more(nowPlaying.episodeId, episode.data?.played ?? false)
+          }
+          onTogglePlay={() => playbackService.toggle()}
+          onSkipBack={() => playbackService.skipBack()}
+          onSkipForward={() => playbackService.skipForward()}
+          onNext={() => void playbackService.next()}
+          onSeek={(s) => void playbackService.seekTo(s)}
+          onSpeedPress={() => setPanel((p) => (p === "speed" ? null : "speed"))}
+          onSleepPress={() => setPanel((p) => (p === "sleep" ? null : "sleep"))}
+          onDownload={() => actions.download(nowPlaying.episodeId, dl.state)}
+          onShare={() =>
+            void Share.share({
+              message: `${nowPlaying.title} — ${nowPlaying.podcastTitle}${episode.data ? `\n${episode.data.audioUrl}` : ""}`,
+            })
+          }
+          onQueue={() => {
+            router.back();
+            router.navigate("/projects/podcast-player/queue");
+          }}
+        />
+      </PodcastSchemeOverride>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
+  root: { flex: 1, backgroundColor: podcastPalettes.dark.background },
   panel: { gap: 8, marginHorizontal: -24 },
   panelTitle: {
-    color: PodcastTheme.textMuted,
+    color: podcastPalettes.dark.textMuted,
     fontSize: 12,
     paddingHorizontal: 24,
   },

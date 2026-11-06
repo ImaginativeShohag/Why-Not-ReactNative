@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
@@ -8,8 +8,11 @@ import { requestPasswordReset } from "@/src/projects/store/api/auth.api";
 import FormField from "@/src/projects/store/components/ui/FormField";
 import PrimaryButton from "@/src/projects/store/components/ui/PrimaryButton";
 import { isValidEmail } from "@/src/projects/store/checkout/validation";
-import { useThemeColor } from "@/src/shared/hooks/use-theme-color";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 /**
  * Requests a reset email. The email carries a universal link
@@ -17,8 +20,7 @@ import { storeColors } from "@/src/projects/store/constants/theme";
  * never trusted by the app.
  */
 export default function ForgotPasswordScreen() {
-  const textColor = useThemeColor({}, "text");
-  const backgroundColor = useThemeColor({}, "background");
+  const styles = useStoreStyles(createStyles);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const reset = useMutation({ mutationFn: requestPasswordReset });
@@ -33,22 +35,19 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor }]} edges={["bottom"]}>
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
         {reset.isSuccess ? (
-          <Text
-            style={[styles.body, { color: textColor }]}
-            accessibilityLiveRegion="polite"
-          >
+          <Text style={styles.body} accessibilityLiveRegion="polite">
             If an account exists for {email.trim()}, a reset link is on its way.
             Open it on this device to choose a new password.
           </Text>
         ) : (
           <>
-            <Text style={[styles.body, { color: textColor }]}>
+            <Text style={styles.body}>
               Enter the email you signed up with and we&apos;ll send you a link
               to reset your password.
             </Text>
@@ -62,7 +61,6 @@ export default function ForgotPasswordScreen() {
               value={email}
               onChangeText={setEmail}
               error={emailError}
-              textColor={textColor}
               textContentType="emailAddress"
               autoComplete="email"
               keyboardType="email-address"
@@ -83,9 +81,10 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { padding: 16, gap: 14 },
-  body: { fontSize: 16, lineHeight: 22 },
-  error: { color: storeColors.danger, fontSize: 15 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.card },
+    content: { padding: 16, gap: 14 },
+    body: { fontSize: 16, lineHeight: 22, color: c.label },
+    error: { color: c.danger, fontSize: 15 },
+  });

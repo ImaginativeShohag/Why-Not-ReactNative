@@ -2,10 +2,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import * as Haptics from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AttachmentStrip } from "@/src/projects/offline-journal/components/AttachmentStrip";
 import { MoodPicker } from "@/src/projects/offline-journal/components/MoodPicker";
@@ -95,6 +97,26 @@ type Draft = { title: string; body: string; mood: Mood | null; tags: string[] };
 function Editor({ initial }: { initial: Entry | null }) {
   const palette = usePalette();
   const headerHeight = useHeaderHeight();
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  // With the keyboard up, KeyboardAvoidingView already clears the inset.
+  const [keyboardShown, setKeyboardShown] = useState(() =>
+    Keyboard.isVisible(),
+  );
+  useEffect(() => {
+    const ios = Platform.OS === "ios";
+    const show = Keyboard.addListener(
+      ios ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardShown(true),
+    );
+    const hide = Keyboard.addListener(
+      ios ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardShown(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const fontSize = useSettingsStore((state) => state.fontSize);
   const saveEntry = useSaveEntry();
   const { data: allTags } = useTags();
@@ -208,6 +230,7 @@ function Editor({ initial }: { initial: Entry | null }) {
               onPress={() => void done()}
               hitSlop={8}
               accessibilityLabel="Close"
+              style={styles.closeButton}
             >
               <ThemedText style={{ color: palette.accent, fontSize: 20 }}>
                 ✕
@@ -260,13 +283,18 @@ function Editor({ initial }: { initial: Entry | null }) {
         <View
           style={[
             styles.toolbar,
-            { borderColor: palette.border, backgroundColor: palette.paper },
+            {
+              borderColor: palette.border,
+              backgroundColor: palette.paper,
+              paddingBottom: keyboardShown ? 12 : 12 + bottomInset,
+            },
           ]}
         >
           <AttachmentStrip
             items={attachments}
             size={56}
             onLongPress={onRemoveAttachment}
+            bleed={TOOLBAR_PADDING}
           />
           <MoodPicker value={mood} onChange={setMood} />
           <TagChipRow
@@ -274,6 +302,7 @@ function Editor({ initial }: { initial: Entry | null }) {
             onRemove={(tag) => setTags(tags.filter((t) => t !== tag))}
             onAdd={addTag}
             suggestions={allTags.map((t) => t.name)}
+            bleed={TOOLBAR_PADDING}
           />
           <View style={styles.row}>
             <Pressable onPress={() => void onAttach("library")} hitSlop={6}>
@@ -300,6 +329,8 @@ function Editor({ initial }: { initial: Entry | null }) {
   );
 }
 
+const TOOLBAR_PADDING = 12;
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -308,13 +339,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     marginHorizontal: 16,
+    paddingHorizontal: 0, // Android pads a TextInput; keep it flush with the body
     paddingTop: 8,
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  closeButton: { marginRight: 16 },
   body: { flex: 1, padding: 16, textAlignVertical: "top" },
   toolbar: {
-    paddingHorizontal: 12,
+    paddingHorizontal: TOOLBAR_PADDING,
     paddingTop: 8,
     paddingBottom: 12,
     gap: 8,

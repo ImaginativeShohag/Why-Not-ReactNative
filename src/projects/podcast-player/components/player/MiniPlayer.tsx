@@ -8,9 +8,10 @@ import {
   View,
 } from "react-native";
 
+import { podcastPalettes } from "@/src/projects/podcast-player/constants/theme";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
 import { MINI_PLAYER_HEIGHT } from "@/src/projects/podcast-player/constants/layout";
-import { PodcastTheme, shade } from "@/src/projects/podcast-player/utils/color";
+import { shade } from "@/src/projects/podcast-player/utils/color";
 
 type Props = {
   title: string;
@@ -71,12 +72,12 @@ export function MiniPlayer({
           testID="mini-player-toggle"
         >
           {buffering && playing ? (
-            <ActivityIndicator color={PodcastTheme.text} />
+            <ActivityIndicator color={podcastPalettes.dark.text} />
           ) : (
             <Ionicons
               name={playing ? "pause" : "play"}
               size={28}
-              color={PodcastTheme.text}
+              color={podcastPalettes.dark.text}
             />
           )}
         </Pressable>
@@ -91,7 +92,7 @@ export function MiniPlayer({
           <Ionicons
             name="play-skip-forward"
             size={24}
-            color={PodcastTheme.text}
+            color={podcastPalettes.dark.text}
           />
         </Pressable>
       </View>
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   text: { flex: 1 },
-  title: { color: PodcastTheme.text, fontWeight: "600", fontSize: 14 },
+  title: { color: podcastPalettes.dark.text, fontWeight: "600", fontSize: 14 },
   subtitle: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
   button: {
     width: 44,

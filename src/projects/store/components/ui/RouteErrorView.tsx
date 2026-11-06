@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { toApiError } from "../../api/errors";
+import { useStoreColors } from "../../constants/theme";
 import { monitoring } from "../../utils/monitoring";
 import ErrorStateView from "./ErrorStateView";
 
@@ -22,12 +23,14 @@ export default function RouteErrorView({
   retry,
   group,
 }: RouteErrorViewProps) {
+  const colors = useStoreColors();
+
   useEffect(() => {
     monitoring.captureException(error, { boundary: group });
   }, [error, group]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
       <ErrorStateView
         title="This screen hit a problem"
         message={toApiError(error).message}

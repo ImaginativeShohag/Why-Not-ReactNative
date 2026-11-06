@@ -3,7 +3,7 @@ import { FlashList } from "@shopify/flash-list";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { useSession } from "@/src/projects/store/auth/useSession";
 import {
@@ -26,11 +26,18 @@ import { useCartStore } from "@/src/projects/store/stores/cartStore";
 import { track } from "@/src/projects/store/utils/analytics";
 import { formatMoney, formatPrice } from "@/src/projects/store/utils/money";
 import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
 
 const CHECKOUT_PATH = "/projects/store/checkout";
 
 export default function BagScreen() {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const router = useRouter();
   const footer = useComponentHeight();
   const session = useSession();
@@ -129,7 +136,7 @@ export default function BagScreen() {
                   value={promoInput}
                   onChangeText={setPromoInput}
                   placeholder="Promo code"
-                  placeholderTextColor={storeColors.muted}
+                  placeholderTextColor={colors.muted}
                   autoCapitalize="characters"
                   autoCorrect={false}
                   autoComplete="promo-code"
@@ -193,27 +200,28 @@ export default function BagScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  footerContainer: { position: "absolute", bottom: 0, left: 0, right: 0 },
-  promo: { marginTop: 16, gap: 6 },
-  promoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-  },
-  promoInput: { flex: 1, fontSize: 16, paddingVertical: 12 },
-  applyButton: { padding: 8 },
-  promoApplied: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(52,199,89,0.12)",
-    padding: 12,
-    borderRadius: 12,
-  },
-  promoAppliedText: { color: storeColors.successText, fontWeight: "600" },
-  promoMessage: { fontSize: 13, color: storeColors.secondaryText },
-  link: { color: storeColors.accent, fontWeight: "600", fontSize: 15 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    footerContainer: { position: "absolute", bottom: 0, left: 0, right: 0 },
+    promo: { marginTop: 16, gap: 6 },
+    promoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.card,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+    },
+    promoInput: { flex: 1, fontSize: 16, paddingVertical: 12, color: c.label },
+    applyButton: { padding: 8 },
+    promoApplied: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      backgroundColor: c.successSoft,
+      padding: 12,
+      borderRadius: 12,
+    },
+    promoAppliedText: { color: c.successText, fontWeight: "600" },
+    promoMessage: { fontSize: 13, color: c.secondaryText },
+    link: { color: c.accent, fontWeight: "600", fontSize: 15 },
+  });

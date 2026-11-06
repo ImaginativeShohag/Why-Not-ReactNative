@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { SectionHeader } from "@/src/projects/podcast-player/components/common/SectionHeader";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
@@ -10,13 +10,20 @@ import { MINI_PLAYER_CONTENT_INSET } from "@/src/projects/podcast-player/constan
 import { useQueueEpisodes } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
 import { playbackService } from "@/src/projects/podcast-player/playback/service";
 import { usePlayerStore } from "@/src/projects/podcast-player/stores/playerStore";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { formatDurationShort } from "@/src/projects/podcast-player/utils/format";
 import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
 
 const ROW_HEIGHT = 72;
 
 export default function PodcastQueueScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const router = useRouter();
   const queue = usePlayerStore((s) => s.queue);
   const nowPlaying = usePlayerStore((s) => s.nowPlaying);
@@ -64,11 +71,11 @@ export default function PodcastQueueScreen() {
         <ContentUnavailableView
           iconComponent={Ionicons}
           iconName="list-outline"
-          iconColor={PodcastTheme.textMuted}
+          iconColor={colors.textMuted}
           title="Nothing queued"
           description="Long-press an episode and choose “Play next” or “Add to queue”."
-          titleColor={PodcastTheme.text}
-          descriptionColor={PodcastTheme.textMuted}
+          titleColor={colors.text}
+          descriptionColor={colors.textMuted}
         />
       ) : null}
     </View>
@@ -102,15 +109,16 @@ export default function PodcastQueueScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  now: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  nowTitle: { color: PodcastTheme.text, fontWeight: "600" },
-  nowShow: { color: PodcastTheme.textMuted, fontSize: 12 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    now: {
+      flexDirection: "row",
+      gap: 12,
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    nowTitle: { color: c.text, fontWeight: "600" },
+    nowShow: { color: c.textMuted, fontSize: 12 },
+  });

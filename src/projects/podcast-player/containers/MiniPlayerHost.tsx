@@ -13,6 +13,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { podcastPalettes } from "@/src/projects/podcast-player/constants/theme";
 import { ProgressBar } from "@/src/projects/podcast-player/components/episode/ProgressBar";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
 import { MiniPlayer } from "@/src/projects/podcast-player/components/player/MiniPlayer";
@@ -25,7 +26,6 @@ import { playbackService } from "@/src/projects/podcast-player/playback/service"
 import { usePlayerStore } from "@/src/projects/podcast-player/stores/playerStore";
 import {
   accentFromSeed,
-  PodcastTheme,
   shade,
 } from "@/src/projects/podcast-player/utils/color";
 
@@ -162,7 +162,7 @@ export function MiniPlayerHost({ children }: { children: ReactNode }) {
               colors={[
                 shade(accent, 0.15),
                 shade(accent, 0.6),
-                PodcastTheme.background,
+                podcastPalettes.dark.background,
               ]}
               locations={[0, 0.45, 1]}
               style={StyleSheet.absoluteFill}
@@ -225,7 +225,7 @@ function NowPlayingProgress() {
   return (
     <ProgressBar
       progress={duration > 0 ? position / duration : 0}
-      color={PodcastTheme.text}
+      color={podcastPalettes.dark.text}
       trackColor="rgba(255,255,255,0.2)"
       height={2}
     />
@@ -241,10 +241,14 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     overflow: "hidden",
-    backgroundColor: PodcastTheme.surface,
+    backgroundColor: podcastPalettes.dark.surface,
   },
   previewContent: { alignItems: "center", paddingHorizontal: 24 },
   previewTitles: { alignSelf: "stretch", marginTop: 32, gap: 4 },
-  previewTitle: { color: PodcastTheme.text, fontSize: 21, fontWeight: "700" },
+  previewTitle: {
+    color: podcastPalettes.dark.text,
+    fontSize: 21,
+    fontWeight: "700",
+  },
   previewPodcast: { color: "rgba(255,255,255,0.7)", fontSize: 15 },
 });

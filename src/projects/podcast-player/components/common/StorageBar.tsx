@@ -1,12 +1,19 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { ProgressBar } from "@/src/projects/podcast-player/components/episode/ProgressBar";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { formatBytes } from "@/src/projects/podcast-player/utils/format";
 
 type Props = { usedBytes: number; capBytes: number; freeBytes: number };
 
 export function StorageBar({ usedBytes, capBytes, freeBytes }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const ratio = capBytes > 0 ? usedBytes / capBytes : 0;
   return (
     <View style={styles.box}>
@@ -19,7 +26,7 @@ export function StorageBar({ usedBytes, capBytes, freeBytes }: Props) {
       <ProgressBar
         progress={ratio}
         height={6}
-        color={ratio > 0.9 ? PodcastTheme.danger : PodcastTheme.accent}
+        color={ratio > 0.9 ? colors.danger : colors.accent}
       />
       {Number.isFinite(freeBytes) ? (
         <Text style={styles.caption}>
@@ -30,10 +37,11 @@ export function StorageBar({ usedBytes, capBytes, freeBytes }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  box: { padding: 16, gap: 8 },
-  row: { flexDirection: "row", justifyContent: "space-between" },
-  label: { color: PodcastTheme.text, fontWeight: "600" },
-  value: { color: PodcastTheme.textMuted },
-  caption: { color: PodcastTheme.textMuted, fontSize: 12 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    box: { padding: 16, gap: 8 },
+    row: { flexDirection: "row", justifyContent: "space-between" },
+    label: { color: c.text, fontWeight: "600" },
+    value: { color: c.textMuted },
+    caption: { color: c.textMuted, fontSize: 12 },
+  });

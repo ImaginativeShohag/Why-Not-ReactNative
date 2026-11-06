@@ -1,8 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = {
   title: string;
@@ -25,12 +30,14 @@ export function PodcastRow({
   onPress,
   onToggleSubscribe,
 }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        pressed && { backgroundColor: PodcastTheme.surface },
+        pressed && { backgroundColor: colors.surface },
       ]}
       accessibilityRole="button"
       accessibilityLabel={`${title} by ${author}`}
@@ -58,7 +65,7 @@ export function PodcastRow({
         <Ionicons
           name={subscribed ? "checkmark-circle" : "add-circle-outline"}
           size={30}
-          color={subscribed ? PodcastTheme.success : PodcastTheme.accent}
+          color={subscribed ? colors.success : colors.accent}
           style={busy ? { opacity: 0.4 } : undefined}
         />
       </Pressable>
@@ -66,16 +73,17 @@ export function PodcastRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  body: { flex: 1, gap: 2 },
-  title: { color: PodcastTheme.text, fontSize: 15, fontWeight: "600" },
-  author: { color: PodcastTheme.textMuted, fontSize: 13 },
-  caption: { color: PodcastTheme.textMuted, fontSize: 11 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    body: { flex: 1, gap: 2 },
+    title: { color: c.text, fontSize: 15, fontWeight: "600" },
+    author: { color: c.textMuted, fontSize: 13 },
+    caption: { color: c.textMuted, fontSize: 11 },
+  });

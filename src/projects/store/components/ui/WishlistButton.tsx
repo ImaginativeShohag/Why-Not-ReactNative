@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import { useStoreColors } from "../../constants/theme";
 
 type WishlistButtonProps = {
   active: boolean;
@@ -14,6 +14,7 @@ export default function WishlistButton({
   onPress,
   size = 24,
 }: WishlistButtonProps) {
+  const colors = useStoreColors();
   return (
     <Pressable
       onPress={onPress}
@@ -26,7 +27,7 @@ export default function WishlistButton({
       <Ionicons
         name={active ? "heart" : "heart-outline"}
         size={size}
-        color={active ? "#FF2D55" : storeColors.muted}
+        color={active ? "#FF2D55" : colors.muted}
       />
     </Pressable>
   );

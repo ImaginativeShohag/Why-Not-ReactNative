@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LineChart } from "@/src/projects/fitness-tracker/components/charts/LineChart";
 import { RouteMap } from "@/src/projects/fitness-tracker/components/map/RouteMap";
@@ -59,6 +60,7 @@ export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const { data: workout, loading } = useWorkout(id);
   const { data: points } = usePoints(id);
@@ -168,7 +170,10 @@ export default function WorkoutDetailScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: palette.bg }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + 24 },
+      ]}
     >
       <Stack.Screen
         options={{
@@ -270,7 +275,7 @@ export default function WorkoutDetailScreen() {
           Battery {Math.round(workout.batteryStart * 100)}% →{" "}
           {Math.round(workout.batteryEnd * 100)}% ·{" "}
           {workout.mode === "saver" ? "battery-saver" : "accurate"} mode ·{" "}
-          {workout.pointCount} points
+          {workout.pointCount} {workout.pointCount === 1 ? "point" : "points"}
           {workout.steps ? ` · ${workout.steps} steps` : ""}
         </Text>
       ) : null}
@@ -390,7 +395,7 @@ function Action({
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 14, paddingBottom: 40 },
+  content: { padding: 16, gap: 14 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   map: { height: 280, borderRadius: 16, overflow: "hidden" },
   grid: { flexDirection: "row" },

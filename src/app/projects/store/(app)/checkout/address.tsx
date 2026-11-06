@@ -5,7 +5,6 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  Text,
   type TextInput,
   View,
 } from "react-native";
@@ -28,13 +27,20 @@ import {
   type AddressField,
   EMPTY_ADDRESS,
 } from "@/src/projects/store/models/Address";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 export default function CheckoutAddressScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const redirect = useCheckoutGuard("address");
   const { checkout, send } = useCheckout();
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
 
   // Draft lives in screen state; only a valid address is committed to the
   // (persisted) machine on Continue.
@@ -230,6 +236,8 @@ export default function CheckoutAddressScreen() {
       <View style={styles.switchRow}>
         <Text style={styles.flex}>Save for next time</Text>
         <Switch
+          trackColor={{ true: colors.accent }}
+          thumbColor={colors.onAccent}
           value={saveAddress}
           onValueChange={setSaveAddress}
           accessibilityLabel="Save address for next time"
@@ -239,20 +247,25 @@ export default function CheckoutAddressScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  row: { flexDirection: "row", gap: 12 },
-  label: { fontSize: 13, color: storeColors.muted },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "rgba(120,120,128,0.12)",
-  },
-  chipActive: { backgroundColor: storeColors.accent },
-  chipText: { fontSize: 14 },
-  chipTextActive: { fontSize: 14, color: "#fff", fontWeight: "600" },
-  error: { color: storeColors.danger, fontSize: 13 },
-  switchRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    row: { flexDirection: "row", gap: 12 },
+    label: { fontSize: 13, color: c.muted },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      backgroundColor: c.fill,
+    },
+    chipActive: { backgroundColor: c.accent },
+    chipText: { fontSize: 14, color: c.label },
+    chipTextActive: { fontSize: 14, color: c.onAccent, fontWeight: "600" },
+    error: { color: c.danger, fontSize: 13 },
+    switchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 8,
+    },
+  });

@@ -1,13 +1,12 @@
 import { forwardRef } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  type TextInputProps,
-  View,
-} from "react-native";
+import { StyleSheet, TextInput, type TextInputProps, View } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "../../constants/theme";
 
 type FormFieldProps = TextInputProps & {
   label: string;
@@ -22,27 +21,26 @@ type FormFieldProps = TextInputProps & {
  * screen sets the correct OS autofill hints.
  */
 const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
-  {
-    label,
-    error,
-    backgroundColor = "rgba(120,120,128,0.12)",
-    textColor = "#000",
-    style,
-    ...input
-  },
+  { label, error, backgroundColor, textColor, style, ...input },
   ref,
 ) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   return (
     <View
-      style={[styles.field, { backgroundColor }, error && styles.fieldError]}
+      style={[
+        styles.field,
+        { backgroundColor: backgroundColor ?? colors.fill },
+        error && styles.fieldError,
+      ]}
     >
       <Text style={styles.label}>{label}</Text>
       <TextInput
         ref={ref}
-        placeholderTextColor={storeColors.muted}
+        placeholderTextColor={colors.muted}
         accessibilityLabel={label}
         accessibilityHint={error}
-        style={[styles.input, { color: textColor }, style]}
+        style={[styles.input, { color: textColor ?? colors.label }, style]}
         {...input}
       />
       {error ? (
@@ -60,15 +58,16 @@ const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
 
 export default FormField;
 
-const styles = StyleSheet.create({
-  field: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 2,
-  },
-  fieldError: { borderWidth: 1, borderColor: storeColors.danger },
-  label: { fontSize: 13, color: storeColors.muted },
-  input: { fontSize: 17, paddingVertical: 4 },
-  error: { fontSize: 13, color: storeColors.danger, marginTop: 2 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    field: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      gap: 2,
+    },
+    fieldError: { borderWidth: 1, borderColor: c.danger },
+    label: { fontSize: 13, color: c.muted },
+    input: { fontSize: 17, paddingVertical: 4 },
+    error: { fontSize: 13, color: c.danger, marginTop: 2 },
+  });

@@ -21,7 +21,8 @@ export function ProgressRing({
 }: Props) {
   const path = useMemo(() => {
     const p = Skia.Path.Make();
-    const r = size / 2 - strokeWidth / 2;
+    // 1pt inset: a fractional x offset can clip the outer stroke edge.
+    const r = size / 2 - strokeWidth / 2 - 1;
     // Start at 12 o'clock.
     p.addArc(
       { x: size / 2 - r, y: size / 2 - r, width: r * 2, height: r * 2 },

@@ -1,10 +1,15 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = { title: string; actionLabel?: string; onAction?: () => void };
 
 export function SectionHeader({ title, actionLabel, onAction }: Props) {
+  const styles = usePodcastStyles(createStyles);
   return (
     <View style={styles.row}>
       <Text style={styles.title} accessibilityRole="header">
@@ -19,20 +24,21 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  title: {
-    color: PodcastTheme.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  action: { color: PodcastTheme.accent, fontSize: 13, fontWeight: "600" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingTop: 20,
+      paddingBottom: 8,
+    },
+    title: {
+      color: c.textMuted,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+    },
+    action: { color: c.accent, fontSize: 13, fontWeight: "600" },
+  });

@@ -9,7 +9,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,7 +32,12 @@ import { MAX_QUANTITY_PER_ITEM } from "@/src/projects/store/stores/cartMath";
 import { track } from "@/src/projects/store/utils/analytics";
 import { formatPrice, toCents } from "@/src/projects/store/utils/money";
 import { env } from "@/src/shared/constants/env";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,6 +53,8 @@ export default function ProductDetailScreen() {
   const prefetch = usePrefetchProduct();
   const wishlist = useWishlist((message) => Alert.alert("Wishlist", message));
   const [expanded, setExpanded] = useState(true);
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
 
   useEffect(() => {
     if (product) {
@@ -123,14 +129,17 @@ export default function ProductDetailScreen() {
                 <Ionicons
                   name="share-outline"
                   size={24}
-                  color={storeColors.accent}
+                  color={colors.accent}
                 />
               </Pressable>
             </View>
           ),
         }}
       />
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: product.image }}
@@ -166,6 +175,7 @@ export default function ProductDetailScreen() {
             <Ionicons
               name={expanded ? "chevron-down" : "chevron-forward"}
               size={18}
+              color={colors.label}
             />
             <Text style={styles.disclosureText}>Description</Text>
           </Pressable>
@@ -174,7 +184,7 @@ export default function ProductDetailScreen() {
           ) : null}
 
           <View style={styles.disclosure}>
-            <Ionicons name="cube-outline" size={18} />
+            <Ionicons name="cube-outline" size={18} color={colors.label} />
             <Text style={styles.disclosureText}>
               Free standard shipping over {formatPrice(100)}
             </Text>
@@ -188,7 +198,12 @@ export default function ProductDetailScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12 }}
+                // Bleed over the screen padding so cards scroll to the edge.
+                style={{ marginHorizontal: -SCREEN_PADDING }}
+                contentContainerStyle={{
+                  gap: 12,
+                  paddingHorizontal: SCREEN_PADDING,
+                }}
               >
                 {related.map((p) => (
                   <Link
@@ -257,45 +272,50 @@ export default function ProductDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
-  skeleton: { flex: 1, padding: 16, gap: 12 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  imageContainer: {
-    position: "relative",
-    borderRadius: 32,
-    overflow: "hidden",
-  },
-  image: { height: 300, resizeMode: "contain", margin: 16 },
-  gradient: { position: "absolute", bottom: 0, height: 32, width: "100%" },
-  content: { padding: 16, gap: 8 },
-  title: { fontSize: 20, fontWeight: "600" },
-  rating: { fontSize: 14, color: storeColors.secondaryText },
-  price: { fontSize: 22, fontWeight: "700" },
-  disclosure: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-  },
-  disclosureText: { fontSize: 16, fontWeight: "600" },
-  description: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: storeColors.secondaryText,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  related: { width: 130, gap: 4 },
-  relatedImage: { width: 130, height: 130, borderRadius: 12 },
-  relatedTitle: { fontSize: 13 },
-  relatedPrice: { fontSize: 13, fontWeight: "700" },
-  footerRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  footerPrice: { fontSize: 20, fontWeight: "700" },
-  stock: { fontSize: 13, color: storeColors.success },
-  stepper: { gap: 12 },
-});
+const SCREEN_PADDING = 16;
+
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.card },
+    skeleton: { flex: 1, padding: 16, gap: 12 },
+    headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
+    imageContainer: {
+      position: "relative",
+      borderRadius: 32,
+      overflow: "hidden",
+      // Product photos come on white, so the well stays white in both modes.
+      backgroundColor: "#fff",
+    },
+    image: { height: 300, resizeMode: "contain", margin: 16 },
+    gradient: { position: "absolute", bottom: 0, height: 32, width: "100%" },
+    content: { padding: SCREEN_PADDING, gap: 8 },
+    title: { fontSize: 20, fontWeight: "600", color: c.label },
+    rating: { fontSize: 14, color: c.secondaryText },
+    price: { fontSize: 22, fontWeight: "700" },
+    disclosure: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingVertical: 8,
+    },
+    disclosureText: { fontSize: 16, fontWeight: "600" },
+    description: {
+      fontSize: 15,
+      lineHeight: 21,
+      color: c.secondaryText,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      marginTop: 16,
+      marginBottom: 4,
+    },
+    related: { width: 130, gap: 4 },
+    relatedImage: { width: 130, height: 130, borderRadius: 12 },
+    relatedTitle: { fontSize: 13 },
+    relatedPrice: { fontSize: 13, fontWeight: "700" },
+    footerRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+    footerPrice: { fontSize: 20, fontWeight: "700" },
+    stock: { fontSize: 13, color: c.success },
+    stepper: { gap: 12 },
+  });

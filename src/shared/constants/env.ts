@@ -13,6 +13,7 @@ type Extra = {
   podcastIndexUrl: string;
   linkDomain: string;
   stripePublishableKey: string;
+  googleMapsConfigured: boolean;
   journalSyncUrl: string;
   eas: { projectId: string };
 };
@@ -32,6 +33,7 @@ export const env = {
   podcastIndexUrl: extra.podcastIndexUrl ?? "https://itunes.apple.com",
   linkDomain: extra.linkDomain ?? "whynotreactnative.example.com",
   stripePublishableKey: extra.stripePublishableKey ?? "",
+  googleMapsConfigured: extra.googleMapsConfigured ?? false,
   journalSyncUrl: extra.journalSyncUrl || LOCAL_DEV_SERVER,
   easProjectId: extra.eas?.projectId ?? "",
 } as const;

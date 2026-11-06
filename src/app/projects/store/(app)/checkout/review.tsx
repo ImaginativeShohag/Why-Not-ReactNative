@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Redirect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
 import { cancelOrder, fetchOrder } from "@/src/projects/store/api/order.api";
@@ -38,7 +38,11 @@ import { track } from "@/src/projects/store/utils/analytics";
 import { formatMoney } from "@/src/projects/store/utils/money";
 import { monitoring } from "@/src/projects/store/utils/monitoring";
 import { queryKeys } from "@/src/projects/store/utils/queryKeys";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 /** The only place an order is placed. */
 export default function CheckoutReviewScreen() {
@@ -47,6 +51,7 @@ export default function CheckoutReviewScreen() {
   const queryClient = useQueryClient();
   const redirect = useCheckoutGuard("review");
   const { items, checkout, send, totals } = useCheckout();
+  const styles = useStoreStyles(createStyles);
   const placeOrder = usePlaceOrder();
   const complete = useCompleteCheckout();
   const startCheckout = useStartCheckout();
@@ -296,6 +301,7 @@ function SummaryBlock({
   lines: string[];
   onEdit?: () => void;
 }) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View style={styles.block}>
       <View style={styles.blockHeader}>
@@ -319,23 +325,24 @@ function SummaryBlock({
   );
 }
 
-const styles = StyleSheet.create({
-  block: { backgroundColor: "#fff", borderRadius: 12, padding: 12, gap: 2 },
-  blockHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  blockTitle: { fontSize: 13, color: storeColors.muted, fontWeight: "600" },
-  blockLine: { fontSize: 15 },
-  link: { color: storeColors.accent, fontSize: 15, fontWeight: "600" },
-  startOver: { alignSelf: "center", padding: 6 },
-  done: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    gap: 16,
-  },
-  doneTitle: { fontSize: 22, fontWeight: "700" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    block: { backgroundColor: c.card, borderRadius: 12, padding: 12, gap: 2 },
+    blockHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 4,
+    },
+    blockTitle: { fontSize: 13, color: c.muted, fontWeight: "600" },
+    blockLine: { fontSize: 15, color: c.label },
+    link: { color: c.accent, fontSize: 15, fontWeight: "600" },
+    startOver: { alignSelf: "center", padding: 6 },
+    done: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      gap: 16,
+    },
+    doneTitle: { fontSize: 22, fontWeight: "700" },
+  });

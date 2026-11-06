@@ -4,7 +4,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   ScrollView,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -19,7 +18,12 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { dragTargetIndex } from "@/src/projects/podcast-player/playback/queue";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props<T> = {
   items: T[];
@@ -124,6 +128,8 @@ function Row({
   onRemove,
   children,
 }: RowProps) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const { width } = useWindowDimensions();
   const active = useSharedValue(false);
   const startIndex = useSharedValue(0);
@@ -219,7 +225,7 @@ function Row({
               <Ionicons
                 name="reorder-three"
                 size={28}
-                color={PodcastTheme.textMuted}
+                color={colors.textMuted}
               />
             </View>
           </GestureDetector>
@@ -229,38 +235,40 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    shadowColor: "#000",
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  removeBg: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: PodcastTheme.danger,
-    alignItems: "flex-end",
-    justifyContent: "center",
-    paddingRight: 24,
-  },
-  removeText: { color: "#fff", fontWeight: "700" },
-  content: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: PodcastTheme.background,
-  },
-  body: { flex: 1 },
-  handle: {
-    width: 52,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    row: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      // Drop shadows are black in both schemes.
+      shadowColor: "#000",
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+    },
+    removeBg: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: c.danger,
+      alignItems: "flex-end",
+      justifyContent: "center",
+      paddingRight: 24,
+    },
+    removeText: { color: c.onAccent, fontWeight: "700" },
+    content: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.background,
+    },
+    body: { flex: 1 },
+    handle: {
+      width: 52,
+      height: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });

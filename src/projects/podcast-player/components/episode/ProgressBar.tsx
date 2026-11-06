@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import { usePodcastColors } from "@/src/projects/podcast-player/constants/theme";
 
 type Props = {
   /** 0..1 */
@@ -12,10 +12,11 @@ type Props = {
 
 export function ProgressBar({
   progress,
-  color = PodcastTheme.accent,
-  trackColor = PodcastTheme.border,
+  color,
+  trackColor,
   height = 3,
 }: Props) {
+  const colors = usePodcastColors();
   const pct = Math.max(
     0,
     Math.min(1, Number.isFinite(progress) ? progress : 0),
@@ -24,7 +25,11 @@ export function ProgressBar({
     <View
       style={[
         styles.track,
-        { height, borderRadius: height / 2, backgroundColor: trackColor },
+        {
+          height,
+          borderRadius: height / 2,
+          backgroundColor: trackColor ?? colors.border,
+        },
       ]}
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}
@@ -34,7 +39,7 @@ export function ProgressBar({
           width: `${pct * 100}%`,
           height,
           borderRadius: height / 2,
-          backgroundColor: color,
+          backgroundColor: color ?? colors.accent,
         }}
       />
     </View>

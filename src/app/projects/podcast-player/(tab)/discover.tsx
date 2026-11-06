@@ -2,13 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, TextInput, View } from "react-native";
 
 import { OptionChips } from "@/src/projects/podcast-player/components/common/OptionChips";
 import { PodcastRow } from "@/src/projects/podcast-player/components/podcast/PodcastRow";
@@ -21,9 +15,16 @@ import {
   useTopPodcasts,
 } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
 import type { SearchResult } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 export default function PodcastDiscoverScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   const router = useRouter();
   const [text, setText] = useState("");
   const [term, setTerm] = useState("");
@@ -52,12 +53,12 @@ export default function PodcastDiscoverScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color={PodcastTheme.textMuted} />
+        <Ionicons name="search" size={18} color={colors.textMuted} />
         <TextInput
           value={text}
           onChangeText={setText}
           placeholder="Search podcasts"
-          placeholderTextColor={PodcastTheme.textMuted}
+          placeholderTextColor={colors.textMuted}
           style={styles.input}
           autoCorrect={false}
           returnKeyType="search"
@@ -76,10 +77,7 @@ export default function PodcastDiscoverScreen() {
       ) : null}
 
       {query.isLoading ? (
-        <ActivityIndicator
-          style={styles.loading}
-          color={PodcastTheme.textMuted}
-        />
+        <ActivityIndicator style={styles.loading} color={colors.textMuted} />
       ) : null}
       {query.isError ? (
         <Text style={styles.message}>
@@ -135,29 +133,30 @@ export default function PodcastDiscoverScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    margin: 16,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: PodcastTheme.surface,
-  },
-  input: {
-    flex: 1,
-    color: PodcastTheme.text,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  loading: { marginTop: 24 },
-  message: {
-    color: PodcastTheme.textMuted,
-    textAlign: "center",
-    marginTop: 24,
-    paddingHorizontal: 32,
-  },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    searchBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      margin: 16,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      backgroundColor: c.surface,
+    },
+    input: {
+      flex: 1,
+      color: c.text,
+      paddingVertical: 12,
+      fontSize: 16,
+    },
+    loading: { marginTop: 24 },
+    message: {
+      color: c.textMuted,
+      textAlign: "center",
+      marginTop: 24,
+      paddingHorizontal: 32,
+    },
+  });

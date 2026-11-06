@@ -1,7 +1,11 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = {
   title: string;
@@ -11,6 +15,7 @@ type Props = {
 };
 
 export function PodcastTile({ title, artworkUrl, size, onPress }: Props) {
+  const styles = usePodcastStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -26,7 +31,8 @@ export function PodcastTile({ title, artworkUrl, size, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  tile: { gap: 6 },
-  title: { color: PodcastTheme.text, fontSize: 12 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    tile: { gap: 6 },
+    title: { color: c.text, fontSize: 12 },
+  });

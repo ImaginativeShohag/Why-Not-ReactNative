@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import {
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -7,6 +8,8 @@ import {
   type ViewStyle,
 } from "react-native";
 import MapView, { Marker, Polyline, type LatLng } from "react-native-maps";
+
+import { env } from "@/src/shared/constants/env";
 
 import type { ColoredSegment } from "../../utils/paceColor";
 import { regionForCoordinates } from "../../utils/region";
@@ -28,7 +31,30 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function RouteMap({
+/**
+ * Android renders Google Maps, which throws natively (and takes the app down)
+ * when the build has no API key. iOS uses Apple Maps and needs none.
+ */
+export function RouteMap(props: Props) {
+  if (Platform.OS === "android" && !env.googleMapsConfigured) {
+    return <MapUnavailable style={props.style} />;
+  }
+  return <RouteMapView {...props} />;
+}
+
+function MapUnavailable({ style }: { style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.map, styles.unavailable, style]}>
+      <Text style={styles.unavailableTitle}>Map unavailable</Text>
+      <Text style={styles.unavailableBody}>
+        This build has no Google Maps API key. Set GOOGLE_MAPS_API_KEY and
+        rebuild to see the route.
+      </Text>
+    </View>
+  );
+}
+
+function RouteMapView({
   segments,
   splitMarkers = [],
   start,
@@ -124,6 +150,19 @@ export function RouteMap({
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
+  unavailable: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#E5E7EB",
+  },
+  unavailableTitle: { color: "#111827", fontSize: 17, fontWeight: "700" },
+  unavailableBody: {
+    color: "#4B5563",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 6,
+  },
   split: {
     backgroundColor: "#111827",
     borderRadius: 10,

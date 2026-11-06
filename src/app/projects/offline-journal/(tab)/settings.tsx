@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Alert,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -115,7 +116,9 @@ export default function SettingsScreen() {
     if (!(await canAuthenticate())) {
       Alert.alert(
         "No passcode or biometrics",
-        "Set up Face ID, Touch ID, a fingerprint or a device passcode first.",
+        Platform.OS === "ios"
+          ? "Set up Face ID, Touch ID or a device passcode first."
+          : "Set up a fingerprint, face unlock or a screen lock first.",
       );
       return;
     }

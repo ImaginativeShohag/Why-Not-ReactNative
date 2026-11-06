@@ -5,9 +5,8 @@ import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
 
 import RouteErrorView from "@/src/projects/store/components/ui/RouteErrorView";
+import { useStoreColors } from "@/src/projects/store/constants/theme";
 import { useItemCount } from "@/src/projects/store/stores/cartSelectors";
-import { Colors } from "@/src/shared/constants/theme";
-import { useColorScheme } from "@/src/shared/hooks/use-color-scheme";
 
 function TabBarIcon(props: {
   name: ComponentProps<typeof Ionicons>["name"];
@@ -21,15 +20,15 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const bagCount = useItemCount();
+  const colors = useStoreColors();
 
   return (
     // ProfileSheet calls useBottomSheetModal(), which needs this provider.
     <BottomSheetModalProvider>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme].tint,
+          tabBarActiveTintColor: colors.accent,
           headerShown: true,
         }}
       >

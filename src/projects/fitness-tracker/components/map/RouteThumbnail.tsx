@@ -27,17 +27,27 @@ export function RouteThumbnail({ path, size, color, background }: Props) {
     return p;
   }, [path, size]);
 
+  const hasRoute = path.length > 1;
   return (
     <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 10,
-        overflow: "hidden",
-        backgroundColor: background,
-      }}
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: 10,
+          overflow: "hidden",
+          backgroundColor: background,
+        },
+        // No route to draw: a dashed, faded frame reads as "empty", not "broken".
+        !hasRoute && {
+          borderWidth: 1,
+          borderColor: color,
+          borderStyle: "dashed",
+          opacity: 0.4,
+        },
+      ]}
     >
-      {path.length > 1 ? (
+      {hasRoute ? (
         <Canvas style={{ width: size, height: size }}>
           <Path
             path={skPath}

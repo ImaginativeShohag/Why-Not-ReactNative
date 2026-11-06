@@ -1,13 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 
 import { SectionHeader } from "@/src/projects/podcast-player/components/common/SectionHeader";
@@ -23,11 +16,19 @@ import {
 } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
 import { useDownloadStore } from "@/src/projects/podcast-player/stores/downloadStore";
 import { useSettingsStore } from "@/src/projects/podcast-player/stores/settingsStore";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { formatBytes } from "@/src/projects/podcast-player/utils/format";
 import ContentUnavailableView from "@/src/shared/components/ui/content-unavailable-view";
 
 export default function PodcastDownloadsScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const warning = colors.warning;
   const router = useRouter();
   const downloads = useDownloads();
   const storage = useStorageUsage();
@@ -84,9 +85,9 @@ export default function PodcastDownloadsScreen() {
           <Ionicons
             name={network === "offline" ? "cloud-offline" : "wifi"}
             size={16}
-            color="#FACC15"
+            color={warning}
           />
-          <Text style={styles.noticeText}>
+          <Text style={[styles.noticeText, { color: warning }]}>
             {network === "offline"
               ? "Offline — downloads will resume automatically."
               : "Waiting for Wi-Fi (Wi-Fi only is on)."}
@@ -115,11 +116,11 @@ export default function PodcastDownloadsScreen() {
         <ContentUnavailableView
           iconComponent={Ionicons}
           iconName="download-outline"
-          iconColor={PodcastTheme.textMuted}
+          iconColor={colors.textMuted}
           title="No downloads"
           description="Downloaded episodes play offline and appear here."
-          titleColor={PodcastTheme.text}
-          descriptionColor={PodcastTheme.textMuted}
+          titleColor={colors.text}
+          descriptionColor={colors.textMuted}
         />
       ) : null}
       {onDevice.map(({ record, episode }) => (
@@ -140,7 +141,7 @@ export default function PodcastDownloadsScreen() {
             style={[
               styles.title,
               { flex: 1 },
-              episode.played && { color: PodcastTheme.textMuted },
+              episode.played && { color: colors.textMuted },
             ]}
             numberOfLines={1}
           >
@@ -162,36 +163,37 @@ export default function PodcastDownloadsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  setting: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: PodcastTheme.border,
-  },
-  settingLabel: { color: PodcastTheme.text },
-  settingValue: { color: PodcastTheme.textMuted },
-  notice: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  noticeText: { color: "#FACC15", fontSize: 13 },
-  title: { color: PodcastTheme.text, fontWeight: "600", flexShrink: 1 },
-  meta: { color: PodcastTheme.textMuted, fontSize: 12, flexShrink: 1 },
-  device: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  deleteAll: { alignItems: "center", padding: 20 },
-  deleteText: { color: PodcastTheme.danger, fontWeight: "600" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    setting: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: c.border,
+    },
+    settingLabel: { color: c.text },
+    settingValue: { color: c.textMuted },
+    notice: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingTop: 12,
+    },
+    noticeText: { fontSize: 13 },
+    title: { color: c.text, fontWeight: "600", flexShrink: 1 },
+    meta: { color: c.textMuted, fontSize: 12, flexShrink: 1 },
+    device: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    deleteAll: { alignItems: "center", padding: 20 },
+    deleteText: { color: c.danger, fontWeight: "600" },
+  });

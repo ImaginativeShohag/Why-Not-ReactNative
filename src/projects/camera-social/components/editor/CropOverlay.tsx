@@ -177,6 +177,8 @@ export function CropOverlay({
 
   const resize = Gesture.Pan()
     .enabled(aspect == null)
+    // The bracket hugs the corner now, so keep the finger target generous.
+    .hitSlop(16)
     .onStart(() => {
       start.set({ ...start.get(), fw: frameW.get(), fh: frameH.get() });
     })
@@ -314,8 +316,10 @@ const styles = StyleSheet.create({
   gridH: { left: 0, right: 0, height: StyleSheet.hairlineWidth },
   handle: {
     position: "absolute",
-    right: -HANDLE / 2,
-    bottom: -HANDLE / 2,
+    // Hugs the frame's bottom-right corner (outer edge flush with the frame
+    // border) instead of floating half a handle outside it.
+    right: -1.5,
+    bottom: -1.5,
     width: HANDLE,
     height: HANDLE,
     borderRightWidth: 4,

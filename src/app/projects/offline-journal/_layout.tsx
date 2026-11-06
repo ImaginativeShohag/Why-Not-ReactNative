@@ -1,3 +1,4 @@
+import { NavigationBar } from "expo-navigation-bar";
 import { SQLiteProvider } from "expo-sqlite";
 import { Stack } from "expo-router";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/src/projects/offline-journal/hooks/usePalette";
 import { useSyncTriggers } from "@/src/projects/offline-journal/hooks/useSyncStatus";
 import { ThemedText } from "@/src/shared/components/themed-text";
+import { useWindowBackground } from "@/src/shared/hooks/use-window-background";
 
 // Module scope: the provider reopens the database whenever `options` changes
 // identity, so it must not be a fresh object per render.
@@ -47,6 +49,7 @@ function JournalStack() {
   const { locked, obscured, authenticate, lockNow } = useAppLock();
   const scheme = useJournalScheme();
   const palette = usePalette();
+  useWindowBackground(palette.paper);
   useSyncTriggers();
   // Leaving the journal for the launcher re-arms the lock, so coming back in
   // asks again. (No-op when the lock is off: `locked` is gated on the setting.)
@@ -58,6 +61,7 @@ function JournalStack() {
     // and the launcher is back on the system scheme.
     <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <NavigationBar style={scheme === "dark" ? "light" : "dark"} />
       <LockGate locked={locked} obscured={obscured} onUnlock={authenticate}>
         <Stack
           screenOptions={{

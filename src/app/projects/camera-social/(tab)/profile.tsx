@@ -206,7 +206,8 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ true: Palette.accent }}
+        trackColor={{ true: Palette.accent, false: Palette.textFaint }}
+        thumbColor="#FFFFFF"
         accessibilityLabel={label}
       />
     </View>

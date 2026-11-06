@@ -1,7 +1,8 @@
 import { Fragment } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "../ui/StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type StepIndicatorProps = {
   labels: string[];
@@ -13,6 +14,7 @@ export default function StepIndicator({
   labels,
   currentIndex,
 }: StepIndicatorProps) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View
       style={styles.container}
@@ -61,30 +63,31 @@ export default function StepIndicator({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { paddingHorizontal: 16, paddingVertical: 12, gap: 6 },
-  row: { flexDirection: "row", alignItems: "center" },
-  dot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: storeColors.tertiary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dotActive: {
-    backgroundColor: storeColors.accent,
-    borderColor: storeColors.accent,
-  },
-  dotText: { fontSize: 13, fontWeight: "600", color: storeColors.muted },
-  dotTextActive: { color: "#fff" },
-  connector: {
-    flex: 1,
-    height: 2,
-    backgroundColor: storeColors.separator,
-    marginHorizontal: 4,
-  },
-  connectorDone: { backgroundColor: storeColors.accent },
-  label: { fontSize: 20, fontWeight: "700" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: { paddingHorizontal: 16, paddingVertical: 12, gap: 6 },
+    row: { flexDirection: "row", alignItems: "center" },
+    dot: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      borderWidth: 1.5,
+      borderColor: c.tertiary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dotActive: {
+      backgroundColor: c.accent,
+      borderColor: c.accent,
+    },
+    dotText: { fontSize: 13, fontWeight: "600", color: c.muted },
+    dotTextActive: { color: c.onAccent },
+    connector: {
+      flex: 1,
+      height: 2,
+      backgroundColor: c.separator,
+      marginHorizontal: 4,
+    },
+    connectorDone: { backgroundColor: c.accent },
+    label: { fontSize: 20, fontWeight: "700", color: c.label },
+  });

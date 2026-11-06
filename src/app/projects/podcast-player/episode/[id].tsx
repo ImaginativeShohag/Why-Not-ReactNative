@@ -6,10 +6,10 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { ShowNotes } from "@/src/projects/podcast-player/components/common/ShowNotes";
 import { DownloadBadge } from "@/src/projects/podcast-player/components/episode/DownloadBadge";
 import { ProgressBar } from "@/src/projects/podcast-player/components/episode/ProgressBar";
@@ -18,16 +18,18 @@ import {
   activeChapterIndex,
   ChapterList,
 } from "@/src/projects/podcast-player/components/player/ChapterList";
-import { MINI_PLAYER_CONTENT_INSET } from "@/src/projects/podcast-player/constants/layout";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import { useMiniPlayerInset } from "@/src/projects/podcast-player/hooks/useMiniPlayerInset";
 import { useEpisodeActions } from "@/src/projects/podcast-player/hooks/useEpisodeActions";
 import { useEpisode } from "@/src/projects/podcast-player/hooks/usePodcastQueries";
 import { playbackService } from "@/src/projects/podcast-player/playback/service";
 import { useDownloadStore } from "@/src/projects/podcast-player/stores/downloadStore";
 import { usePlayerStore } from "@/src/projects/podcast-player/stores/playerStore";
-import {
-  accentFromSeed,
-  PodcastTheme,
-} from "@/src/projects/podcast-player/utils/color";
+import { accentFromSeed } from "@/src/projects/podcast-player/utils/color";
 import { mergeDownload } from "@/src/projects/podcast-player/utils/downloadView";
 import {
   formatDurationShort,
@@ -36,6 +38,9 @@ import {
 import { extractLinks } from "@/src/projects/podcast-player/utils/html";
 
 export default function EpisodeDetailScreen() {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const miniInset = useMiniPlayerInset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const episode = useEpisode(id);
   const actions = useEpisodeActions();
@@ -46,9 +51,7 @@ export default function EpisodeDetailScreen() {
   );
 
   if (episode.isLoading)
-    return (
-      <ActivityIndicator style={styles.center} color={PodcastTheme.textMuted} />
-    );
+    return <ActivityIndicator style={styles.center} color={colors.textMuted} />;
   const e = episode.data;
   if (!e)
     return (
@@ -75,7 +78,7 @@ export default function EpisodeDetailScreen() {
       style={styles.root}
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: MINI_PLAYER_CONTENT_INSET + 24 },
+        { paddingBottom: miniInset + 24 },
       ]}
     >
       <View style={styles.hero}>
@@ -111,7 +114,11 @@ export default function EpisodeDetailScreen() {
           accessibilityRole="button"
           testID="episode-play"
         >
-          <Ionicons name={playing ? "pause" : "play"} size={20} color="#fff" />
+          <Ionicons
+            name={playing ? "pause" : "play"}
+            size={20}
+            color={colors.onAccent}
+          />
           <Text style={styles.playText}>
             {playing
               ? "Pause"
@@ -135,7 +142,7 @@ export default function EpisodeDetailScreen() {
           <Ionicons
             name="ellipsis-horizontal-circle"
             size={30}
-            color={PodcastTheme.text}
+            color={colors.text}
           />
         </Pressable>
       </View>
@@ -158,23 +165,24 @@ export default function EpisodeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
-  center: { flex: 1, textAlign: "center", marginTop: 48 },
-  content: { padding: 16, gap: 20 },
-  hero: { flexDirection: "row", gap: 16 },
-  show: { color: PodcastTheme.textMuted, fontSize: 13 },
-  title: { color: PodcastTheme.text, fontSize: 20, fontWeight: "700" },
-  muted: { color: PodcastTheme.textMuted, fontSize: 13 },
-  actions: { flexDirection: "row", alignItems: "center", gap: 16 },
-  play: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  playText: { color: "#fff", fontWeight: "700" },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    center: { flex: 1, textAlign: "center", marginTop: 48 },
+    content: { padding: 16, gap: 20 },
+    hero: { flexDirection: "row", gap: 16 },
+    show: { color: c.textMuted, fontSize: 13 },
+    title: { color: c.text, fontSize: 20, fontWeight: "700" },
+    muted: { color: c.textMuted, fontSize: 13 },
+    actions: { flexDirection: "row", alignItems: "center", gap: 16 },
+    play: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: 24,
+    },
+    playText: { color: c.onAccent, fontWeight: "700" },
+  });

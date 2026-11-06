@@ -123,6 +123,7 @@ export function SettingsSwitchRow({
         onValueChange={onValueChange}
         disabled={disabled}
         trackColor={{ true: palette.accent }}
+        thumbColor="#FFFFFF"
         accessibilityLabel={label}
       />
     </View>

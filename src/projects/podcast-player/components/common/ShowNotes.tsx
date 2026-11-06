@@ -1,6 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { parseTimestamp } from "@/src/projects/podcast-player/utils/format";
 import type { NoteLink } from "@/src/projects/podcast-player/utils/html";
 
@@ -20,13 +25,10 @@ const TIMESTAMP = /\b((?:\d{1,2}:)?\d{1,2}:\d{2})\b/g;
  * tappable seek links, followed by the extracted http(s) links. No HTML is
  * interpreted, so publisher markup can't inject anything.
  */
-export function ShowNotes({
-  text,
-  links,
-  accent = PodcastTheme.accent,
-  onOpenLink,
-  onSeek,
-}: Props) {
+export function ShowNotes({ text, links, accent, onOpenLink, onSeek }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
+  const linkColor = accent ?? colors.accent;
   const parts: { key: string; text: string; seconds: number | null }[] = [];
   let last = 0;
   let i = 0;
@@ -55,7 +57,7 @@ export function ShowNotes({
           p.seconds != null ? (
             <Text
               key={p.key}
-              style={[styles.stamp, { color: accent }]}
+              style={[styles.stamp, { color: linkColor }]}
               onPress={() => onSeek(p.seconds!)}
               accessibilityRole="link"
               accessibilityLabel={`Play from ${p.text}`}
@@ -76,7 +78,10 @@ export function ShowNotes({
               onPress={() => onOpenLink(l.url)}
               accessibilityRole="link"
             >
-              <Text style={[styles.link, { color: accent }]} numberOfLines={2}>
+              <Text
+                style={[styles.link, { color: linkColor }]}
+                numberOfLines={2}
+              >
                 {l.text}
               </Text>
             </Pressable>
@@ -87,16 +92,17 @@ export function ShowNotes({
   );
 }
 
-const styles = StyleSheet.create({
-  box: { gap: 16 },
-  text: { color: PodcastTheme.text, fontSize: 15, lineHeight: 22 },
-  stamp: { fontWeight: "700", textDecorationLine: "underline" },
-  links: { gap: 10 },
-  linksTitle: {
-    color: PodcastTheme.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  link: { fontSize: 14 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    box: { gap: 16 },
+    text: { color: c.text, fontSize: 15, lineHeight: 22 },
+    stamp: { fontWeight: "700", textDecorationLine: "underline" },
+    links: { gap: 10 },
+    linksTitle: {
+      color: c.textMuted,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+    },
+    link: { fontSize: 14 },
+  });

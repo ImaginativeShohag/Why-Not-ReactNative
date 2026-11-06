@@ -1,7 +1,11 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 
 type Props = {
   title: string;
@@ -11,6 +15,7 @@ type Props = {
 };
 
 export function QueueRow({ title, showTitle, artworkUrl, meta }: Props) {
+  const styles = usePodcastStyles(createStyles);
   return (
     <View style={styles.row}>
       <Artwork uri={artworkUrl} size={48} title={showTitle} />
@@ -27,9 +32,15 @@ export function QueueRow({ title, showTitle, artworkUrl, meta }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 16 },
-  text: { flex: 1 },
-  title: { color: PodcastTheme.text, fontWeight: "600" },
-  meta: { color: PodcastTheme.textMuted, fontSize: 12 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingLeft: 16,
+    },
+    text: { flex: 1 },
+    title: { color: c.text, fontWeight: "600" },
+    meta: { color: c.textMuted, fontSize: 12 },
+  });

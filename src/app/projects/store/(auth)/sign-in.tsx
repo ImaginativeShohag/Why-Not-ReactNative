@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   type TextInput,
   View,
 } from "react-native";
@@ -27,8 +26,12 @@ import PrimaryButton from "@/src/projects/store/components/ui/PrimaryButton";
 import SocialButton from "@/src/projects/store/components/ui/SocialButton";
 import { useSignIn } from "@/src/projects/store/hooks/useAuth";
 import { env } from "@/src/shared/constants/env";
-import { useThemeColor } from "@/src/shared/hooks/use-theme-color";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 // FakeStoreAPI's public demo user — offered as a one-tap fill in
 // non-production builds only, instead of pre-filling the form from a
@@ -37,8 +40,8 @@ const DEMO_USER = { username: "mor_2314", password: "83r5^_" };
 
 export default function SignInScreen() {
   const router = useRouter();
-  const textColor = useThemeColor({}, "text");
-  const backgroundColor = useThemeColor({}, "background");
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const session = useSession();
   const signIn = useSignIn();
   const google = useGoogleSignIn();
@@ -51,10 +54,21 @@ export default function SignInScreen() {
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [socialBusy, setSocialBusy] = useState<"apple" | "google" | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
+  const [guestRequested, setGuestRequested] = useState(false);
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
   }, []);
+
+  // (auth) stays reachable for a guest, so the guard won't move us. Go to the
+  // shop once the session has actually become "guest": navigating right after
+  // `continueAsGuest()` resolves can run before `Stack.Protected` re-renders
+  // and still sees (app) as protected.
+  useEffect(() => {
+    if (guestRequested && session.status === "guest") {
+      router.replace("/projects/store");
+    }
+  }, [guestRequested, session.status, router]);
 
   const validation = validateCredentials({ username, password });
   const errors = submitted ? validation : {};
@@ -91,10 +105,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.flex, { backgroundColor }]}
-      edges={["bottom", "left", "right"]}
-    >
+    <SafeAreaView style={styles.flex} edges={["bottom", "left", "right"]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -116,9 +127,7 @@ export default function SignInScreen() {
               accessibilityRole="alert"
               accessibilityLiveRegion="assertive"
             >
-              <Text style={[styles.errorText, { color: textColor }]}>
-                {errorMessage}
-              </Text>
+              <Text style={styles.errorText}>{errorMessage}</Text>
             </Animated.View>
           ) : null}
 
@@ -128,7 +137,6 @@ export default function SignInScreen() {
             value={username}
             onChangeText={setUsername}
             error={errors.username}
-            textColor={textColor}
             textContentType="username"
             autoComplete="username"
             autoCapitalize="none"
@@ -146,7 +154,6 @@ export default function SignInScreen() {
               value={password}
               onChangeText={setPassword}
               error={errors.password}
-              textColor={textColor}
               secureTextEntry={!showPassword}
               textContentType="password"
               autoComplete="current-password"
@@ -168,7 +175,7 @@ export default function SignInScreen() {
               <Ionicons
                 name={showPassword ? "eye-off" : "eye"}
                 size={20}
-                color={storeColors.muted}
+                color={colors.muted}
               />
             </Pressable>
           </View>
@@ -230,7 +237,12 @@ export default function SignInScreen() {
           <View style={styles.footerLinks}>
             {session.status === "signedOut" ? (
               <Pressable
-                onPress={() => session.continueAsGuest()}
+                onPress={() => {
+                  setGuestRequested(true);
+                  session
+                    .continueAsGuest()
+                    .catch(() => setGuestRequested(false));
+                }}
                 accessibilityRole="button"
                 testID="sign-in-guest"
               >
@@ -256,36 +268,38 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  scrollContent: { paddingBottom: 24 },
-  header: { minHeight: 180, width: "100%", padding: 16, gap: 8 },
-  welcome: { fontSize: 16, fontWeight: "bold", color: "#fff" },
-  appName: { fontSize: 28, fontWeight: "bold", color: "#fff" },
-  form: { padding: 16, gap: 14 },
-  errorBox: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#FFCC00",
-    backgroundColor: "rgba(255, 204, 0, 0.2)",
-  },
-  errorText: { textAlign: "center", fontSize: 15 },
-  eye: { position: "absolute", right: 14, top: 30 },
-  forgot: { alignSelf: "flex-end" },
-  link: { color: storeColors.accent, fontSize: 15, fontWeight: "500" },
-  devLink: { color: storeColors.muted, fontSize: 13, textAlign: "center" },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginVertical: 4,
-  },
-  rule: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: storeColors.tertiary,
-  },
-  or: { color: storeColors.muted },
-  footerLinks: { gap: 14, alignItems: "center", marginTop: 8 },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.card },
+    scrollContent: { paddingBottom: 24 },
+    header: { minHeight: 180, width: "100%", padding: 16, gap: 8 },
+    // The banner is brand art: white text in both schemes.
+    welcome: { fontSize: 16, fontWeight: "bold", color: "#fff" },
+    appName: { fontSize: 28, fontWeight: "bold", color: "#fff" },
+    form: { padding: 16, gap: 14 },
+    errorBox: {
+      padding: 14,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: "#FFCC00",
+      backgroundColor: c.warningSoft,
+    },
+    errorText: { textAlign: "center", fontSize: 15, color: c.label },
+    eye: { position: "absolute", right: 14, top: 30 },
+    forgot: { alignSelf: "flex-end" },
+    link: { color: c.accent, fontSize: 15, fontWeight: "500" },
+    devLink: { color: c.muted, fontSize: 13, textAlign: "center" },
+    divider: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginVertical: 4,
+    },
+    rule: {
+      flex: 1,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: c.tertiary,
+    },
+    or: { color: c.muted },
+    footerLinks: { gap: 14, alignItems: "center", marginTop: 8 },
+  });

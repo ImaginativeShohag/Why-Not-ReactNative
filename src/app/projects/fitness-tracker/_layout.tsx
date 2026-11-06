@@ -16,6 +16,7 @@ export default function FitnessTrackerLayout() {
       hitSlop={12}
       accessibilityRole="button"
       accessibilityLabel="Close"
+      style={{ marginRight: 16 }}
     >
       <Text style={{ color: palette.accent, fontSize: 17 }}>Close</Text>
     </Pressable>

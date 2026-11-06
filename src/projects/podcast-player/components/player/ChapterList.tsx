@@ -1,8 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import type { Chapter } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
+import {
+  type PodcastColors,
+  usePodcastColors,
+  usePodcastStyles,
+} from "@/src/projects/podcast-player/constants/theme";
+import Text from "@/src/projects/podcast-player/components/common/PodcastText";
 import { formatDuration } from "@/src/projects/podcast-player/utils/format";
 
 type Props = {
@@ -19,6 +24,8 @@ export function ChapterList({
   accent,
   onSelect,
 }: Props) {
+  const colors = usePodcastColors();
+  const styles = usePodcastStyles(createStyles);
   if (chapters.length === 0) return null;
   return (
     <View style={styles.box}>
@@ -37,7 +44,7 @@ export function ChapterList({
             <Ionicons
               name={active ? "radio-button-on" : "play-outline"}
               size={14}
-              color={active ? accent : PodcastTheme.textMuted}
+              color={active ? accent : colors.textMuted}
             />
             <Text style={styles.time}>{formatDuration(c.start)}</Text>
             <Text
@@ -65,25 +72,26 @@ export function activeChapterIndex(
   return idx;
 }
 
-const styles = StyleSheet.create({
-  box: { gap: 4 },
-  heading: {
-    color: PodcastTheme.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-  },
-  time: {
-    color: PodcastTheme.textMuted,
-    fontVariant: ["tabular-nums"],
-    width: 64,
-  },
-  title: { color: PodcastTheme.text, flex: 1 },
-});
+const createStyles = (c: PodcastColors) =>
+  StyleSheet.create({
+    box: { gap: 4 },
+    heading: {
+      color: c.textMuted,
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      marginBottom: 4,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 8,
+    },
+    time: {
+      color: c.textMuted,
+      fontVariant: ["tabular-nums"],
+      width: 64,
+    },
+    title: { color: c.text, flex: 1 },
+  });

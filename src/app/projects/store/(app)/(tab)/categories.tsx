@@ -6,16 +6,17 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
+import Text from "@/src/projects/store/components/ui/StoreText";
 import { getErrorMessage } from "@/src/projects/store/api/errors";
 import ErrorStateView from "@/src/projects/store/components/ui/ErrorStateView";
 import OfflineBanner from "@/src/projects/store/components/ui/OfflineBanner";
 import { ListSkeleton } from "@/src/projects/store/components/ui/Skeleton";
 import { useCategories } from "@/src/projects/store/hooks/useProduct";
 import { useIsOnline } from "@/src/projects/store/query/storeQuery";
+import { useStoreColors } from "@/src/projects/store/constants/theme";
 
 const GAP = 12;
 const NUM_COLS = 2;
@@ -23,6 +24,7 @@ const NUM_COLS = 2;
 const ITEM_GAP = (GAP * (NUM_COLS - 1)) / NUM_COLS;
 
 export default function CategoriesScreen() {
+  const colors = useStoreColors();
   const isOnline = useIsOnline();
   const {
     data: categories,
@@ -54,6 +56,7 @@ export default function CategoriesScreen() {
         ItemSeparatorComponent={() => <View style={{ height: GAP }} />}
         refreshControl={
           <RefreshControl
+            tintColor={colors.muted}
             refreshing={isRefetching}
             onRefresh={() => refetch()}
           />
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
   imageStyle: { borderRadius: 16 },
   overlay: {
     padding: 12,
+    // Drawn over a category photo, so it stays dark in both modes.
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 12,
     margin: 12,
@@ -122,7 +126,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "white",
+    color: "#fff", // over a photo, not themed
     textAlign: "center",
   },
 });

@@ -15,6 +15,7 @@ import {
 } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { podcastPalettes } from "@/src/projects/podcast-player/constants/theme";
 import { DownloadBadge } from "@/src/projects/podcast-player/components/episode/DownloadBadge";
 import { Artwork } from "@/src/projects/podcast-player/components/podcast/Artwork";
 import { ArtworkGradient } from "@/src/projects/podcast-player/components/player/ArtworkGradient";
@@ -29,7 +30,6 @@ import type {
   Chapter,
   DownloadState,
 } from "@/src/projects/podcast-player/models/Episode";
-import { PodcastTheme } from "@/src/projects/podcast-player/utils/color";
 
 export type FullPlayerViewProps = {
   title: string;
@@ -83,7 +83,11 @@ export function FullPlayerView(p: FullPlayerViewProps) {
           accessibilityRole="button"
           accessibilityLabel="Close player"
         >
-          <Ionicons name="chevron-down" size={30} color={PodcastTheme.text} />
+          <Ionicons
+            name="chevron-down"
+            size={30}
+            color={podcastPalettes.dark.text}
+          />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {p.podcastTitle}
@@ -97,7 +101,7 @@ export function FullPlayerView(p: FullPlayerViewProps) {
           <Ionicons
             name="ellipsis-horizontal"
             size={26}
-            color={PodcastTheme.text}
+            color={podcastPalettes.dark.text}
           />
         </Pressable>
       </View>
@@ -145,7 +149,7 @@ export function FullPlayerView(p: FullPlayerViewProps) {
           position={p.position}
           duration={p.duration}
           chapters={p.chapters}
-          accent={PodcastTheme.text}
+          accent={podcastPalettes.dark.text}
           onSeek={p.onSeek}
         />
 
@@ -153,7 +157,7 @@ export function FullPlayerView(p: FullPlayerViewProps) {
           <SkipButton
             direction="back"
             seconds={p.skipBackSec}
-            color={PodcastTheme.text}
+            color={podcastPalettes.dark.text}
             onPress={p.onSkipBack}
           />
           <Pressable
@@ -164,12 +168,12 @@ export function FullPlayerView(p: FullPlayerViewProps) {
             testID="player-toggle"
           >
             {p.buffering && p.playing ? (
-              <ActivityIndicator color={PodcastTheme.background} />
+              <ActivityIndicator color={podcastPalettes.dark.background} />
             ) : (
               <Ionicons
                 name={p.playing ? "pause" : "play"}
                 size={38}
-                color={PodcastTheme.background}
+                color={podcastPalettes.dark.background}
                 style={p.playing ? undefined : { marginLeft: 4 }}
               />
             )}
@@ -177,7 +181,7 @@ export function FullPlayerView(p: FullPlayerViewProps) {
           <SkipButton
             direction="forward"
             seconds={p.skipForwardSec}
-            color={PodcastTheme.text}
+            color={podcastPalettes.dark.text}
             onPress={p.onSkipForward}
           />
         </View>
@@ -226,7 +230,7 @@ export function FullPlayerView(p: FullPlayerViewProps) {
         <ChapterList
           chapters={p.chapters}
           activeIndex={activeChapterIndex(p.chapters, p.position)}
-          accent={PodcastTheme.text}
+          accent={podcastPalettes.dark.text}
           onSelect={(c) => p.onSeek(c.start)}
         />
       </ScrollView>
@@ -268,7 +272,7 @@ function ActionButton({
         <Ionicons
           name={icon}
           size={22}
-          color={active ? "#FACC15" : PodcastTheme.text}
+          color={active ? "#FACC15" : podcastPalettes.dark.text}
         />
       ) : null}
       {label ? (
@@ -281,7 +285,7 @@ function ActionButton({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PodcastTheme.background },
+  root: { flex: 1, backgroundColor: podcastPalettes.dark.background },
   content: { paddingHorizontal: 24, gap: 18 },
   header: {
     flexDirection: "row",
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
     height: 44,
   },
   headerTitle: {
-    color: PodcastTheme.textMuted,
+    color: "#FFFFFF",
     fontSize: 13,
     flex: 1,
     textAlign: "center",
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
   },
   artWrap: { alignItems: "center", paddingVertical: 16 },
   titles: { gap: 4 },
-  title: { color: PodcastTheme.text, fontSize: 21, fontWeight: "700" },
+  title: { color: podcastPalettes.dark.text, fontSize: 21, fontWeight: "700" },
   podcast: { color: "rgba(255,255,255,0.7)", fontSize: 15 },
   note: { color: "#FACC15", fontSize: 12, marginTop: 2 },
   controls: {
@@ -310,7 +314,7 @@ const styles = StyleSheet.create({
     width: CONTROL_SIZE + 16,
     height: CONTROL_SIZE + 16,
     borderRadius: (CONTROL_SIZE + 16) / 2,
-    backgroundColor: PodcastTheme.text,
+    backgroundColor: podcastPalettes.dark.text,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -327,5 +331,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
   },
-  actionLabel: { color: PodcastTheme.text, fontWeight: "700", fontSize: 14 },
+  actionLabel: {
+    color: podcastPalettes.dark.text,
+    fontWeight: "700",
+    fontSize: 14,
+  },
 });

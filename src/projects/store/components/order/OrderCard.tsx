@@ -1,7 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "../ui/StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "../../constants/theme";
 
 type OrderCardProps = {
   orderNumber: string;
@@ -20,6 +25,8 @@ export default function OrderCard({
   total,
   onPress,
 }: OrderCardProps) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -37,28 +44,25 @@ export default function OrderCard({
         </Text>
         <View style={styles.totalRow}>
           <Text style={styles.total}>{total}</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={storeColors.tertiary}
-          />
+          <Ionicons name="chevron-forward" size={16} color={colors.tertiary} />
         </View>
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: "#fff", borderRadius: 14, padding: 14, gap: 6 },
-  pressed: { opacity: 0.7 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  number: { fontSize: 16, fontWeight: "700" },
-  status: { fontSize: 13, fontWeight: "600", color: storeColors.accent },
-  meta: { fontSize: 13, color: storeColors.muted },
-  totalRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  total: { fontSize: 15, fontWeight: "600" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    card: { backgroundColor: c.card, borderRadius: 14, padding: 14, gap: 6 },
+    pressed: { opacity: 0.7 },
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    number: { fontSize: 16, fontWeight: "700", color: c.label },
+    status: { fontSize: 13, fontWeight: "600", color: c.accent },
+    meta: { fontSize: 13, color: c.muted },
+    totalRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+    total: { fontSize: 15, fontWeight: "600", color: c.label },
+  });

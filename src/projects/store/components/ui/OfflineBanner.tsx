@@ -1,8 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+
+// The banner stays warning-yellow in both schemes, so its ink must stay dark.
+const BANNER_BG = "#FFD60A";
+const BANNER_INK = "#1C1C1E";
 
 type OfflineBannerProps = {
   visible: boolean;
@@ -23,11 +27,7 @@ export default function OfflineBanner({
       accessibilityLiveRegion="polite"
     >
       <View style={styles.row}>
-        <Ionicons
-          name="cloud-offline-outline"
-          size={16}
-          color={storeColors.label}
-        />
+        <Ionicons name="cloud-offline-outline" size={16} color={BANNER_INK} />
         <Text style={styles.text}>{message}</Text>
       </View>
     </Animated.View>
@@ -36,7 +36,7 @@ export default function OfflineBanner({
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: "#FFD60A",
+    backgroundColor: BANNER_BG,
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 14,
     fontWeight: "600",
-    color: storeColors.label,
+    color: BANNER_INK,
     flexShrink: 1,
   },
 });

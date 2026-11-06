@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import ProductImage from "../ui/product-image";
-import { storeColors } from "../../constants/theme";
+import Text from "../ui/StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type OrderLineRowProps = {
   title: string;
@@ -16,6 +17,7 @@ export default function OrderLineRow({
   quantity,
   lineTotal,
 }: OrderLineRowProps) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View
       style={styles.row}
@@ -32,15 +34,21 @@ export default function OrderLineRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 6,
-  },
-  image: { width: 44, height: 44, borderRadius: 8 },
-  title: { flex: 1, fontSize: 14 },
-  qty: { fontSize: 14, color: storeColors.muted },
-  total: { fontSize: 14, fontWeight: "600", minWidth: 70, textAlign: "right" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 6,
+    },
+    image: { width: 44, height: 44, borderRadius: 8 },
+    title: { flex: 1, fontSize: 14 },
+    qty: { fontSize: 14, color: c.muted },
+    total: {
+      fontSize: 14,
+      fontWeight: "600",
+      minWidth: 70,
+      textAlign: "right",
+    },
+  });

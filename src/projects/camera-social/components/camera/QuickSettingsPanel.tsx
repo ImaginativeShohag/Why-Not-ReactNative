@@ -34,7 +34,8 @@ export function QuickSettingsPanel({ top, rows, onToggle, onDismiss }: Props) {
               <Switch
                 value={row.value}
                 onValueChange={(v) => onToggle(row.key, v)}
-                trackColor={{ true: Palette.accent }}
+                trackColor={{ true: Palette.accent, false: Palette.textFaint }}
+                thumbColor="#FFFFFF"
               />
             </View>
           ))}

@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 
 import {
   SHIPPING_OPTIONS,
@@ -18,13 +18,18 @@ import {
   useCheckoutGuard,
 } from "@/src/projects/store/hooks/useCheckout";
 import { formatMoney } from "@/src/projects/store/utils/money";
-import { storeColors } from "@/src/projects/store/constants/theme";
+import Text from "@/src/projects/store/components/ui/StoreText";
+import {
+  type StoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
 
 export default function CheckoutShippingScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const redirect = useCheckoutGuard("shipping");
   const { checkout, send, subtotal, totals } = useCheckout();
+  const styles = useStoreStyles(createStyles);
 
   if (redirect) return <Redirect href={redirect} />;
 
@@ -83,6 +88,7 @@ export default function CheckoutShippingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  note: { fontSize: 13, color: storeColors.muted },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    note: { fontSize: 13, color: c.muted },
+  });

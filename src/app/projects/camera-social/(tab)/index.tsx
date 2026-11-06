@@ -106,6 +106,7 @@ function FeedHeaderButtons({
         headerLeft: () => (
           <IconButton
             icon="chevron-back"
+            style={styles.headerButtonLeft}
             onPress={onBack}
             accessibilityLabel="Back to projects"
           />
@@ -113,6 +114,7 @@ function FeedHeaderButtons({
         headerRight: () => (
           <IconButton
             icon="camera-outline"
+            style={styles.headerButtonRight}
             onPress={onCamera}
             accessibilityLabel="Open camera"
           />
@@ -124,6 +126,9 @@ function FeedHeaderButtons({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Palette.background },
+  // IconButton pads 6; these bring the header inset to 16 like the other projects.
+  headerButtonLeft: { marginLeft: 10 },
+  headerButtonRight: { marginRight: 10 },
   fab: {
     position: "absolute",
     right: 20,

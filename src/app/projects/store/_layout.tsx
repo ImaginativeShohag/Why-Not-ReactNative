@@ -11,6 +11,11 @@ import { useSession } from "@/src/projects/store/auth/useSession";
 import LockView from "@/src/projects/store/components/ui/LockView";
 import { storeConfig } from "@/src/projects/store/constants/config";
 import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "@/src/projects/store/constants/theme";
+import {
   isProtectedStoreHref,
   storeHrefFromUrl,
 } from "@/src/projects/store/navigation/linkRoutes";
@@ -22,11 +27,15 @@ import {
   stopStorePersistence,
 } from "@/src/projects/store/query/storeQuery";
 import { env } from "@/src/shared/constants/env";
+import { useWindowBackground } from "@/src/shared/hooks/use-window-background";
 
 const RESTORE_TIMEOUT_MS = 1500;
 const handledUrls = new Set<string>();
 
 export default function StoreLayout() {
+  const colors = useStoreColors();
+  // Edge-to-edge Android paints the navigation bar over the window background.
+  useWindowBackground(colors.background);
   return (
     <SessionProvider>
       <PaymentsProvider>
@@ -52,6 +61,7 @@ function PaymentsProvider({ children }: { children: ReactElement }) {
 }
 
 function StoreNavigator() {
+  const styles = useStoreStyles(createStyles);
   const session = useSession();
   const [cacheRestored, setCacheRestored] = useState(false);
 
@@ -137,7 +147,8 @@ function useCaptureDeepLinkIntent(status: SessionStatus) {
   }, [url, status]);
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  boot: { flex: 1, backgroundColor: "#fff" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    boot: { flex: 1, backgroundColor: c.background },
+  });

@@ -29,17 +29,17 @@ const VARIANTS: Record<
 > = {
   development: {
     idSuffix: ".dev",
-    name: "WNRN (Dev)",
+    name: "Why Not ReactNative (Dev)",
     storeApiUrl: process.env.STORE_API_URL ?? "https://fakestoreapi.com",
   },
   preview: {
     idSuffix: ".preview",
-    name: "WNRN (Beta)",
+    name: "Why Not ReactNative (Beta)",
     storeApiUrl: process.env.STORE_API_URL ?? "https://fakestoreapi.com",
   },
   production: {
     idSuffix: "",
-    name: "Why-Not-ReactNative",
+    name: "Why Not ReactNative",
     storeApiUrl: process.env.STORE_API_URL ?? "https://fakestoreapi.com",
   },
 };
@@ -53,6 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: "Why-Not-ReactNative",
   version: "1.0.0",
   orientation: "portrait",
+  // Generated from src/assets/images/icon.svg by scripts/generate-app-icons.cjs.
   icon: "./src/assets/images/icon.png",
   scheme: "whynotreactnative",
   userInterfaceStyle: "automatic",
@@ -100,7 +101,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: "./src/assets/images/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      monochromeImage: "./src/assets/images/monochrome-icon.png",
+      backgroundColor: "#01011c",
     },
     package: bundleId,
     intentFilters: [
@@ -132,8 +134,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: "./src/assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
-        dark: { backgroundColor: "#000000" },
+        backgroundColor: "#01011c",
+        dark: {
+          image: "./src/assets/images/splash-icon.png",
+          backgroundColor: "#01011c",
+        },
       },
     ],
     "expo-web-browser",
@@ -205,6 +210,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-sensors",
       { motionPermission: "Count steps and detect when you stop moving." },
     ],
+    // enforceContrast: false drops Android's light scrim behind 3-button
+    // navigation, so a dark project can set light buttons (see NavigationBar).
+    ["expo-navigation-bar", { enforceContrast: false }],
     [
       "react-native-maps",
       { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY },
@@ -252,6 +260,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     podcastIndexUrl: "https://itunes.apple.com",
     linkDomain: LINK_DOMAIN,
     stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_KEY ?? "",
+    // Android Google Maps throws natively without a key, so the app asks first.
+    googleMapsConfigured: Boolean(process.env.GOOGLE_MAPS_API_KEY),
     // Empty = local dev server (localhost / 10.0.2.2, resolved in env.ts).
     journalSyncUrl: process.env.JOURNAL_SYNC_URL ?? "",
   },

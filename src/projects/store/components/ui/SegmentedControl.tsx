@@ -2,12 +2,12 @@ import {
   Pressable,
   type StyleProp,
   StyleSheet,
-  Text,
   View,
   type ViewStyle,
 } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+import { type StoreColors, useStoreStyles } from "../../constants/theme";
 
 type SegmentedControlProps<T extends string> = {
   options: readonly { value: T; label: string }[];
@@ -28,6 +28,7 @@ export default function SegmentedControl<T extends string>({
   role = "tab",
   style,
 }: SegmentedControlProps<T>) {
+  const styles = useStoreStyles(createStyles);
   return (
     <View
       style={[styles.container, style]}
@@ -55,16 +56,17 @@ export default function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flexDirection: "row", gap: 6 },
-  item: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(120,120,128,0.12)",
-  },
-  itemActive: { backgroundColor: storeColors.accent },
-  text: { fontWeight: "500" },
-  textActive: { color: "#fff", fontWeight: "600" },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    container: { flexDirection: "row", gap: 6 },
+    item: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: c.fill,
+    },
+    itemActive: { backgroundColor: c.accent },
+    text: { fontWeight: "500" },
+    textActive: { color: c.onAccent, fontWeight: "600" },
+  });

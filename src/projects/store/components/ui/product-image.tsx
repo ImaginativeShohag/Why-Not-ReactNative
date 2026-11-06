@@ -59,7 +59,8 @@ const styles = StyleSheet.create({
   imageWrapper: {
     width: "100%",
     aspectRatio: 1,
-    backgroundColor: "white",
+    // Product photos come on white, so the well stays white in both modes.
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },

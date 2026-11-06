@@ -2,11 +2,15 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   type ViewStyle,
 } from "react-native";
 
-import { storeColors } from "../../constants/theme";
+import Text from "./StoreText";
+import {
+  type StoreColors,
+  useStoreColors,
+  useStoreStyles,
+} from "../../constants/theme";
 
 type PrimaryButtonProps = {
   title: string;
@@ -30,6 +34,8 @@ export default function PrimaryButton({
   testID,
   style,
 }: PrimaryButtonProps) {
+  const colors = useStoreColors();
+  const styles = useStoreStyles(createStyles);
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -50,7 +56,7 @@ export default function PrimaryButton({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "secondary" ? storeColors.accent : "#fff"}
+          color={variant === "secondary" ? colors.accent : colors.onAccent}
         />
       ) : (
         <Text
@@ -64,19 +70,20 @@ export default function PrimaryButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 50,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primary: { backgroundColor: storeColors.accent },
-  secondary: { backgroundColor: "rgba(0,122,255,0.12)" },
-  destructive: { backgroundColor: storeColors.danger },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.75 },
-  text: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  secondaryText: { color: storeColors.accent },
-});
+const createStyles = (c: StoreColors) =>
+  StyleSheet.create({
+    base: {
+      minHeight: 50,
+      borderRadius: 14,
+      paddingHorizontal: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    primary: { backgroundColor: c.accent },
+    secondary: { backgroundColor: c.accentSoft },
+    destructive: { backgroundColor: c.danger },
+    disabled: { opacity: 0.45 },
+    pressed: { opacity: 0.75 },
+    text: { color: c.onAccent, fontSize: 17, fontWeight: "600" },
+    secondaryText: { color: c.accent },
+  });
