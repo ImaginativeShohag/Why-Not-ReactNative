@@ -111,7 +111,12 @@ function StoreNavigator() {
 
   return (
     <View style={styles.flex}>
-      <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
+      <Stack
+        screenOptions={{
+          headerTransparent: false,
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      >
         <Stack.Protected guard={!session.onboarded}>
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         </Stack.Protected>

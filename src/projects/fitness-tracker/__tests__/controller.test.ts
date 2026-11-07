@@ -96,7 +96,7 @@ async function startAndHoldBeforeSaveSession() {
   const started = startWorkout(options);
   // Let the job run up to the gated saveSession.
   while ((insertWorkout as jest.Mock).mock.calls.length === 0) {
-    await new Promise((r) => setImmediate(r));
+    await new Promise<void>((r) => setImmediate(r));
   }
   return { started, release };
 }

@@ -5,7 +5,7 @@ import RouteErrorView from "@/src/projects/store/components/ui/RouteErrorView";
 import { useReconcilePendingCheckout } from "@/src/projects/store/hooks/useCheckout";
 import { useIntentReplay } from "@/src/projects/store/navigation/useIntentReplay";
 
-export const unstable_settings = { initialRouteName: "(tab)" };
+export const unstable_settings = { anchor: "(tab)" };
 
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <RouteErrorView {...props} group="app" />;
@@ -20,7 +20,12 @@ export default function AppLayout() {
   useReconcilePendingCheckout(signedIn);
 
   return (
-    <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
+    <Stack
+      screenOptions={{
+        headerTransparent: false,
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       <Stack.Screen name="(tab)" options={{ headerShown: false }} />
       <Stack.Screen name="product/[id]" options={{ title: "" }} />
       <Stack.Screen

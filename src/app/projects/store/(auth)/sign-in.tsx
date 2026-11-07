@@ -5,7 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  type TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -45,7 +45,7 @@ export default function SignInScreen() {
   const session = useSession();
   const signIn = useSignIn();
   const google = useGoogleSignIn();
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

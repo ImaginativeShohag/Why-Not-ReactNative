@@ -79,7 +79,9 @@ export default function OrdersScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={() => refetch()}
+            onRefresh={async () => {
+              await refetch();
+            }}
           />
         }
         // Client-side paging over the fetched history; swap for a cursor

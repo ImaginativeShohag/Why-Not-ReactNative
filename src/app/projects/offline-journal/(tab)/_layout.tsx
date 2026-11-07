@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Tabs } from "expo-router";
 import { Pressable } from "react-native";
@@ -40,7 +41,11 @@ export default function JournalTabLayout() {
         options={{
           title: "Journal",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="book" size={24} color={color} />
+            <Ionicons
+              name="book"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -49,7 +54,11 @@ export default function JournalTabLayout() {
         options={{
           title: "Calendar",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="calendar" size={24} color={color} />
+            <Ionicons
+              name="calendar"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -58,7 +67,11 @@ export default function JournalTabLayout() {
         options={{
           title: "Search",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="search" size={24} color={color} />
+            <Ionicons
+              name="search"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -67,7 +80,11 @@ export default function JournalTabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="settings" size={24} color={color} />
+            <Ionicons
+              name="settings"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />

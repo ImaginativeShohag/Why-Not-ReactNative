@@ -34,6 +34,7 @@ function CameraSocialStack() {
       <NavigationBar style="light" />
       <Stack
         screenOptions={{
+          headerTransparent: false,
           headerStyle: { backgroundColor: Palette.background },
           headerTintColor: Palette.text,
           headerTitleStyle: { color: Palette.text },

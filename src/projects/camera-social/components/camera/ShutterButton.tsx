@@ -36,7 +36,7 @@ const SIZE = 78;
 const STROKE = 4;
 
 const ring = (() => {
-  const p = Skia.Path.Make();
+  const p = Skia.PathBuilder.Make();
   const r = SIZE / 2 - STROKE / 2;
   // Start at 12 o'clock so progress sweeps clockwise from the top.
   p.addArc(
@@ -44,7 +44,7 @@ const ring = (() => {
     -90,
     359.99,
   );
-  return p;
+  return p.detach();
 })();
 
 /**

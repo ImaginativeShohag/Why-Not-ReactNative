@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ScrollView, StyleSheet, type TextInput } from "react-native";
+import { ScrollView, StyleSheet, type TextInputInstance } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
@@ -17,8 +17,8 @@ import {
 export default function SignUpScreen() {
   const styles = useStoreStyles(createStyles);
   const signUp = useSignUp();
-  const usernameRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");

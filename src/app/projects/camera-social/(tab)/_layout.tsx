@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 
@@ -27,7 +28,7 @@ export default function CameraSocialTabLayout() {
             <Ionicons
               name={focused ? "grid" : "grid-outline"}
               size={24}
-              color={color}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
             />
           ),
         }}
@@ -41,7 +42,7 @@ export default function CameraSocialTabLayout() {
             <Ionicons
               name={focused ? "images" : "images-outline"}
               size={24}
-              color={color}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
             />
           ),
         }}
@@ -54,7 +55,7 @@ export default function CameraSocialTabLayout() {
             <Ionicons
               name={focused ? "person-circle" : "person-circle-outline"}
               size={26}
-              color={color}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
             />
           ),
         }}

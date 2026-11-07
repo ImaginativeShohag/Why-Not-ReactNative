@@ -12,7 +12,14 @@ function TabBarIcon(props: {
   name: ComponentProps<typeof Ionicons>["name"];
   color: ColorValue;
 }) {
-  return <Ionicons size={26} style={{ marginBottom: -3 }} {...props} />;
+  return (
+    <Ionicons
+      size={26}
+      style={{ marginBottom: -3 }}
+      {...props}
+      color={props.color as ComponentProps<typeof Ionicons>["color"]}
+    />
+  );
 }
 
 export function ErrorBoundary(props: ErrorBoundaryProps) {

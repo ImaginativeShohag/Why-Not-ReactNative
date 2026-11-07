@@ -1,3 +1,4 @@
+import { AndroidImportance } from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
@@ -10,7 +11,7 @@ export async function ensureChannel() {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
     name: "Daily reminders",
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: AndroidImportance.DEFAULT,
   });
 }
 

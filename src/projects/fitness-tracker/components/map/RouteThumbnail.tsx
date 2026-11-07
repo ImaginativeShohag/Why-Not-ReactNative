@@ -16,7 +16,7 @@ type Props = {
  */
 export function RouteThumbnail({ path, size, color, background }: Props) {
   const skPath = useMemo(() => {
-    const p = Skia.Path.Make();
+    const p = Skia.PathBuilder.Make();
     const pad = size * 0.12;
     const s = size - pad * 2;
     path.forEach(([x, y], i) =>
@@ -24,7 +24,7 @@ export function RouteThumbnail({ path, size, color, background }: Props) {
         ? p.moveTo(pad + x * s, pad + y * s)
         : p.lineTo(pad + x * s, pad + y * s),
     );
-    return p;
+    return p.detach();
   }, [path, size]);
 
   const hasRoute = path.length > 1;

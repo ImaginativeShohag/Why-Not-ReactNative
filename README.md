@@ -17,7 +17,7 @@ six isolated projects. Each one implements a write-up in [`docs/`](docs/learning
 | 05 | [Podcast Player](docs/05-podcast-player.html) | Background audio, lock screen, downloads, EAS Build/Update, rollouts, CI/CD ([runbook](docs/05-release.html)) |
 | 06 | [Tic-Tac-Toe](docs/06-tic-tac-toe.html) | Zustand with TypeScript (warm-up) |
 
-Built with Expo SDK 57, React Native 0.86, React 19.2 + React Compiler, Expo Router,
+Built with Expo SDK 58, React Native 0.88, React 19.3 + React Compiler, Expo Router,
 TanStack Query, Zustand, Reanimated 4 and Skia.
 
 ## Get started

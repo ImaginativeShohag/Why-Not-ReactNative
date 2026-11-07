@@ -108,6 +108,8 @@
   <p>Project 01 never left the sandbox. This one talks to hardware, the OS media store, and other apps — which means permissions, lifecycle, orientation, memory pressure, and platform divergence all show up at once. It's also where Reanimated stops being decoration and becomes the only way to build a 60fps editor.</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Camera lens callbacks return <code>LensInfo[]</code>. Match stable <code>deviceType</code> identifiers for wide and ultra-wide cameras and pass that identifier to <code>selectedLens</code>; <code>localizedName</code> is display text. Native view refs use <code>ViewInstance</code>. Skia paths are built with <code>Skia.PathBuilder.Make()</code> and finalized with <code>detach()</code> before rendering.</p>
+
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end you will have built, in <code>src/projects/camera-social/</code> and <code>src/app/projects/camera-social/</code>, a complete capture-edit-share app that you can compare against the working tree at every milestone. Each objective below maps to a milestone further down, and to a bank of search-the-code questions in <code>docs/training/</code>.</p>
@@ -631,7 +633,7 @@ EXPORT    (utils/shareOut.ts)
 
 <footer class="lp-foot">
   <div class="lp-foot-in">
-    <span>Project 02 · targets Expo SDK 57 / RN 0.86</span>
+    <span>Project 02 · targets Expo SDK 58 / RN 0.88</span>
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </div>
 </footer>

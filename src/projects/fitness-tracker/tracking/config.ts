@@ -1,3 +1,4 @@
+import { LocationActivityType } from "expo-location";
 import * as Location from "expo-location";
 
 import type { TrackingMode } from "../models/Workout";
@@ -38,7 +39,7 @@ export function locationTaskOptions(
   title: string,
 ): Location.LocationTaskOptions {
   const common: Location.LocationTaskOptions = {
-    activityType: Location.LocationActivityType.Fitness,
+    activityType: LocationActivityType.Fitness,
     // iOS would otherwise pause updates when it *thinks* you've stopped —
     // which is exactly when auto-pause needs to see you start again.
     pausesUpdatesAutomatically: false,

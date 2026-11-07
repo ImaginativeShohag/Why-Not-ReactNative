@@ -1,3 +1,4 @@
+import type { ScrollViewInstance } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useRef, useState, type ComponentProps, type ReactNode } from "react";
@@ -24,7 +25,7 @@ const SLIDES = 3;
 export default function OnboardingScreen() {
   const palette = usePalette();
   const { width } = useWindowDimensions();
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
   const [page, setPage] = useState(0);
   const reminder = useSettingsStore((state) => state.reminder);
   const patch = useSettingsStore((state) => state.patch);

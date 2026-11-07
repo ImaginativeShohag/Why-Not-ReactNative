@@ -1,3 +1,4 @@
+import type { ScrollViewInstance } from "react-native";
 import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
@@ -46,7 +47,7 @@ export function MoveTimeline({
   reduceMotion,
   bleed = 0,
 }: Props) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const count = history.length;
 
   useEffect(() => {

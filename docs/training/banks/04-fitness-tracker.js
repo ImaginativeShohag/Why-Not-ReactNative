@@ -112,31 +112,42 @@ QUIZ.register({
         "Metro resolves `.ios.ts` / `.android.ts` before the plain `.ts` file, so `@kingstinct/react-native-healthkit` never enters the Android bundle and `react-native-health-connect` never enters the iOS one. `sync.ts` is only the web/unsupported fallback, and all three implement the same `HealthSync` interface from `types.ts`, so screens import one name and stay platform-agnostic.\n\nA runtime `Platform.select` or a dynamic `import()` would still bundle both libraries, and importing a native library on the wrong platform can fail at evaluation time. HealthKit and Health Connect are very different APIs (workout sample plus route builder versus session, distance and calories records), so a shared interface is the right seam.\n\nIn the tutorial, see M8 (Health sync & export) and the Architecture decisions: platform splits use file extensions.",
     },
     {
-      id: "fitness-tracker-06",
-      type: "mcq",
-      level: 1,
-      topics: ["Skia", "Performance", "FlashList"],
-      files: [
+      "id": "fitness-tracker-06",
+      "type": "mcq",
+      "level": 1,
+      "topics": [
+        "Skia",
+        "Performance",
+        "FlashList"
+      ],
+      "files": [
         "src/projects/fitness-tracker/components/map/RouteThumbnail.tsx",
         "src/projects/fitness-tracker/components/WorkoutRow.tsx",
-        "src/projects/fitness-tracker/tracking/metrics.ts",
+        "src/projects/fitness-tracker/tracking/metrics.ts"
       ],
-      prompt:
-        "History rows show a small route preview. Why does `WorkoutRow` render `RouteThumbnail` (a Skia `Path`) instead of a small `MapView`?\n\nSearch: read `WorkoutRow.tsx`, `RouteThumbnail.tsx`, and where `thumbnailPath` is called in `controller.ts`.",
-      choices: [
+      "prompt": "History rows show a small route preview. Why does `WorkoutRow` render `RouteThumbnail` (a Skia `Path`) instead of a small `MapView`?\n\nSearch: read `WorkoutRow.tsx`, `RouteThumbnail.tsx`, and where `thumbnailPath` is called in `controller.ts`.",
+      "choices": [
         "Every MapView row would start a native map and fetch tiles. The thumbnail draws a few normalised points computed once at finish (`thumbnailPath`)",
         "react-native-maps can't render inside a FlashList",
         "MapView can't draw a `Polyline` on Android without a paid API key",
-        "Skia is needed because thumbnails come from a static-maps web API that returns vector paths",
+        "Skia is needed because thumbnails come from a static-maps web API that returns vector paths"
       ],
-      answer: 0,
-      links: [
-        { title: "React Native Skia: Path", url: "https://wcandillon.github.io/react-native-skia/v2/docs/shapes/path/" },
-        { title: "FlashList", url: "https://shopify.github.io/flash-list/" },
-        { title: "Expo MapView", url: "https://docs.expo.dev/versions/latest/sdk/map-view/" },
+      "answer": 0,
+      "links": [
+        {
+          "title": "React Native Skia: Path",
+          "url": "https://wcandillon.github.io/react-native-skia/v2/docs/shapes/path/"
+        },
+        {
+          "title": "FlashList",
+          "url": "https://shopify.github.io/flash-list/"
+        },
+        {
+          "title": "Expo MapView",
+          "url": "https://docs.expo.dev/versions/latest/sdk/map-view/"
+        }
       ],
-      explain:
-        "Fifty history rows each hosting a live `MapView` would each start a native map and fetch tiles. Instead `stopWorkout` computes `thumbnailPath(points)` **once** at finish: a Douglas-Peucker-simplified route normalised into a 0..1 box, stored on the workout row. `RouteThumbnail` only scales those pairs into a Skia path, so scrolling a list costs a few path draws.\n\nThe design principle is to move expensive work from render time to write time. The same idea appears on the detail and active screens, where `douglasPeucker` runs before the polyline reaches the map, because pushing thousands of raw coordinates into a native polyline kills the frame rate (tutorial Failure modes: rendering raw polylines).\n\nBuild it in M4 (Maps & visualization): thumbnails for the list, a real map only for the detail and active screens.",
+      "explain": "Fifty history rows each hosting a live `MapView` would each start a native map and fetch tiles. Instead `stopWorkout` computes `thumbnailPath(points)` **once** at finish: a Douglas-Peucker-simplified route normalised into a 0..1 box, stored on the workout row. `RouteThumbnail` only scales those pairs into a Skia path, so scrolling a list costs a few path draws.\n\nThe design principle is to move expensive work from render time to write time. The same idea appears on the detail and active screens, where `douglasPeucker` runs before the polyline reaches the map, because pushing thousands of raw coordinates into a native polyline kills the frame rate (tutorial Failure modes: rendering raw polylines).\n\nBuild it in M4 (Maps & visualization): thumbnails for the list, a real map only for the detail and active screens.\n\nWith the SDK 58 Skia version, construct the thumbnail using Skia.PathBuilder.Make() and call detach() to pass an immutable path to the renderer. build() instead returns a snapshot while retaining the builder contents."
     },
     {
       id: "fitness-tracker-07",
@@ -937,29 +948,40 @@ QUIZ.register({
         "`syncWidget`'s comment says \"Never on a timer\": pushes are event-driven and bucketed (every 100 steps, debounced 2 s), and a finished workout pushes immediately. The Live Activity wrapper throttles to about 1 Hz and always sends the latest state. The clock ticks natively from `timerStart` (`Text(timerInterval:)` on iOS, `setUsesChronometer` on Android), so JS never pushes once per second for the clock.\n\n`TodayProvider.getTimeline` uses a 30-minute `.after` policy only as a fallback to keep \"today\" correct across midnight. Real refreshes come from `WidgetCenter.reloadAllTimelines()` inside `setWidgetData`, and WidgetKit still budgets them. On iOS `update` also sets a 10-minute `staleDate` (except while paused, when it is `nil`: a paused workout gets no updates on purpose), so a dead pipeline greys the activity out instead of freezing a \"live\" distance.\n\nThe tutorial's M7 asks you to understand why you cannot update a widget every second.",
     },
     {
-      id: "fitness-tracker-41",
-      type: "explain",
-      level: 3,
-      topics: ["Config Plugins", "Expo Config & EAS"],
-      files: ["app.config.ts", "plugins/withWorkoutCapabilities.js", "plugins/withSceneLifecycle.js"],
-      prompt:
-        "In `app.config.ts`, `./plugins/withWorkoutCapabilities` is listed **before** `expo-share-intent`, and `./plugins/withSceneLifecycle` is listed first of all. Explain the rule about plugin order that makes this deliberate, and what would go wrong with the App Group entitlement if `withWorkoutCapabilities` were moved after `expo-share-intent`.\n\nSearch: read the plugin-order comments in `app.config.ts` and `addUnique` in the plugin, and verify the rule with `EXPO_DEBUG=1 npx expo prebuild --no-install --platform ios` if you can.",
-      model:
-        "Each plugin wraps the mod chain for a file, so the mods registered by **later** plugins run **first**. To make your mod see the final value, you list your plugin earlier. expo-share-intent prepends its App Group to `com.apple.security.application-groups` without checking for duplicates. `app.config.ts` already lists that same group in `ios.entitlements`, so the array ends up with a duplicate. Listed earlier, `withWorkoutEntitlements` runs after share-intent, and `addUnique` collapses the array to one entry. If the order were swapped, it would dedupe first and share-intent would then add the duplicate back. The test \"collapses an App Group another plugin already duplicated\" covers that collapse. `withSceneLifecycle` is listed first for the same reason: its AppDelegate mod must run last, after every other plugin's edits.",
-      rubric: [
-        "Mods of later-listed plugins run first (reverse order)",
-        "expo-share-intent adds the App Group without deduping",
-        "withWorkoutCapabilities is listed earlier so it runs later and addUnique cleans the array",
-        "Reversed order leaves a duplicate entitlement entry",
-        "Same reasoning for withSceneLifecycle's AppDelegate mod running last",
+      "id": "fitness-tracker-41",
+      "type": "explain",
+      "level": 3,
+      "topics": [
+        "Config Plugins",
+        "Expo Config & EAS"
       ],
-      links: [
-        { title: "Create and use config plugins", url: "https://docs.expo.dev/config-plugins/plugins/" },
-        { title: "Debugging config plugins", url: "https://docs.expo.dev/config-plugins/development-and-debugging/" },
-        { title: "Continuous Native Generation", url: "https://docs.expo.dev/workflow/continuous-native-generation/" },
+      "files": [
+        "app.config.ts",
+        "plugins/withWorkoutCapabilities.js"
       ],
-      explain:
-        "Both ordering comments are in the `plugins` array of `app.config.ts`, and the `addUnique` comment in the plugin says the same. Each plugin wraps the mod chain for a file, so mods registered by **later** plugins run **first**. To see the final value you list your plugin earlier. `expo-share-intent` prepends its App Group to `com.apple.security.application-groups` without deduping, and `app.config.ts` already lists the same group, so the array ends up with a duplicate. Listed earlier, `withWorkoutEntitlements` runs after share-intent and `addUnique` collapses it. Swapped, it would dedupe first and share-intent would add the duplicate back.\n\n`withSceneLifecycle` is first of all so its AppDelegate edit runs last, after every other plugin has finished. The test collapses an App Group another plugin already duplicated pins the behaviour.\n\nThe tutorial repeats the rule in the plugin-shape block and under failure modes (Plugin order).",
+      "prompt": "In app.config.ts, withWorkoutCapabilities is listed before expo-share-intent. Explain the mod-ordering rule, what happens if this order is reversed, and who generates the iOS scene lifecycle in SDK 58.",
+      "model": "Mods registered by later plugins run first. withWorkoutCapabilities runs after expo-share-intent and addUnique collapses duplicate App Group entries. Reversing them lets share-intent add the duplicate after deduplication. SDK 58 prebuild generates SceneDelegate.swift and the scene manifest; the custom scene-lifecycle plugin is removed.",
+      "rubric": [
+        "Later-listed plugin mods run first",
+        "Workout capabilities dedupes App Groups after share-intent",
+        "Reversed order leaves duplicate entitlements",
+        "SDK 58 prebuild owns scene generation"
+      ],
+      "links": [
+        {
+          "title": "Create and use config plugins",
+          "url": "https://docs.expo.dev/config-plugins/plugins/"
+        },
+        {
+          "title": "Debugging config plugins",
+          "url": "https://docs.expo.dev/config-plugins/development-and-debugging/"
+        },
+        {
+          "title": "Continuous Native Generation",
+          "url": "https://docs.expo.dev/workflow/continuous-native-generation/"
+        }
+      ],
+      "explain": "Mods registered by later plugins run first. withWorkoutCapabilities runs after expo-share-intent and addUnique collapses duplicate App Group entries. Reversing them lets share-intent add the duplicate after deduplication. SDK 58 prebuild generates SceneDelegate.swift and the scene manifest; the custom scene-lifecycle plugin is removed."
     },
     {
       id: "fitness-tracker-42",

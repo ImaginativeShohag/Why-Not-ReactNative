@@ -144,12 +144,12 @@ export default function SearchScreen() {
                   </Pressable>
                 ))}
               </View>
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             search.error ? (
               <Text style={styles.hint}>{getErrorMessage(search.error)}</Text>
-            ) : search.isFetching ? null : (
+            ) : search.isFetching ? undefined : (
               <Text style={styles.hint}>
                 No products match “{search.debouncedTerm}”.
               </Text>

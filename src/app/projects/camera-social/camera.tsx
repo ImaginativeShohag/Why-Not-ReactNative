@@ -1,3 +1,4 @@
+import type { ViewInstance } from "react-native";
 import {
   CameraView,
   useCameraPermissions,
@@ -128,7 +129,7 @@ function CameraCapture() {
   const isFocused = useIsFocused();
 
   const cameraRef = useRef<CameraView>(null);
-  const lastShotRef = useRef<View>(null);
+  const lastShotRef = useRef<ViewInstance>(null);
   const controller = useCameraController();
   const { settings, update } = useSettings();
   const { takePhoto, startRecording, stopRecording } = useCapture(

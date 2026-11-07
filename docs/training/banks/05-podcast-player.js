@@ -676,28 +676,43 @@ QUIZ.register({
         "The tracker compares consecutive statuses with the user's intent: \"stopped while we wanted play\" means `externalPause`. Right after we issue a command, status still shows the old state, which would look exactly like an external transition. The 1200 ms window absorbs that delay.\n\n`didJustFinish` gets through even inside the window, so auto-advance is never swallowed. Buffering flips are ignored for the same reason: some platforms flip `playing` during stalls. Without the guard, your own `pause()` would be misread as a system pause, `pausedExternally` would flip, and the UI would claim \"Paused by the system\" after the user tapped pause.\n\nSee **Audio session model** (\"Events you must handle (and who handles them)\").",
     },
     {
-      id: "podcast-player-31",
-      type: "multi",
-      level: 3,
-      topics: ["Media", "Expo Config & EAS", "Background Tasks"],
-      files: ["app.config.ts", "src/projects/podcast-player/playback/service.ts"],
-      prompt:
-        "Select all that apply. Which pieces does this repo rely on so a podcast keeps playing with the screen locked and the iPhone's ring/silent switch set to silent?\n\nSearch: read the `expo-audio` plugin block in `app.config.ts` and `doInit()` in `playback/service.ts`, then check the expo-audio docs on background playback.",
-      choices: [
+      "id": "podcast-player-31",
+      "type": "multi",
+      "level": 3,
+      "topics": [
+        "Media",
+        "Expo Config & EAS",
+        "Background Tasks"
+      ],
+      "files": [
+        "app.config.ts",
+        "src/projects/podcast-player/playback/service.ts"
+      ],
+      "prompt": "Select all that apply. Which pieces does this repo rely on so a podcast keeps playing with the screen locked and the iPhone's ring/silent switch set to silent?\n\nSearch: read the `expo-audio` plugin block in `app.config.ts` and `doInit()` in `playback/service.ts`, then check the expo-audio docs on background playback.",
+      "choices": [
         "The `expo-audio` config plugin with `enableBackgroundPlayback: true` in `app.config.ts` (a native capability, so it needs a new build)",
         "`setAudioModeAsync({ shouldPlayInBackground: true })` at runtime",
         "`playsInSilentMode: true`, so the mute switch doesn't silence it",
         "An `expo-background-task` registration to keep JS alive during playback",
         "A `TaskManager.defineTask` for the audio player in the root layout",
-        "`interruptionMode: \"mixWithOthers\"`, so iOS doesn't suspend the app",
+        "`interruptionMode: \"mixWithOthers\"`, so iOS doesn't suspend the app"
       ],
-      answer: [0, 1, 2],
-      links: [
-        { title: "expo-audio API reference", url: "https://docs.expo.dev/versions/latest/sdk/audio" },
-        { title: "expo-background-task", url: "https://docs.expo.dev/versions/latest/sdk/background-task" },
+      "answer": [
+        0,
+        1,
+        2
       ],
-      explain:
-        "Background audio needs both halves: the native capability (the config plugin adds the background audio mode at prebuild) and the runtime session setting (`shouldPlayInBackground`). The silent switch is a separate flag, `playsInSilentMode`. Background tasks are for periodic work, not audio; playback continues because the native player owns the session. The service uses `doNotMix`, not `mixWithOthers` (which also would not satisfy lock-screen controls).\n\nSince the plugin option changes native config, it also changes the fingerprint, so it cannot be turned on through an OTA; you need a new build. Forgetting `playsInSilentMode` is failure mode 2: no sound for anyone whose mute switch is on.\n\nSee the table at the top of **Audio session model**.",
+      "links": [
+        {
+          "title": "expo-audio API reference",
+          "url": "https://docs.expo.dev/versions/latest/sdk/audio"
+        },
+        {
+          "title": "expo-background-task",
+          "url": "https://docs.expo.dev/versions/latest/sdk/background-task"
+        }
+      ],
+      "explain": "Background audio needs both halves: the native capability (the config plugin adds the background audio mode at prebuild) and the runtime session setting (`shouldPlayInBackground`). The silent switch is a separate flag, `playsInSilentMode`. Background tasks are for periodic work, not audio; playback continues because the native player owns the session. The service uses `doNotMix`, not `mixWithOthers` (which also would not satisfy lock-screen controls).\n\nSince the plugin option changes native config, it also changes the fingerprint, so it cannot be turned on through an OTA; you need a new build. Forgetting `playsInSilentMode` is failure mode 2: no sound for anyone whose mute switch is on.\n\nSee the table at the top of **Audio session model**.\n\nSDK 58 requires expo-asset as a direct native peer dependency of expo-audio. Install it with expo install and rebuild the native client."
     },
     {
       id: "podcast-player-32",

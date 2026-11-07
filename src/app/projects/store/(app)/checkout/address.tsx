@@ -5,7 +5,7 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  type TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 
@@ -54,13 +54,13 @@ export default function CheckoutAddressScreen() {
   const [submitted, setSubmitted] = useState(false);
   // One const per ref: reading refs off an object during render trips the
   // React Compiler ("cannot access refs during render").
-  const line1Ref = useRef<TextInput>(null);
-  const line2Ref = useRef<TextInput>(null);
-  const cityRef = useRef<TextInput>(null);
-  const regionRef = useRef<TextInput>(null);
-  const postalCodeRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
+  const line1Ref = useRef<TextInputInstance>(null);
+  const line2Ref = useRef<TextInputInstance>(null);
+  const cityRef = useRef<TextInputInstance>(null);
+  const regionRef = useRef<TextInputInstance>(null);
+  const postalCodeRef = useRef<TextInputInstance>(null);
+  const phoneRef = useRef<TextInputInstance>(null);
+  const emailRef = useRef<TextInputInstance>(null);
 
   // A placed (locked) order never renders this step: the guard sends it to
   // review, which owns the "finish payment" state.

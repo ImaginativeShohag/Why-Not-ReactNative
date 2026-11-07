@@ -39,9 +39,10 @@ export function LineChart({
     const pts = data.filter(
       (_, i) => i % stride === 0 || i === data.length - 1,
     );
-    const line = Skia.Path.Make();
-    const area = Skia.Path.Make();
-    if (pts.length < 2 || width === 0) return { line, area, min: 0, max: 0 };
+    const line = Skia.PathBuilder.Make();
+    const area = Skia.PathBuilder.Make();
+    if (pts.length < 2 || width === 0)
+      return { line: line.detach(), area: area.detach(), min: 0, max: 0 };
     const ys = pts.map((p) => p.y);
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
@@ -58,11 +59,11 @@ export function LineChart({
         ? line.moveTo(toX(p.x), toY(p.y))
         : line.lineTo(toX(p.x), toY(p.y)),
     );
-    area.addPath(line);
+    area.addPath(line.build());
     area.lineTo(width, height);
     area.lineTo(0, height);
     area.close();
-    return { line, area, min: minY, max: maxY };
+    return { line: line.detach(), area: area.detach(), min: minY, max: maxY };
   }, [data, width, height, invert, maxPoints]);
 
   return (

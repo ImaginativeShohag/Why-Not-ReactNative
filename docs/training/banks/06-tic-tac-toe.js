@@ -300,20 +300,34 @@ QUIZ.register({
         "The project owns its colours: two `TicTacToePalette` objects (`light`, `dark`) and a hook that picks one. Components never look a colour up themselves; they get `palette` as a prop, so they stay dumb and previewable in either theme.\n\n**Narrowing.** React Native's colour scheme can be `\"light\"`, `\"dark\"`, `\"unspecified\"` or null, so code compares against `\"dark\"` and treats everything else as light rather than indexing with the raw value.\n\n**Why not `Appearance.setColorScheme`.** It is process-wide: it re-themes the launcher and every other project, and resetting it to `\"unspecified\"` can leave a stale scheme behind. `AGENTS.md` makes this a rule: give the project its own palette instead.",
     },
     {
-      id: "tic-tac-toe-63",
-      type: "text",
-      level: 1,
-      topics: ["Layout & Styling"],
-      files: ["src/projects/tic-tac-toe/components/MoveTimeline.tsx", "AGENTS.md"],
-      prompt:
-        "`MoveTimeline` is a horizontal `ScrollView` inside the screen's column. Which style property and value in its `styles.scroll` stops it growing to fill that column? Type it as `property: value`.",
-      accept: ["flexGrow: 0", "flexGrow:0", "flex-grow: 0", /^flexGrow\s*:?\s*0;?$/i],
-      links: [
-        { title: "React Native: ScrollView", url: "https://reactnative.dev/docs/scrollview" },
-        { title: "React Native: Layout props", url: "https://reactnative.dev/docs/layout-props" },
+      "id": "tic-tac-toe-63",
+      "type": "text",
+      "level": 1,
+      "topics": [
+        "Layout & Styling"
       ],
-      explain:
-        "`scroll: { flexGrow: 0 }`, with the comment \"A horizontal ScrollView in a column grows to fill it otherwise.\" A `ScrollView` is a flex container that grows along its parent's main axis by default, so a horizontal one in a vertical column takes up the leftover height instead of being as tall as its chips. `AGENTS.md` lists the same rule for chip rows.\n\n**Related.** The chip spacing lives on `contentContainerStyle` (`gap: 8`), because the style of the scroll view itself doesn't lay out its children. The effect with `scrollToEnd({ animated: !reduceMotion })` keeps the newest move in view whenever the history grows.",
+      "files": [
+        "src/projects/tic-tac-toe/components/MoveTimeline.tsx",
+        "AGENTS.md"
+      ],
+      "prompt": "`MoveTimeline` is a horizontal `ScrollView` inside the screen's column. Which style property and value in its `styles.scroll` stops it growing to fill that column? Type it as `property: value`.",
+      "accept": [
+        "flexGrow: 0",
+        "flexGrow:0",
+        "flex-grow: 0",
+        /^flexGrow\s*:?\s*0;?$/i
+      ],
+      "links": [
+        {
+          "title": "React Native: ScrollView",
+          "url": "https://reactnative.dev/docs/scrollview"
+        },
+        {
+          "title": "React Native: Layout props",
+          "url": "https://reactnative.dev/docs/layout-props"
+        }
+      ],
+      "explain": "`scroll: { flexGrow: 0 }`, with the comment \"A horizontal ScrollView in a column grows to fill it otherwise.\" A `ScrollView` is a flex container that grows along its parent's main axis by default, so a horizontal one in a vertical column takes up the leftover height instead of being as tall as its chips. `AGENTS.md` lists the same rule for chip rows.\n\n**Related.** The chip spacing lives on `contentContainerStyle` (`gap: 8`), because the style of the scroll view itself doesn't lay out its children. The effect with `scrollToEnd({ animated: !reduceMotion })` keeps the newest move in view whenever the history grows.\n\nUnder React Native 0.88 strict types, scrollRef is useRef<ScrollViewInstance>(null); ScrollView is the component, while ScrollViewInstance exposes scrollToEnd."
     },
     {
       id: "tic-tac-toe-52",

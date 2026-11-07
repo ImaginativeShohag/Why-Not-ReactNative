@@ -62,6 +62,7 @@ export default function RootLayout() {
             >
               <Stack
                 screenOptions={{
+                  headerTransparent: false,
                   headerBackButtonDisplayMode: "minimal",
                 }}
               >

@@ -311,30 +311,40 @@ QUIZ.register({
       ],
     },
     {
-      id: "camera-social-15",
-      type: "mcq",
-      level: 2,
-      topics: ["Reanimated", "Performance"],
-      files: [
-        "src/app/projects/camera-social/camera.tsx",
-        "src/projects/camera-social/hooks/useCameraController.ts",
+      "id": "camera-social-15",
+      "type": "mcq",
+      "level": 2,
+      "topics": [
+        "Reanimated",
+        "Performance"
       ],
-      prompt:
-        "The zoom label uses `useAnimatedReaction(() => Math.round(zoomToFactor(zoom.get()) * 10) / 10, (v, prev) => { if (v !== prev) scheduleOnRN(setFactor, v); })`, while the camera itself gets zoom through `useAnimatedProps`. Why not just call `setFactor` from the pinch's `onUpdate`?\n\nSearch first: Search for `useAnimatedReaction` and `useAnimatedProps` in `camera.tsx`; read both Reanimated pages and decide what each hook is for.",
-      choices: [
+      "files": [
+        "src/app/projects/camera-social/camera.tsx",
+        "src/projects/camera-social/hooks/useCameraController.ts"
+      ],
+      "prompt": "The zoom label uses `useAnimatedReaction(() => Math.round(zoomToFactor(zoom.get()) * 10) / 10, (v, prev) => { if (v !== prev) scheduleOnRN(setFactor, v); })`, while the camera itself gets zoom through `useAnimatedProps`. Why not just call `setFactor` from the pinch's `onUpdate`?\n\nSearch first: Search for `useAnimatedReaction` and `useAnimatedProps` in `camera.tsx`; read both Reanimated pages and decide what each hook is for.",
+      "choices": [
         "A pinch updates every frame on the UI thread. Sending each frame to JS would re-render the whole camera screen per frame. The reaction only crosses threads when the displayed value (0.1 steps) changes, and zoom reaches the native view without React at all.",
         "`setState` can't be called from the JS thread while a gesture is active.",
         "`useAnimatedReaction` runs on the JS thread, so it's cheaper than a gesture callback.",
-        "`CameraView`'s `zoom` prop only accepts React state, so `setFactor` must drive it.",
+        "`CameraView`'s `zoom` prop only accepts React state, so `setFactor` must drive it."
       ],
-      answer: 0,
-      explain:
-        "A pinch produces updates every frame on the UI thread. Calling `setFactor` from `onUpdate` would re-render the whole camera screen per frame. Instead `useCameraController` keeps zoom as a shared value, and `Animated.createAnimatedComponent(CameraView)` plus `useAnimatedProps(() => ({ zoom: zoom.get() }))` pushes it straight to the native view with no React involvement. `useAnimatedReaction` runs on the UI thread as a filter: it rounds to 0.1 and only calls `scheduleOnRN(setFactor, v)` when the visible label would change.\n\n**Design decision.** Separate the value that drives hardware (continuous, UI thread) from the value that drives text (discrete, React). The same split appears in `ShutterButton`, where the Skia `<Path end={ringEnd}>` takes a derived value directly.\n\n**Failure mode if done otherwise.** Janky pinch and dropped frames as the JS thread floods with state updates.\n\nThis is milestone **M2** and the pinch-zoom bullet under **UI design** in docs/02-camera-social.html.",
-      links: [
-        { title: "Reanimated: useAnimatedReaction", url: "https://docs.swmansion.com/react-native-reanimated/docs/advanced/useAnimatedReaction" },
-        { title: "Reanimated: useAnimatedProps", url: "https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedProps" },
-        { title: "Reanimated: useSharedValue", url: "https://docs.swmansion.com/react-native-reanimated/docs/core/useSharedValue" },
-      ],
+      "answer": 0,
+      "explain": "A pinch produces updates every frame on the UI thread. Calling `setFactor` from `onUpdate` would re-render the whole camera screen per frame. Instead `useCameraController` keeps zoom as a shared value, and `Animated.createAnimatedComponent(CameraView)` plus `useAnimatedProps(() => ({ zoom: zoom.get() }))` pushes it straight to the native view with no React involvement. `useAnimatedReaction` runs on the UI thread as a filter: it rounds to 0.1 and only calls `scheduleOnRN(setFactor, v)` when the visible label would change.\n\n**Design decision.** Separate the value that drives hardware (continuous, UI thread) from the value that drives text (discrete, React). The same split appears in `ShutterButton`, where the Skia `<Path end={ringEnd}>` takes a derived value directly.\n\n**Failure mode if done otherwise.** Janky pinch and dropped frames as the JS thread floods with state updates.\n\nThis is milestone **M2** and the pinch-zoom bullet under **UI design** in docs/02-camera-social.html.\n\nSDK 58 lens callbacks return LensInfo objects. The controller selects the wide and ultra-wide cameras by stable deviceType identifiers, passes deviceType to selectedLens, and does not match localizedName text.",
+      "links": [
+        {
+          "title": "Reanimated: useAnimatedReaction",
+          "url": "https://docs.swmansion.com/react-native-reanimated/docs/advanced/useAnimatedReaction"
+        },
+        {
+          "title": "Reanimated: useAnimatedProps",
+          "url": "https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedProps"
+        },
+        {
+          "title": "Reanimated: useSharedValue",
+          "url": "https://docs.swmansion.com/react-native-reanimated/docs/core/useSharedValue"
+        }
+      ]
     },
     {
       id: "camera-social-16",

@@ -21,6 +21,20 @@ const warnings = [];
 const seenIds = new Set();
 const banks = [];
 
+// Static HTML stays usable over file://; verify its release labels against the app.
+const { version } = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
+const lock = JSON.parse(readFileSync(join(repoRoot, "package-lock.json"), "utf8"));
+if (lock.version !== version || lock.packages[""].version !== version) {
+  errors.push("package-lock.json: release version must match package.json");
+}
+for (const page of ["docs/index.html", "docs/training/index.html"]) {
+  const html = readFileSync(join(repoRoot, page), "utf8");
+  const labels = [...html.matchAll(/<span data-release-version>([^<]+)<\/span>/g)];
+  if (!labels.length || labels.some((label) => label[1] !== `v${version}`)) {
+    errors.push(`${page}: release label must be v${version}`);
+  }
+}
+
 for (const name of readdirSync(banksDir).filter((f) => f.endsWith(".js")).sort()) {
   const registered = [];
   const context = { QUIZ: { register: (bank) => registered.push(bank) } };

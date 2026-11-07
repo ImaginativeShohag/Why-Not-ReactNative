@@ -1,5 +1,11 @@
 import { forwardRef } from "react";
-import { StyleSheet, TextInput, type TextInputProps, View } from "react-native";
+import {
+  StyleSheet,
+  TextInput,
+  type TextInputInstance,
+  type TextInputProps,
+  View,
+} from "react-native";
 
 import Text from "./StoreText";
 import {
@@ -20,41 +26,43 @@ type FormFieldProps = TextInputProps & {
  * autoComplete, keyboardType, returnKeyType) passes straight through so each
  * screen sets the correct OS autofill hints.
  */
-const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
-  { label, error, backgroundColor, textColor, style, ...input },
-  ref,
-) {
-  const colors = useStoreColors();
-  const styles = useStoreStyles(createStyles);
-  return (
-    <View
-      style={[
-        styles.field,
-        { backgroundColor: backgroundColor ?? colors.fill },
-        error && styles.fieldError,
-      ]}
-    >
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        ref={ref}
-        placeholderTextColor={colors.muted}
-        accessibilityLabel={label}
-        accessibilityHint={error}
-        style={[styles.input, { color: textColor ?? colors.label }, style]}
-        {...input}
-      />
-      {error ? (
-        <Text
-          style={styles.error}
-          accessibilityLiveRegion="polite"
-          accessibilityRole="alert"
-        >
-          ⚠ {error}
-        </Text>
-      ) : null}
-    </View>
-  );
-});
+const FormField = forwardRef<TextInputInstance, FormFieldProps>(
+  function FormField(
+    { label, error, backgroundColor, textColor, style, ...input },
+    ref,
+  ) {
+    const colors = useStoreColors();
+    const styles = useStoreStyles(createStyles);
+    return (
+      <View
+        style={[
+          styles.field,
+          { backgroundColor: backgroundColor ?? colors.fill },
+          error && styles.fieldError,
+        ]}
+      >
+        <Text style={styles.label}>{label}</Text>
+        <TextInput
+          ref={ref}
+          placeholderTextColor={colors.muted}
+          accessibilityLabel={label}
+          accessibilityHint={error}
+          style={[styles.input, { color: textColor ?? colors.label }, style]}
+          {...input}
+        />
+        {error ? (
+          <Text
+            style={styles.error}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+          >
+            ⚠ {error}
+          </Text>
+        ) : null}
+      </View>
+    );
+  },
+);
 
 export default FormField;
 

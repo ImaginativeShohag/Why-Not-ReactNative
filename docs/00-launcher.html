@@ -112,6 +112,8 @@
   <p>Six exercises will share one repo, one Metro bundle and one native app. If the first project owns the top of <code>src/app/</code> and dumps its code into flat <code>src/components</code>, <code>src/hooks</code> and <code>src/stores</code>, every later project either collides with it or gets bolted on awkwardly. Decide the shape once: a launcher at <code>/</code>, one directory per project, a small deliberate <code>shared</code> layer, and lint rules that make the boundaries real. Everything in Projects 01–06 assumes this skeleton.</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Expo prebuild now generates <code>SceneDelegate.swift</code> and the iOS scene manifest. The SDK 57 <code>withSceneLifecycle</code> workaround has been removed. Stack layouts explicitly use <code>headerTransparent: false</code> to preserve their opaque headers. Two native requirements changed as well: the iOS build uses dynamic frameworks (<code>expo-build-properties</code> with <code>ios.useFrameworks: "dynamic"</code>) because <code>@stripe/stripe-react-native</code> 0.81 resolves the Stripe SDK through Swift Package Manager, and the Android Gradle Plugin needs Gradle 9.4.1, so regenerate an <code>android/</code> folder that was prebuilt before the upgrade.</p>
+
 <h2 id="objectives">Learning objectives</h2>
 <ul>
   <li>Design a repo where several independent apps share one Expo Router tree without sharing code by accident.</li>
@@ -213,7 +215,7 @@
 
 <ul>
   <li>The root <code>_layout.tsx</code> renders <strong>one</strong> <code>Stack.Screen</code> per registry entry, generated with <code>PROJECTS.map</code>: <code>projects/&lt;slug&gt;</code> with <code>headerShown: false</code> for a project stack, or <code>projects/&lt;slug&gt;/index</code> with the registry <code>title</code> as header for a <code>singleScreen</code> project. Each project's own <code>_layout.tsx</code> then owns its inner Stack, tabs and modals.</li>
-  <li>Home is <code>/</code> with no auto-redirect, and no <code>initialRouteName</code> is set anywhere. Because each project is pushed from Home, back navigation returns to the launcher for free.</li>
+  <li>Home is <code>/</code> with no auto-redirect, and project stacks use <code>unstable_settings.anchor</code> only where a deep link needs a back destination. Because each project is pushed from Home, back navigation returns to the launcher for free.</li>
   <li>Deep links are namespaced because the launcher owns the root: <code>whynotreactnative://projects/&lt;slug&gt;/…</code>.</li>
   <li><code>src/app/+native-intent.tsx</code> exports <code>redirectSystemPath</code>, which tries a list of pure per-project rewriters (universal links such as <code>/p/&lt;id&gt;</code>, share-extension callbacks) and returns the first match, or the original path. It never throws on a malformed URL. Keep each rewriter in its own slice so it can be unit-tested.</li>
 </ul>

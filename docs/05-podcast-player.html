@@ -117,6 +117,8 @@
   <p>Two reasons. First, audio is the hardest media type to get right — interruptions, route changes, remote commands, and background sessions all have to work or the app is unusable. Second, by now you have four apps and zero release experience. This project is where you learn to ship: build profiles, over-the-air updates, percentage rollouts, rollback, and the runtime-version rules that decide whether an OTA update is even legal.</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Stack layouts explicitly keep opaque headers with <code>headerTransparent: false</code>. Install <code>expo-asset</code> directly as required by <code>expo-audio</code>, and rebuild native clients after upgrading.</p>
+
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end of this project you can: keep audio playing across navigation, backgrounding and interruptions; persist listening position and a queue without hammering the database; download large files resumably and survive a killed app; parse messy real-world RSS defensively; and take a JS fix from a pull request to a tester's phone without a store review, knowing exactly when an OTA is and isn't legal.</p>
@@ -779,7 +781,7 @@ fingerprint.yml   nightly + manual
 
 <footer class="lp-foot">
   <div class="lp-foot-in">
-    <span>Project 05 · targets Expo SDK 57 / RN 0.86</span>
+    <span>Project 05 · targets Expo SDK 58 / RN 0.88</span>
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </div>
 </footer>

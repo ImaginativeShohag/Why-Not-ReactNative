@@ -44,7 +44,7 @@ export function ShareCard({ data }: { data: ShareCardData }) {
     fontWeight: "600",
   });
 
-  const route = Skia.Path.Make();
+  const route = Skia.PathBuilder.Make();
   const box = { x: 90, y: 280, s: 620 };
   const offsetX = (width - box.s) / 2;
   data.path.forEach(([x, y], i) =>
@@ -65,7 +65,7 @@ export function ShareCard({ data }: { data: ShareCardData }) {
       <Text x={90} y={150} text={data.title} font={titleFont} color="#ffffff" />
       <Text x={90} y={210} text={data.date} font={labelFont} color="#9ca3af" />
       <Path
-        path={route}
+        path={route.detach()}
         style="stroke"
         strokeWidth={10}
         color="#22c55e"

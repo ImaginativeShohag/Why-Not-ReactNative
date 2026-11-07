@@ -113,6 +113,8 @@
   <p>Work through the milestones in order. After each one, open the matching files in the finished code, and use the quiz bank (<code>docs/training/</code>, project 03) to test whether you can find and explain what you built.</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Form refs use <code>TextInputInstance</code>. Carousel 5 uses the named <code>Carousel</code> export, <code>itemSize</code>, <code>snapMode="page"</code>, <code>autoplay</code>, <code>autoplayInterval</code>, and <code>layout={{ type: "parallax", scale: 0.9, offset: 50 }}</code>; the container height belongs in <code>style</code>. Refresh handlers await refetch and return no value.</p>
+
 <h2 id="objectives">Learning objectives</h2>
 
 <p>By the end you can build, explain and test each of the following. Each row names where the finished implementation lives, so you can check your work against it.</p>
@@ -325,7 +327,7 @@
 ├── _layout.tsx              providers + Stack.Protected guards (project-level, not root)
 ├── onboarding.tsx           shown only until the per-device flag is set
 ├── (auth)/
-│   ├── _layout.tsx          error boundary, initialRouteName "sign-in"
+│   ├── _layout.tsx          error boundary, anchor "sign-in"
 │   ├── sign-in.tsx
 │   ├── sign-up.tsx
 │   └── forgot.tsx
@@ -672,13 +674,13 @@ TEARDOWN
 
 <h2 id="libraries">Library hints</h2>
 
-<p>Check each library's current docs before you write against it (APIs move between SDKs). Notes below were checked against the Expo SDK 57 docs and TanStack Query v5.</p>
+<p>Check each library's current docs before you write against it (APIs move between SDKs). Notes below were checked against the Expo SDK 58 docs and TanStack Query v5.</p>
 
 <div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
 <tbody>
 <tr><td>Secure storage</td><td><code>expo-secure-store</code></td><td><code>setItemAsync</code>, <code>getItemAsync</code>, <code>deleteItemAsync</code>, <code>keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY</code>, <code>requireAuthentication</code>. Keys may only contain alphanumerics, <code>.</code>, <code>-</code> and <code>_</code>.</td></tr>
-<tr><td>Routing guards</td><td><code>expo-router</code></td><td><code>&lt;Stack.Protected guard={…}&gt;</code> (a false guard removes the screens and redirects to the anchor or first available screen; a <code>redirectTo</code> prop arrives in a later SDK, so on 57 the intent buffer does that job), <code>useRouter</code>, <code>useLocalSearchParams</code>, <code>unstable_settings.initialRouteName</code>, <code>useRootNavigationState</code>, <code>ErrorBoundary</code> exports, <code>+native-intent.tsx</code> (<code>redirectSystemPath</code>)</td></tr>
+<tr><td>Routing guards</td><td><code>expo-router</code></td><td><code>&lt;Stack.Protected guard={…}&gt;</code> (a false guard renders a redirect to an accessible anchor or the first available screen; use <code>redirectTo</code> for an explicit destination), <code>useRouter</code>, <code>useLocalSearchParams</code>, <code>unstable_settings.anchor</code>, <code>useRootNavigationState</code>, <code>ErrorBoundary</code> exports, <code>+native-intent.tsx</code> (<code>redirectSystemPath</code>)</td></tr>
 <tr><td>Server state</td><td><code>@tanstack/react-query</code> v5</td><td><code>queryOptions</code>, <code>useInfiniteQuery</code> (<code>initialPageParam</code>, <code>getNextPageParam</code>), <code>useMutation</code> with <code>onMutate</code>/<code>onError</code>/<code>onSettled</code>, <code>queryClient.setQueryData(key, data, { updatedAt })</code>, <code>prefetchQuery</code>, <code>ensureQueryData</code>, <code>setQueryDefaults</code>, <code>removeQueries</code>, <code>focusManager</code>, <code>onlineManager</code></td></tr>
 <tr><td>Cache persistence</td><td><code>@tanstack/query-async-storage-persister</code> + <code>@tanstack/react-query-persist-client</code></td><td><code>createAsyncStoragePersister({ storage, key, throttleTime })</code>, <code>persistQueryClient({ queryClient, persister, maxAge, buster, dehydrateOptions })</code> returning <code>[unsubscribe, restored]</code>, <code>shouldDehydrateQuery</code>. Keep <code>gcTime</code> &ge; <code>maxAge</code>. The finished code calls <code>persistQueryClient</code> directly (scoped, stoppable) rather than mounting <code>PersistQueryClientProvider</code>.</td></tr>
 <tr><td>HTTP</td><td><code>axios</code></td><td><code>axios.create</code>, request/response interceptors and <code>eject</code>, the <code>adapter</code> config (a test seam), <code>AxiosError</code>, <code>isAxiosError</code></td></tr>
@@ -735,7 +737,7 @@ TEARDOWN
 
 <ol>
   <li><strong>Group routes by who may see them.</strong> <code>(auth)</code> holds sign-in, sign-up and forgot-password; <code>(app)</code> holds everything else. A screen is <code>&lt;folder&gt;/index.tsx</code> or a named file, and parameter names follow the file name (<code>product/[id]</code> is read with <code>useLocalSearchParams&lt;{ id: string }&gt;()</code>).</li>
-  <li><strong>The guards live one level down.</strong> The store layout (not the root) owns <code>Stack.Protected</code>, so the root only knows "there is a project called store". Each group has its own <code>_layout.tsx</code> with its own <code>ErrorBoundary</code> and <code>unstable_settings.initialRouteName</code>.</li>
+  <li><strong>The guards live one level down.</strong> The store layout (not the root) owns <code>Stack.Protected</code>, so the root only knows "there is a project called store". Each group has its own <code>_layout.tsx</code> with its own <code>ErrorBoundary</code> and <code>unstable_settings.anchor</code>.</li>
   <li><strong>URLs lose group segments.</strong> <code>(app)/(tab)/bag</code> is <code>/projects/store/bag</code>. Every hardcoded href, notification payload mapping and link rewriter must target the namespaced URL.</li>
   <li><strong>Declaration order matters.</strong> The bare URL lands on the first available group, so <code>(app)</code> goes before <code>(auth)</code> and a guest can reach both.</li>
   <li><strong>Session state stays out of screens.</strong> No splash timer and no per-screen redirects: <code>SessionProvider</code> plus guards decide what is reachable. Signing out changes state; it never calls <code>router.replace</code>.</li>
@@ -765,7 +767,7 @@ TEARDOWN
 
 <footer class="lp-foot">
   <div class="lp-foot-in">
-    <span>Project 03 · targets Expo SDK 57 / RN 0.86</span>
+    <span>Project 03 · targets Expo SDK 58 / RN 0.88</span>
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </div>
 </footer>

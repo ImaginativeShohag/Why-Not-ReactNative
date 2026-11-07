@@ -1,4 +1,4 @@
-import type { CameraType, FlashMode } from "expo-camera";
+import type { CameraType, FlashMode, LensInfo } from "expo-camera";
 import { useCallback, useMemo, useState } from "react";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 
@@ -22,18 +22,22 @@ export function useCameraController() {
   const [flash, setFlash] = useState<FlashMode>("off");
   const [torch, setTorch] = useState(false);
   const [mode, setMode] = useState<CaptureMode>("photo");
-  const [lenses, setLenses] = useState<string[]>([]);
+  const [lenses, setLenses] = useState<LensInfo[]>([]);
   const [selectedLens, setSelectedLens] = useState<string | undefined>();
   const zoom = useSharedValue(0);
 
   const ultraWideLens = useMemo(
-    () => lenses.find((l) => /ultra\s*wide/i.test(l)),
+    () =>
+      lenses.find(
+        (l) => l.deviceType === "AVCaptureDeviceTypeBuiltInUltraWideCamera",
+      )?.deviceType,
     [lenses],
   );
   const defaultLens = useMemo(
     () =>
-      lenses.find((l) => /^back (dual |triple )?(wide )?camera$/i.test(l)) ??
-      lenses.find((l) => !/ultra|tele/i.test(l)),
+      lenses.find(
+        (l) => l.deviceType === "AVCaptureDeviceTypeBuiltInWideAngleCamera",
+      )?.deviceType,
     [lenses],
   );
 

@@ -1,3 +1,4 @@
+import type { FlatListProps } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
@@ -10,7 +11,6 @@ import {
   Text,
   useWindowDimensions,
   View,
-  type ViewToken,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -77,16 +77,15 @@ export default function PostDetailScreen() {
     else router.replace("/projects/camera-social");
   }, []);
 
-  const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken<CapturePage>[] }) => {
-      const first = viewableItems[0]?.item;
-      if (first) {
-        setCurrentId(first.id);
-        setZoomed(false);
-      }
-    },
-    [],
-  );
+  const onViewableItemsChanged = useCallback<
+    NonNullable<FlatListProps<CapturePage>["onViewableItemsChanged"]>
+  >(({ viewableItems }) => {
+    const first = viewableItems[0]?.item;
+    if (first) {
+      setCurrentId(first.id);
+      setZoomed(false);
+    }
+  }, []);
 
   const run = async (task: () => Promise<unknown>, success?: string) => {
     try {

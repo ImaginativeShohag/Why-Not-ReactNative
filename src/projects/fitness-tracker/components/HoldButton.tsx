@@ -35,9 +35,9 @@ export function HoldButton({
   const stroke = 6;
 
   const ring = useMemo(() => {
-    const p = Skia.Path.Make();
+    const p = Skia.PathBuilder.Make();
     p.addCircle(size / 2, size / 2, size / 2 - stroke / 2);
-    return p;
+    return p.detach();
   }, [size]);
 
   const finish = () => {

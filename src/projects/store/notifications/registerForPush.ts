@@ -1,3 +1,4 @@
+import { AndroidImportance, IosAuthorizationStatus } from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
@@ -32,12 +33,12 @@ export async function ensureAndroidChannels() {
     Notifications.setNotificationChannelAsync(ORDER_CHANNEL_ID, {
       name: "Order updates",
       description: "Shipping and delivery updates for your orders",
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: AndroidImportance.HIGH,
     }),
     Notifications.setNotificationChannelAsync(PROMO_CHANNEL_ID, {
       name: "Offers",
       description: "Occasional promotions",
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: AndroidImportance.DEFAULT,
     }),
   ]);
 }
@@ -61,9 +62,7 @@ export async function registerNotificationCategories() {
 export async function getPushPermission(): Promise<PushPermission> {
   const settings = await Notifications.getPermissionsAsync();
   if (settings.granted) return "granted";
-  if (
-    settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
-  ) {
+  if (settings.ios?.status === IosAuthorizationStatus.PROVISIONAL) {
     return "granted";
   }
   return settings.canAskAgain ? "undetermined" : "denied";

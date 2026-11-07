@@ -126,6 +126,8 @@
   <p>Projects 01 to 05 spend most of their effort on the platform: databases, cameras, payments, background tasks and release pipelines. Tic-tac-toe has none of that, so the interesting parts are the ones every app has: where the rules live, what state is stored and what is derived, how a timer is cleaned up, how an animation stays on the UI thread, and how a screen reader hears the board. It is small enough to read in one sitting and strict enough to be worth reading.</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Timeline refs use <code>ScrollViewInstance</code> under React Native’s strict TypeScript API. The game header explicitly remains opaque.</p>
+
 <h2 id="build">1 · What you'll build</h2>
 
 <p>One screen, reachable from the launcher as <strong>Tic-Tac-Toe</strong>. From top to bottom:</p>
@@ -1363,7 +1365,7 @@ beforeEach(() =&gt; {
 <tr><td>Endless loops</td><td><code>withRepeat(…, -1)</code> keeps running after the reason for it is gone.</td><td><code>cancelAnimation</code> when the condition ends and in the effect cleanup.</td></tr>
 <tr><td>A horizontal <code>ScrollView</code> in a column</td><td>It grows to fill the column and pushes everything apart.</td><td>The timeline sets <code>flexGrow: 0</code> on its <code>style</code>.</td></tr>
 <tr><td>Module constants in a worklet's default parameter</td><td>The worklets plugin doesn't capture them; undefined on the UI runtime, and a Release build aborts.</td><td>No worklet here has a default parameter; values are computed in the component body and closed over.</td></tr>
-<tr><td><code>StyleSheet.absoluteFillObject</code></td><td>Gone in React Native 0.86.</td><td><code>StyleSheet.absoluteFill</code> for the square highlight and the win line.</td></tr>
+<tr><td><code>StyleSheet.absoluteFillObject</code></td><td>Removed in <a href="https://reactnative.dev/blog/2026/04/07/react-native-0.85#stylesheetabsolutefillobject-removed">React Native 0.85</a>.</td><td><code>StyleSheet.absoluteFill</code> for the square highlight and the win line.</td></tr>
 <tr><td><code>Appearance.setColorScheme</code></td><td>Process-wide, leaves a stale scheme behind.</td><td>A project palette (<a href="#theming">§7</a>).</td></tr>
 <tr><td>Acting before hydration</td><td>A tap on the default board is overwritten when the saved game loads; restoring buzzes.</td><td>Board disabled and haptics muted until <code>useGameHydrated()</code> is true.</td></tr>
 <tr><td>Changing a persisted shape in place</td><td>Old saves hydrate into the new code with the old shape; <code>scores[mode]</code> is <code>undefined</code>.</td><td><code>version: 2</code> plus a tested <code>migrateGame</code>.</td></tr>

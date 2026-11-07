@@ -65,6 +65,7 @@ function JournalStack() {
       <LockGate locked={locked} obscured={obscured} onUnlock={authenticate}>
         <Stack
           screenOptions={{
+            headerTransparent: false,
             headerTintColor: palette.accent,
             contentStyle: { backgroundColor: palette.paper },
           }}

@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { version } from "./package.json";
 
 /**
  * Dynamic config (Project 03 · M1). APP_VARIANT is set per EAS build profile in
@@ -51,7 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: variant.name,
   slug: "Why-Not-ReactNative",
-  version: "1.0.0",
+  version,
   orientation: "portrait",
   // Generated from src/assets/images/icon.svg by scripts/generate-app-icons.cjs.
   icon: "./src/assets/images/icon.png",
@@ -124,9 +125,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./src/assets/images/favicon.png",
   },
   plugins: [
-    // iOS 27 crashes at launch without the UIScene life cycle. Listed first so
-    // its AppDelegate mod runs last, after every other plugin's edits.
-    "./plugins/withSceneLifecycle",
     "expo-router",
     [
       "expo-splash-screen",
@@ -150,7 +148,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-localization",
     "expo-sharing",
     "expo-background-task",
-    ["expo-build-properties", { android: { minSdkVersion: 26 } }],
+    [
+      "expo-build-properties",
+      {
+        android: { minSdkVersion: 26 },
+        // stripe-react-native 0.81 resolves the Stripe iOS SDK through Swift Package
+        // Manager, which needs dynamic frameworks.
+        ios: { useFrameworks: "dynamic" },
+      },
+    ],
     "expo-apple-authentication",
     ["expo-notifications", { color: "#4f46e5", defaultChannel: "default" }],
     [

@@ -24,6 +24,7 @@ export default function PodcastPlayerLayout() {
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
+          headerTransparent: false,
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.text,
           headerTitleStyle: { color: colors.text },

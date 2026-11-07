@@ -254,26 +254,35 @@ QUIZ.register({
 
     // ---------------------------------------------------------------- L2
     {
-      id: "store-13",
-      type: "mcq",
-      level: 2,
-      topics: ["Expo Router", "Auth & Security"],
-      files: ["src/app/projects/store/_layout.tsx"],
-      prompt:
-        "In the store layout, an onboarded **guest** passes the guards of both `(app)` (`onboarded && canBrowse`) and `(auth)` (`onboarded && !signedIn`). Opening `/projects/store` still lands them on the Home tab, not sign-in. Why? Read the declaration order and the comment in the store layout, then check the Expo docs on what a false guard does.",
-      choices: [
+      "id": "store-13",
+      "type": "mcq",
+      "level": 2,
+      "topics": [
+        "Expo Router",
+        "Auth & Security"
+      ],
+      "files": [
+        "src/app/projects/store/_layout.tsx"
+      ],
+      "prompt": "In the store layout, an onboarded **guest** passes the guards of both `(app)` (`onboarded && canBrowse`) and `(auth)` (`onboarded && !signedIn`). Opening `/projects/store` still lands them on the Home tab, not sign-in. Why? Read the declaration order and the comment in the store layout, then check the Expo docs on what a false guard does.",
+      "choices": [
         "`(app)` is declared before `(auth)`, and the root URL lands on the first available screen in the Stack",
         "sign-in.tsx contains a `<Redirect>` that sends guests to the tabs",
         "`unstable_settings.initialRouteName` in the `(auth)` layout points at `(app)`",
-        "Stack.Protected gives priority to whichever guard was evaluated last",
+        "Stack.Protected gives priority to whichever guard was evaluated last"
       ],
-      links: [
-        { title: "Expo Router: Protected routes", url: "https://docs.expo.dev/router/advanced/protected" },
-        { title: "Expo Router: Authentication", url: "https://docs.expo.dev/router/advanced/authentication" },
+      "links": [
+        {
+          "title": "Expo Router: Protected routes",
+          "url": "https://docs.expo.dev/router/advanced/protected"
+        },
+        {
+          "title": "Expo Router: Authentication",
+          "url": "https://docs.expo.dev/router/advanced/authentication"
+        }
       ],
-      answer: 0,
-      explain:
-        "`Stack.Protected` removes screens whose guard is false. Among the screens that remain, the navigator's initial route for `/projects/store` is the first one declared. The layout comments on this: \"Declared before (auth): a guest can reach both\". Because `(auth)` stays reachable, a guest can still push `/projects/store/sign-in` from the bag or Home. Once the status flips to `signedIn`, the `(auth)` guard becomes false and the router leaves that group on its own, with no imperative `router.replace`.\n\nThe decision is to model access as **state** (onboarded, guest, signedIn) and let guards derive the tree, so sign-out is \"change state\". The failure mode if you reverse the order is a guest who lands on the sign-in form every time they open the store. Note that SDK 57 has no `redirectTo` prop on `Stack.Protected`, so ordering plus the intent buffer do that job.\n\nDoc: **Architecture > Route groups** and milestone **M2**.",
+      "answer": 0,
+      "explain": "In SDK 58, protected routes stay registered, but a false guard renders a redirect. Expo Router chooses an accessible anchor or initial route, then the first accessible route. Both app and auth groups allow a guest, so declaration order lands them in the app group. Once signed in, the auth guard redirects to an accessible route. Stack.Protected also supports redirectTo for an explicit destination. Access remains derived from session state."
     },
     {
       id: "store-14",

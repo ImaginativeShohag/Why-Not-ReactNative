@@ -112,6 +112,8 @@
   <p>Everything so far stayed inside the JS sandbox. This project cannot. Reliable background tracking needs platform capabilities, entitlements, foreground-service declarations, and eventually your own native code. This is where you learn what <code>npx expo prebuild</code> actually does, how a config plugin mutates the native project, and how to write an Expo Module — the skills that separate "I use Expo" from "I understand Expo".</p>
 </div>
 
+<p><strong>SDK 58 migration:</strong> Skia paths are immutable. Build charts, rings and route previews with <code>Skia.PathBuilder.Make()</code>, then use <code>build()</code> for a reusable snapshot or <code>detach()</code> to finish construction. Expo prebuild now owns iOS scene lifecycle generation.</p>
+
 <h2 id="objectives">Learning objectives</h2>
 
 <p>You will build a workout recorder that keeps recording with the screen off and the app suspended, survives being killed mid-run, and shows live progress on the lock screen, in a notification and on the home screen. The finished system lives in four places: <code>src/projects/fitness-tracker/</code> (the app slice), <code>src/app/projects/fitness-tracker/</code> (routes), <code>modules/live-activity/</code> (the local Expo Module) and <code>plugins/</code> (the hand-written config plugin and the widget extension sources). Read this page top to bottom once, then build it milestone by milestone; every milestone ends with a checkpoint you can run.</p>
@@ -387,7 +389,6 @@
 │               └── res/                    widget layout, drawable, appwidget-provider xml
 └── plugins/                      ← your hand-written config plugins
     ├── withWorkoutCapabilities.js   plist, entitlements, manifest, widget target
-    ├── withSceneLifecycle.js        iOS UIScene adoption (not fitness-specific)
     └── workout-widget/              Swift sources + Info.plist copied into the extension
         ├── WorkoutWidgetBundle.swift, WorkoutLiveActivity.swift, TodayWidget.swift
         └── Info.plist</code></pre>
@@ -447,7 +448,6 @@ withWorkoutCapabilities(config, { appGroup })        // throws unless appGroup s
   exported through createRunOncePlugin, plus the unwrapped function for tests
 
 Order in app.config.ts matters: mods of LATER plugins run FIRST.
-  "./plugins/withSceneLifecycle"          first  → its AppDelegate mod runs last
   ["./plugins/withWorkoutCapabilities"]   before expo-share-intent → runs after it,
                                           so addUnique() can collapse a duplicated App Group
 
@@ -679,7 +679,7 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
 
 <h2 id="libraries">Library hints</h2>
 
-<p>Check each package's current docs before coding (the API surfaces below are what the finished app uses on Expo SDK 57):</p>
+<p>Check each package's current docs before coding (the API surfaces below are what the finished app uses on Expo SDK 58):</p>
 
 <div class="wu-scroll"><table>
 <thead><tr><th>Need</th><th>Package</th><th>Key API surface</th></tr></thead>
@@ -765,7 +765,7 @@ npx expo prebuild --clean --platform ios --no-install # then inspect ios/ (plugi
 
 <footer class="lp-foot">
   <div class="lp-foot-in">
-    <span>Project 04 · targets Expo SDK 57 / RN 0.86</span>
+    <span>Project 04 · targets Expo SDK 58 / RN 0.88</span>
     <span>By <a href="https://github.com/ImaginativeShohag/" target="_blank" rel="noopener noreferrer">Md. Mahmudul Hasan Shohag</a></span>
   </div>
 </footer>

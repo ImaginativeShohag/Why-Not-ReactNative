@@ -771,7 +771,7 @@
           <h1>Learn React Native by reading <span class="grad-text">real production code.</span></h1>
           <p class="lead">Every question points at actual files in this repo: routing, offline sync, payments, background tasks, native modules and OTA releases. Work out the answer from the code, then read exactly why.</p>
           <div class="qz-cta">${primary}<a class="qz-btn lg" href="#/review">${ic("repeat")} ${all.due ? `Review ${all.due} due` : "Review mode"}</a></div>
-          <div class="qz-techs"><span>${ic("check")} Expo SDK 57</span><span>${ic("check")} React Native 0.86</span><span>${ic("check")} React 19.2 + Compiler</span><span>${ic("check")} Spaced repetition</span></div>
+          <div class="qz-techs"><span>${ic("check")} Expo SDK 58</span><span>${ic("check")} React Native 0.88</span><span>${ic("check")} React 19.3 + Compiler</span><span>${ic("check")} Spaced repetition</span></div>
         </div>
         <div class="qz-panel qz-progress-card" data-reveal style="--i:2">
           <div class="qz-pc-head"><h3>Your progress</h3><span>${today} answered today</span></div>

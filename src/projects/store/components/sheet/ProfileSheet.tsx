@@ -81,7 +81,9 @@ export default function ProfileSheet() {
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
-          onRefresh={() => refetch()}
+          onRefresh={async () => {
+            await refetch();
+          }}
           tintColor={colors.muted}
         />
       }

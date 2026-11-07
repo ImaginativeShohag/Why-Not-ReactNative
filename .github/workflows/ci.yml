@@ -32,6 +32,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Training banks and release version consistency
+        run: node docs/training/validate.mjs
+
       - name: Typecheck
         run: npm run typecheck
 

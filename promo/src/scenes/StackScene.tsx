@@ -6,9 +6,9 @@ import { Sfx, Voice } from "../audio";
 import { VO_START } from "../timeline";
 
 const STACK = [
-  "Expo SDK 57",
-  "React Native 0.86",
-  "React 19.2 + Compiler",
+  "Expo SDK 58",
+  "React Native 0.88",
+  "React 19.3 + Compiler",
   "TypeScript 6",
   "New Architecture",
   "Expo Router",

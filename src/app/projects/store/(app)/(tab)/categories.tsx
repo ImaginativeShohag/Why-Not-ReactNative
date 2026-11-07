@@ -58,7 +58,9 @@ export default function CategoriesScreen() {
           <RefreshControl
             tintColor={colors.muted}
             refreshing={isRefetching}
-            onRefresh={() => refetch()}
+            onRefresh={async () => {
+              await refetch();
+            }}
           />
         }
         renderItem={({ item: category, index }) => {

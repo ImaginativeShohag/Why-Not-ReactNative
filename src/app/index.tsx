@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
@@ -34,6 +35,9 @@ export default function IndexScreen() {
               onPress={() => router.push(item.route)}
             />
           ))}
+          <ThemedText style={[styles.version, { color: muted }]}>
+            Version {Constants.expoConfig?.version}
+          </ThemedText>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -41,6 +45,11 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
+  version: {
+    fontSize: 12,
+    marginTop: 16,
+    textAlign: "center",
+  },
   container: {
     flex: 1,
   },

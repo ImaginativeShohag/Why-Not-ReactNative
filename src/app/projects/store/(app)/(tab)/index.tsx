@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Carousel from "react-native-reanimated-carousel";
+import { Carousel } from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getErrorMessage } from "@/src/projects/store/api/errors";
@@ -97,18 +97,16 @@ export default function HomeScreen() {
       {featured.length > 0 ? (
         <Carousel
           loop
-          width={screenWidth - 16 * 2}
-          height={150}
-          snapEnabled
-          pagingEnabled
-          autoPlayInterval={3000}
-          autoPlay
+          itemSize={screenWidth - 16 * 2}
+          snapMode="page"
+          autoplayInterval={3000}
+          autoplay
           data={featured.slice(0, 6)}
-          style={{ width: "100%" }}
-          mode="parallax"
-          modeConfig={{
-            parallaxScrollingScale: 0.9,
-            parallaxScrollingOffset: 50,
+          style={{ width: "100%", height: 150 }}
+          layout={{
+            type: "parallax",
+            scale: 0.9,
+            offset: 50,
           }}
           renderItem={({ item }) => (
             <Link
@@ -213,7 +211,9 @@ export default function HomeScreen() {
           <RefreshControl
             tintColor={colors.muted}
             refreshing={catalogue.isRefetching && !catalogue.isFetchingNextPage}
-            onRefresh={() => catalogue.refetch()}
+            onRefresh={async () => {
+              await catalogue.refetch();
+            }}
           />
         }
       />

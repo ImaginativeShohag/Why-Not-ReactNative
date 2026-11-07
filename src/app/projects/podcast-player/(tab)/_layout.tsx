@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -59,7 +60,11 @@ export default function PodcastTabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="home" size={22} color={color} />
+            <Ionicons
+              name="home"
+              size={22}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -68,7 +73,11 @@ export default function PodcastTabLayout() {
         options={{
           title: "Discover",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="search" size={22} color={color} />
+            <Ionicons
+              name="search"
+              size={22}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
           tabBarButtonTestID: "tab-discover",
         }}
@@ -78,7 +87,11 @@ export default function PodcastTabLayout() {
         options={{
           title: "Up Next",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="list" size={22} color={color} />
+            <Ionicons
+              name="list"
+              size={22}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -87,7 +100,11 @@ export default function PodcastTabLayout() {
         options={{
           title: "Downloads",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="download" size={22} color={color} />
+            <Ionicons
+              name="download"
+              size={22}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />

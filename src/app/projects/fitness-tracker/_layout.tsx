@@ -23,7 +23,12 @@ export default function FitnessTrackerLayout() {
   );
 
   return (
-    <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
+    <Stack
+      screenOptions={{
+        headerTransparent: false,
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       {/* The title names the back target of pushed screens (not "(tab)"). */}
       <Stack.Screen
         name="(tab)"

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Tabs } from "expo-router";
 import { Pressable } from "react-native";
@@ -30,7 +31,11 @@ export default function FitnessTabLayout() {
         options={{
           title: "Today",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="today" size={24} color={color} />
+            <Ionicons
+              name="today"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -39,7 +44,11 @@ export default function FitnessTabLayout() {
         options={{
           title: "History",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="list" size={24} color={color} />
+            <Ionicons
+              name="list"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />
@@ -48,7 +57,11 @@ export default function FitnessTabLayout() {
         options={{
           title: "Stats",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="stats-chart" size={24} color={color} />
+            <Ionicons
+              name="stats-chart"
+              size={24}
+              color={color as ComponentProps<typeof Ionicons>["color"]}
+            />
           ),
         }}
       />

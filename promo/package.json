@@ -13,12 +13,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.537",
-    "@remotion/media": "4.0.537",
-    "@remotion/transitions": "4.0.537",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "remotion": "4.0.537"
+    "@remotion/cli": "4.0.541",
+    "@remotion/media": "4.0.541",
+    "@remotion/transitions": "4.0.541",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.541"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

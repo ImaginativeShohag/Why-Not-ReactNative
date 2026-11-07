@@ -18,12 +18,29 @@ routes, components, hooks, stores, API calls and models, kept under its own dire
 | 06 | Tic-tac-toe (Zustand combine + persist, minimax CPU, Reanimated + SVG animation, haptics) | `tic-tac-toe` | `docs/06-tic-tac-toe.html` |
 
 **Key Tech Stack:**
-- Expo SDK 57, React Native 0.86.3, React 19.2.3 with the React Compiler, TypeScript 6
+- Expo SDK 58, React Native 0.88.1, React 19.3.0 with the React Compiler, TypeScript 6
 - Expo Router (file-based, typed routes, `Stack.Protected`, `+native-intent`)
 - TanStack Query v5 (one app-wide client) and Zustand v5
 - expo-sqlite (journal, camera, fitness, podcast each have their own DB file)
 - Reanimated 4 + react-native-worklets, Gesture Handler, Skia, FlashList v2
 - Jest (`jest-expo`) for unit tests, Maestro for e2e
+
+## Release version policy
+
+- The app and training site share one release version, starting at `0.1.0`.
+- Before every merge into `main`, bump the version above the current `main` version.
+  Use a patch bump by default; use minor or major for changes that warrant it.
+  The initial reset from the placeholder `1.0.0` to `0.1.0` establishes this baseline.
+- `package.json` is the source of truth; `app.config.ts` reads it and the launcher
+  displays the Expo config version. Keep both root version fields in `package-lock.json`
+  and the `data-release-version` labels in `docs/index.html` and
+  `docs/training/index.html` in sync. Do not change the quiz progress storage key
+  for a release bump.
+- Before merging, compare against `main` and run `node docs/training/validate.mjs`
+  to check the static site labels and lockfile versions. Existing workflows stay manual.
+- After the version bump has been merged into `main`, create an annotated Git tag
+  `v<version>` on the merged `main` commit and push it to `origin`. Check that the
+  tag does not already exist; never move or overwrite a published version tag.
 
 ## Development Commands
 
@@ -50,6 +67,14 @@ npx expo run:ios       # needs `cmake` for pod install (Hermes podspec)
 
 **Installing packages:** use `npx expo install`. Behind the sandbox proxy, prefix it with
 `EXPO_OFFLINE=1`; versions then come from the locally bundled SDK manifest.
+
+**Running a dev build behind the sandbox proxy:** start Metro with `EXPO_OFFLINE=1 APP_VARIANT=development
+npx expo start --dev-client`. Without it the dev client's manifest request fails with
+`HTTP 500: HTTP Proxy Network Error: Forbidden` and the app shows "problem loading the project".
+`adb` needs the sandbox off, and `expo run:android` is flaky unless `adb devices` runs first in the
+same command. On iOS, `xcrun simctl openurl` stacks one "Open in …?" system dialog per call; drive
+the simulator with Maestro instead (regex selectors such as `.*Store.*`, because a launcher row's
+accessibility label includes its subtitle).
 
 ## Architecture & Code Organization
 
@@ -235,7 +260,7 @@ and each router ignores payloads that aren't its own.
 - Don't read refs off an object during render (`refs.a`). Use one `const aRef = useRef()` each.
 - Don't call `setState` synchronously in a `useEffect` body. Derive the value during render, or
   refresh it in `useFocusEffect`.
-- `StyleSheet.absoluteFillObject` no longer exists in RN 0.86. Use `StyleSheet.absoluteFill`.
+- `StyleSheet.absoluteFillObject` no longer exists in RN 0.88. Use `StyleSheet.absoluteFill`.
 - In a `"worklet"` function, don't reference module constants only from a default parameter
   (`max = MAX_ZOOM_FACTOR`): the worklets plugin doesn't capture them, the value is undefined on
   the UI runtime, and a Release build aborts. Resolve the default in the body. Jest won't catch
@@ -283,6 +308,16 @@ and each router ignores payloads that aren't its own.
   projects need them, so every plugin gets the shared `CAMERA_PERMISSION` / `PHOTOS_PERMISSION`.
 - New Architecture is on by default, React Compiler and typed routes are enabled, and there is
   no `newArchEnabled` flag.
+- **SDK 58 (Expo 58, RN 0.88, React 19.3):** prebuild generates `SceneDelegate.swift` and the iOS
+  scene manifest, so the SDK 57 `withSceneLifecycle` plugin is gone. Stack layouts set
+  `headerTransparent: false` to keep their opaque headers.
+- **iOS needs dynamic frameworks:** `@stripe/stripe-react-native` 0.81 resolves the Stripe iOS SDK
+  through Swift Package Manager, and `pod install` fails on static linkage. `expo-build-properties`
+  sets `ios: { useFrameworks: "dynamic" }` (it lands in `ios/Podfile.properties.json`). Prefer that
+  over the deprecated `$StripeDisableSPM = true`.
+- **Gradle:** SDK 58's Android Gradle Plugin needs Gradle 9.4.1. A `android/` folder generated before
+  the upgrade pins 9.3.1 and fails with "Minimum supported Gradle version is 9.4.1"; regenerate it
+  with `prebuild` (back it up first).
 
 ### Continuous Native Generation
 
@@ -309,7 +344,7 @@ Cautions:
   plugin, not the `createRunOncePlugin` wrapper, when checking that mods are idempotent.
 - SQL (migrations, triggers, the journal sync engine) is tested against real SQLite through
   Node's built-in `node:sqlite` (Node 22.5+). See `src/projects/offline-journal/testing/nodeDatabase.ts`.
-- TypeScript 6 doesn't auto-load `@types/*`, so `tsconfig.json` sets `"types": ["jest"]`.
+- TypeScript 6 doesn't auto-load `@types/*`, so `tsconfig.json` sets `"types": ["jest", "node"]`.
 - E2E: the Maestro flows in `.maestro/` use `appId: ${APP_ID}`. Pass
   `-e APP_ID=org.imaginativeworld.whynotreactnative.dev` (or `.preview`, as CI does).
 - A milestone is done when typecheck, lint, test and both `expo export` platforms all pass.
